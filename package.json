@@ -19,8 +19,9 @@
   },
   "homepage": "https://github.com/focus-compass/server#readme",
   "dependencies": {
-    "@hocuspocus/server": "^2.10.0",
     "@hocuspocus/extension-sqlite": "^3.4.0",
-    "yjs": "^13.6.14"
+    "@hocuspocus/server": "^3.4.0",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.27"
   }
 }

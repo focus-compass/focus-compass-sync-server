@@ -1,0 +1,26 @@
+{
+  "name": "focus-compass-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/focus-compass/server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/focus-compass/server/issues"
+  },
+  "homepage": "https://github.com/focus-compass/server#readme",
+  "dependencies": {
+    "@hocuspocus/server": "^2.10.0",
+    "@hocuspocus/extension-sqlite": "^3.4.0",
+    "yjs": "^13.6.14"
+  }
+}

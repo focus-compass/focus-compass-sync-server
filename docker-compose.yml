@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  hocuspocus-sync:
+    # Собираем образ из текущей папки, используя Dockerfile
+    build: .
+    
+    # Имя контейнера для удобства
+    container_name: hocuspocus_server
+    
+    # Перезапускать всегда, чтобы обеспечить высокий аптайм
+    restart: unless-stopped
+    
+    # Сопоставление портов:
+    # 8080 (хост) -> 8080 (контейнер)
+    # Вы можете изменить 8080 на хосте, например, на 3000
+    ports:
+      - "${HOCUSPOCUS_PORT:-8080}:8080"
+    
+    # Переменные окружения
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+    
+    # Персистентность данных:
+    # Монтируем Docker Volume (или локальную папку) для хранения базы данных SQLite.
+    # Это гарантирует, что данные сохранятся при перезапуске или обновлении контейнера.
+    # 'hocuspocus-data' - это именованный volume, который Docker создает сам.
+    volumes:
+      - hocuspocus-data:/app/data
+    
+    # Healthcheck для мониторинга работоспособности контейнера
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect({port:8080,host:'localhost'}).on('error',()=>process.exit(1)).on('connect',()=>process.exit(0))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Ограничения ресурсов для предотвращения чрезмерного потребления
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Настройка логирования
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Сеть (опционально, но полезно для изоляции)
+    networks:
+      - hocuspocus-network
+
+# Определение именованного тома для персистентного хранения
+volumes:
+  hocuspocus-data:
+    driver: local
+
+# Определение сети для изоляции
+networks:
+  hocuspocus-network:
+    driver: bridge

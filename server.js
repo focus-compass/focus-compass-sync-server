@@ -1,17 +1,20 @@
+import os from "os";
 import { Server } from "@hocuspocus/server";
 import { SQLite } from "@hocuspocus/extension-sqlite";
 
+const port = Number(process.env.PORT ?? 8080);
+
 // Настройка сервера Hocuspocus
 const server = new Server({
-  // Порт, на котором будет слушать сервер (совпадает с EXPOSE в Dockerfile)
-  port: 8080,
+  // Порт, на котором будет слушать сервер (используется также в Dockerfile/docker-compose)
+  port,
   
   // Список расширений
   extensions: [
     new SQLite({
       // Путь к базе данных SQLite (персистентное хранилище)
       // В Docker монтируется в /app/data volume
-      database: './data/db.sqlite',
+      database: "./data/db.sqlite",
     }),
   ],
   
@@ -35,7 +38,34 @@ const server = new Server({
   }
 });
 
+const printAccessibleUrls = () => {
+  const networkInterfaces = os.networkInterfaces();
+  const urls = new Set([`http://localhost:${port}`]);
+
+  for (const nets of Object.values(networkInterfaces)) {
+    for (const net of nets ?? []) {
+      if (net.family === "IPv4" && !net.internal) {
+        urls.add(`http://${net.address}:${port}`);
+      }
+    }
+  }
+
+  console.log("🌐 Подключайтесь по следующим адресам:");
+  for (const url of urls) {
+    console.log(`   → ${url}`);
+  }
+  console.log("⚠️  Убедитесь, что посещение извне разрешено настройками фаервола/маршрутизатора.");
+};
+
 // Запуск сервера
-console.log("🚀 Hocuspocus server listening on port 8080...");
+console.log(`🚀 Hocuspocus server стартует на порту ${port}...`);
 console.log("📁 SQLite database: ./data/db.sqlite");
-server.listen();
+
+try {
+  await server.listen();
+  console.log("✅ Сервер запущен и принимает подключения.");
+  printAccessibleUrls();
+} catch (error) {
+  console.error("❌ Не удалось запустить сервер", error);
+  process.exit(1);
+}

@@ -4,9 +4,11 @@
     <meta charset="utf-8" />
     <title>Hocuspocus Demo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="dns-prefetch" href="https://esm.sh" />
+    <link rel="preconnect" href="https://esm.sh" crossorigin />
     <link rel="preconnect" href="https://compass.sarfex.dev" crossorigin />
-    <link rel="modulepreload" href="./vendor/hocuspocus-provider.bundle.js" />
-    <link rel="modulepreload" href="./vendor/yjs.bundle.js" />
+    <link rel="modulepreload" href="https://esm.sh/@hocuspocus/provider@3.4.0?bundle" />
+    <link rel="modulepreload" href="https://esm.sh/yjs@13.6.27" />
     <style>
       :root {
         color-scheme: dark light;
@@ -109,8 +111,8 @@
     </div>
 
     <script type="module">
-      import { HocuspocusProvider } from "./vendor/hocuspocus-provider.bundle.js";
-      import { Doc } from "./vendor/yjs.bundle.js";
+      import { HocuspocusProvider } from "https://esm.sh/@hocuspocus/provider@3.4.0?bundle";
+      import { Doc } from "https://esm.sh/yjs@13.6.27";
 
       const statusElement = document.getElementById("status");
       const editor = document.getElementById("editor");

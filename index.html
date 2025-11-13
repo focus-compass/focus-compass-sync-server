@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <title>Hocuspocus Demo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://compass.sarfex.dev" crossorigin />
+    <link rel="modulepreload" href="./vendor/hocuspocus-provider.bundle.js" />
+    <link rel="modulepreload" href="./vendor/yjs.bundle.js" />
     <style>
       :root {
         color-scheme: dark light;
@@ -52,28 +55,11 @@
         letter-spacing: -0.02em;
       }
 
-      p {
-        margin: 0;
-        color: var(--text-muted);
-        line-height: 1.6;
-      }
-
-      code {
-        padding: 0.1rem 0.4rem;
-        border-radius: 0.4rem;
-        background: rgba(56, 189, 248, 0.08);
-        color: var(--accent);
-      }
-
       .meta {
         display: grid;
         gap: 0.4rem;
         font-size: 0.95rem;
         color: var(--text-muted);
-      }
-
-      .meta code {
-        font-size: 0.85rem;
       }
 
       textarea#editor {
@@ -97,12 +83,6 @@
         box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(148, 163, 184, 0.1);
       }
 
-      footer {
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        line-height: 1.5;
-      }
-
       @media (max-width: 640px) {
         .shell {
           padding: 1.75rem;
@@ -118,75 +98,90 @@
   <body>
     <div class="shell">
       <header>
-        <h1>Hocuspocus + Y.js демо</h1>
-        <p>
-          Эта страница инициализирует чистый Y.js документ, подключает его к Hocuspocus серверу
-          <code>https://compass.sarfex.dev/</code> и синхронизирует содержимое текстовой области между
-          всеми подключёнными клиентами.
-        </p>
+        <h1>Hocuspocus</h1>
         <div class="meta">
           <div id="status">Статус: инициализация…</div>
-          <div>Сервер: <code id="server"></code></div>
-          <div>Токен: <code id="token"></code></div>
-          <div class="hint">Можно передать параметры <code>?server=wss://…&token=…</code>, чтобы протестировать другие настройки.</div>
         </div>
       </header>
 
       <textarea id="editor" placeholder="Начните вводить текст, чтобы поделиться им с другими клиентами…"></textarea>
 
-      <footer>
-        <strong>Примечание:</strong> подключение использует WebSocket (wss) к Hocuspocus серверу.
-        Откройте эту страницу в нескольких вкладках, чтобы увидеть синхронизацию текста в реальном времени.
-      </footer>
     </div>
 
     <script type="module">
-      import { HocuspocusProvider } from "https://esm.sh/@hocuspocus/provider@3.4.0?bundle";
-      import { Doc } from "https://esm.sh/yjs@13.6.15";
+      import { HocuspocusProvider } from "./vendor/hocuspocus-provider.bundle.js";
+      import { Doc } from "./vendor/yjs.bundle.js";
 
       const statusElement = document.getElementById("status");
       const editor = document.getElementById("editor");
-      const tokenElement = document.getElementById("token");
-      const serverElement = document.getElementById("server");
 
-      const DEFAULT_TOKEN = "focus-compass-demo-token";
-      const params = new URLSearchParams(window.location.search);
-      const serverOverride = params.get("server");
-      const tokenOverride = params.get("token");
+      const providerUrl = "wss://compass.sarfex.dev";
+      const AUTH_TOKEN = "focus-compass-demo-token";
+      const TEXT_CACHE_KEY = "hocuspocus-demo-text";
 
-      const resolveToken = () => tokenOverride?.trim() || DEFAULT_TOKEN;
+      const storage = (() => {
+        try {
+          return window.localStorage ?? null;
+        } catch (error) {
+          console.warn("Не удалось получить доступ к localStorage", error);
+          return null;
+        }
+      })();
 
-      const normalizeUrl = (raw) => {
-        if (!raw) return null;
-        if (/^wss?:\/\//i.test(raw)) return raw;
+      const persistSnapshot = (text) => {
+        if (!storage) return;
 
-        const assumedSecure = raw.includes("localhost")
-          ? window.location.protocol === "https:"
-          : true;
-
-        const protocol = assumedSecure ? "wss" : "ws";
-        return `${protocol}://${raw}`;
+        try {
+          storage.setItem(TEXT_CACHE_KEY, text);
+        } catch (error) {
+          console.warn("Не удалось сохранить локальную копию документа", error);
+        }
       };
 
-      const deriveProviderUrl = () => {
-        const override = normalizeUrl(serverOverride);
-        if (override) return override.endsWith("/") ? override : `${override}/`;
+      const restoreCachedContent = () => {
+        if (!storage) return false;
 
-        const host = window.location.host || DEFAULT_HOST;
-        const secure = window.location.protocol === "https:" || host === DEFAULT_HOST;
-        const protocol = secure ? "wss" : "ws";
-        const url = `${protocol}://${host}`;
-        return url.endsWith("/") ? url : `${url}/`;
+        try {
+          const cached = storage.getItem(TEXT_CACHE_KEY);
+          if (!cached) return false;
+
+          editor.value = cached;
+          return true;
+        } catch (error) {
+          console.warn("Не удалось восстановить локальную копию документа", error);
+          return false;
+        }
       };
-
-      const providerUrl = deriveProviderUrl();
-      const AUTH_TOKEN = resolveToken();
-
-      serverElement.textContent = providerUrl;
-      tokenElement.textContent = AUTH_TOKEN;
 
       const ydoc = new Doc();
       const yText = ydoc.getText("demo");
+
+      const hadCachedContent = restoreCachedContent();
+      if (hadCachedContent) {
+        statusElement.textContent = "Статус: загружены локальные данные, ожидание синхронизации…";
+      }
+
+      const applyRemoteContent = () => {
+        const newText = yText.toString();
+        if (editor.value === newText) return;
+
+        if (document.activeElement === editor) {
+          const { selectionStart, selectionEnd } = editor;
+          editor.value = newText;
+          editor.setSelectionRange(selectionStart, selectionEnd);
+        } else {
+          editor.value = newText;
+        }
+
+        persistSnapshot(newText);
+      };
+
+      let isLocalChange = false;
+
+      const handleRemoteUpdate = () => {
+        if (isLocalChange) return;
+        applyRemoteContent();
+      };
 
       const provider = new HocuspocusProvider({
         url: providerUrl,
@@ -212,6 +207,10 @@
         statusElement.textContent = isSynced
           ? "Статус: синхронизация завершена"
           : "Статус: синхронизация прервана";
+
+        if (isSynced) {
+          handleRemoteUpdate();
+        }
       });
 
       provider.on("disconnect", () => {
@@ -226,31 +225,22 @@
         statusElement.textContent = `Статус: ошибка — ${event.message ?? event}`;
       });
 
-      const applyRemoteContent = () => {
-        const newText = yText.toString();
-        if (editor.value !== newText) {
-          const { selectionStart, selectionEnd } = editor;
-          editor.value = newText;
-          editor.setSelectionRange(selectionStart, selectionEnd);
-        }
-      };
-
-      // Инициализируем содержимое при загрузке страницы.
-      applyRemoteContent();
-
-      let isLocalChange = false;
+      yText.observe(handleRemoteUpdate);
 
       editor.addEventListener("input", () => {
         isLocalChange = true;
-        yText.delete(0, yText.length);
-        yText.insert(0, editor.value);
+        ydoc.transact(() => {
+          yText.delete(0, yText.length);
+          yText.insert(0, editor.value);
+        });
         isLocalChange = false;
+
+        persistSnapshot(editor.value);
       });
 
-      yText.observe(() => {
-        if (isLocalChange) return;
-        applyRemoteContent();
-      });
+      if (!hadCachedContent) {
+        handleRemoteUpdate();
+      }
     </script>
   </body>
 </html>

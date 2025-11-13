@@ -1,7 +1,8 @@
 import { Server } from "@hocuspocus/server";
 import { SQLite } from "@hocuspocus/extension-sqlite";
-import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { createReadStream } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
+import { dirname, join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -9,6 +10,30 @@ const port = Number(process.env.PORT ?? 8080);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const demoFilePath = join(__dirname, "index.html");
 const AUTH_TOKEN = process.env.HOCUSPOCUS_TOKEN ?? "focus-compass-demo-token";
+const vendorDir = join(__dirname, "vendor");
+
+const MIME_TYPES = {
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+};
+
+const serveStaticFile = async (response, filePath) => {
+  try {
+    await stat(filePath);
+    const ext = extname(filePath);
+    const contentType = MIME_TYPES[ext.toLowerCase()] ?? "application/octet-stream";
+
+    response.writeHead(200, { "Content-Type": contentType });
+    createReadStream(filePath).pipe(response);
+    return true;
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      console.error(`❌ Ошибка при отдаче файла ${filePath}`, error);
+    }
+    return false;
+  }
+};
 
 // Настройка сервера Hocuspocus
 const server = new Server({
@@ -64,6 +89,17 @@ const server = new Server({
       pathname = new URL(request.url ?? "/", `http://${host}`).pathname;
     } catch (error) {
       console.error("❌ Некорректный URL запроса", error);
+    }
+
+    if (pathname.startsWith("/vendor/")) {
+      const requestedPath = pathname.replace(/^\/+/, "");
+      const filePath = join(__dirname, requestedPath);
+      if (filePath.startsWith(vendorDir)) {
+        const served = await serveStaticFile(response, filePath);
+        if (served) {
+          throw null;
+        }
+      }
     }
 
     if (pathname !== "/" && pathname !== "/index.html") {

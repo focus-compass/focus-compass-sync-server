@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hocuspocus Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: dark light;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --bg: #0f172a;
+        --bg-muted: #1e293b;
+        --border: #334155;
+        --text: #e2e8f0;
+        --text-muted: #94a3b8;
+        --accent: #38bdf8;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 55%), var(--bg);
+        color: var(--text);
+      }
+
+      .shell {
+        width: min(960px, 92vw);
+        margin: 4vh auto;
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg-muted) 82%, rgba(15, 23, 42, 0.92));
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.55);
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 3.5vw, 2.7rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      p {
+        margin: 0;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      code {
+        padding: 0.1rem 0.4rem;
+        border-radius: 0.4rem;
+        background: rgba(56, 189, 248, 0.08);
+        color: var(--accent);
+      }
+
+      .meta {
+        display: grid;
+        gap: 0.4rem;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+      }
+
+      .meta code {
+        font-size: 0.85rem;
+      }
+
+      textarea#editor {
+        min-height: clamp(320px, 45vh, 520px);
+        padding: 1.2rem 1.4rem;
+        font: inherit;
+        border-radius: 1rem;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg) 75%, rgba(15, 23, 42, 0.85));
+        color: var(--text);
+        resize: vertical;
+        outline: none;
+        white-space: pre-wrap;
+        line-height: 1.55;
+        box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      textarea#editor:focus {
+        border-color: rgba(56, 189, 248, 0.65);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(148, 163, 184, 0.1);
+      }
+
+      footer {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          padding: 1.75rem;
+          gap: 1.5rem;
+        }
+
+        textarea#editor {
+          min-height: 280px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <h1>Hocuspocus + Y.js демо</h1>
+        <p>
+          Эта страница инициализирует чистый Y.js документ, подключает его к Hocuspocus серверу
+          <code>https://compass.sarfex.dev/</code> и синхронизирует содержимое текстовой области между
+          всеми подключёнными клиентами.
+        </p>
+        <div class="meta">
+          <div id="status">Статус: инициализация…</div>
+          <div>Сервер: <code id="server"></code></div>
+          <div>Токен: <code id="token"></code></div>
+          <div class="hint">Можно передать параметры <code>?server=wss://…&token=…</code>, чтобы протестировать другие настройки.</div>
+        </div>
+      </header>
+
+      <textarea id="editor" placeholder="Начните вводить текст, чтобы поделиться им с другими клиентами…"></textarea>
+
+      <footer>
+        <strong>Примечание:</strong> подключение использует WebSocket (wss) к Hocuspocus серверу.
+        Откройте эту страницу в нескольких вкладках, чтобы увидеть синхронизацию текста в реальном времени.
+      </footer>
+    </div>
+
+    <script type="module">
+      import { HocuspocusProvider } from "https://esm.sh/@hocuspocus/provider@3.4.0?bundle";
+      import { Doc } from "https://esm.sh/yjs@13.6.15";
+
+      const statusElement = document.getElementById("status");
+      const editor = document.getElementById("editor");
+      const tokenElement = document.getElementById("token");
+      const serverElement = document.getElementById("server");
+
+      const DEFAULT_TOKEN = "focus-compass-demo-token";
+      const params = new URLSearchParams(window.location.search);
+      const serverOverride = params.get("server");
+      const tokenOverride = params.get("token");
+
+      const resolveToken = () => tokenOverride?.trim() || DEFAULT_TOKEN;
+
+      const normalizeUrl = (raw) => {
+        if (!raw) return null;
+        if (/^wss?:\/\//i.test(raw)) return raw;
+
+        const assumedSecure = raw.includes("localhost")
+          ? window.location.protocol === "https:"
+          : true;
+
+        const protocol = assumedSecure ? "wss" : "ws";
+        return `${protocol}://${raw}`;
+      };
+
+      const deriveProviderUrl = () => {
+        const override = normalizeUrl(serverOverride);
+        if (override) return override.endsWith("/") ? override : `${override}/`;
+
+        const host = window.location.host || DEFAULT_HOST;
+        const secure = window.location.protocol === "https:" || host === DEFAULT_HOST;
+        const protocol = secure ? "wss" : "ws";
+        const url = `${protocol}://${host}`;
+        return url.endsWith("/") ? url : `${url}/`;
+      };
+
+      const providerUrl = deriveProviderUrl();
+      const AUTH_TOKEN = resolveToken();
+
+      serverElement.textContent = providerUrl;
+      tokenElement.textContent = AUTH_TOKEN;
+
+      const ydoc = new Doc();
+      const yText = ydoc.getText("demo");
+
+      const provider = new HocuspocusProvider({
+        url: providerUrl,
+        name: "demo-document",
+        document: ydoc,
+        token: AUTH_TOKEN,
+      });
+
+      provider.on("authenticationFailed", ({ reason }) => {
+        const message = reason ? `Ошибка авторизации: ${reason}` : "Ошибка авторизации";
+        statusElement.textContent = `Статус: ${message}`;
+      });
+
+      provider.on("authenticated", () => {
+        statusElement.textContent = "Статус: успешно аутентифицирован";
+      });
+
+      provider.on("status", ({ status }) => {
+        statusElement.textContent = `Статус: ${status}`;
+      });
+
+      provider.on("synced", (isSynced) => {
+        statusElement.textContent = isSynced
+          ? "Статус: синхронизация завершена"
+          : "Статус: синхронизация прервана";
+      });
+
+      provider.on("disconnect", () => {
+        statusElement.textContent = "Статус: соединение разорвано";
+      });
+
+      provider.on("close", () => {
+        statusElement.textContent = "Статус: соединение закрыто";
+      });
+
+      provider.on("error", (event) => {
+        statusElement.textContent = `Статус: ошибка — ${event.message ?? event}`;
+      });
+
+      const applyRemoteContent = () => {
+        const newText = yText.toString();
+        if (editor.value !== newText) {
+          const { selectionStart, selectionEnd } = editor;
+          editor.value = newText;
+          editor.setSelectionRange(selectionStart, selectionEnd);
+        }
+      };
+
+      // Инициализируем содержимое при загрузке страницы.
+      applyRemoteContent();
+
+      let isLocalChange = false;
+
+      editor.addEventListener("input", () => {
+        isLocalChange = true;
+        yText.delete(0, yText.length);
+        yText.insert(0, editor.value);
+        isLocalChange = false;
+      });
+
+      yText.observe(() => {
+        if (isLocalChange) return;
+        applyRemoteContent();
+      });
+    </script>
+  </body>
+</html>

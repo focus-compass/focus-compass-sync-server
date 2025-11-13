@@ -1,8 +1,14 @@
-import os from "os";
 import { Server } from "@hocuspocus/server";
 import { SQLite } from "@hocuspocus/extension-sqlite";
+import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const port = Number(process.env.PORT ?? 8080);
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const demoFilePath = join(__dirname, "index.html");
+const AUTH_TOKEN = process.env.HOCUSPOCUS_TOKEN ?? "focus-compass-demo-token";
 
 // Настройка сервера Hocuspocus
 const server = new Server({
@@ -27,6 +33,57 @@ const server = new Server({
   //   // }
   // },
   
+  async onAuthenticate({ token, connection, documentName, request }) {
+    console.log(`🔑 Попытка аутентификации для документа "${documentName}" от ${request.socket.remoteAddress} с токеном: ${token}`);
+
+    if (token !== AUTH_TOKEN) {
+      console.warn("🚫 Попытка подключения с неверным токеном");
+      throw new Error("Not authorized");
+    }
+
+    console.log("🔐 Клиент успешно аутентифицирован");
+
+    // Можно добавить дополнительные данные контекста для других хуков.
+    return {
+      user: {
+        role: "demo",
+      },
+      connection,
+    };
+  },
+
+  async onRequest({ request, response }) {
+    if (request.method !== "GET") {
+      return;
+    }
+
+    const host = request.headers.host ?? `localhost:${port}`;
+    let pathname = "/";
+
+    try {
+      pathname = new URL(request.url ?? "/", `http://${host}`).pathname;
+    } catch (error) {
+      console.error("❌ Некорректный URL запроса", error);
+    }
+
+    if (pathname !== "/" && pathname !== "/index.html") {
+      return;
+    }
+
+    try {
+      const html = await readFile(demoFilePath, "utf8");
+      response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      response.end(html);
+    } catch (error) {
+      console.error("❌ Не удалось отдать index.html", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Internal Server Error");
+    }
+
+    // Бросаем falsy значение, чтобы предотвратить дефолтный ответ сервера.
+    throw null;
+  },
+
   // Хук при успешном подключении
   async onConnect() {
     console.log('✅ Клиент подключен');
@@ -38,25 +95,6 @@ const server = new Server({
   }
 });
 
-const printAccessibleUrls = () => {
-  const networkInterfaces = os.networkInterfaces();
-  const urls = new Set([`http://localhost:${port}`]);
-
-  for (const nets of Object.values(networkInterfaces)) {
-    for (const net of nets ?? []) {
-      if (net.family === "IPv4" && !net.internal) {
-        urls.add(`http://${net.address}:${port}`);
-      }
-    }
-  }
-
-  console.log("🌐 Подключайтесь по следующим адресам:");
-  for (const url of urls) {
-    console.log(`   → ${url}`);
-  }
-  console.log("⚠️  Убедитесь, что посещение извне разрешено настройками фаервола/маршрутизатора.");
-};
-
 // Запуск сервера
 console.log(`🚀 Hocuspocus server стартует на порту ${port}...`);
 console.log("📁 SQLite database: ./data/db.sqlite");
@@ -64,7 +102,6 @@ console.log("📁 SQLite database: ./data/db.sqlite");
 try {
   await server.listen();
   console.log("✅ Сервер запущен и принимает подключения.");
-  printAccessibleUrls();
 } catch (error) {
   console.error("❌ Не удалось запустить сервер", error);
   process.exit(1);

@@ -8,13 +8,14 @@ const port = Number(process.env.PORT ?? 8080);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const demoFilePath = join(__dirname, "index.html");
+const inspectorFilePath = join(__dirname, "inspector.html");
 const AUTH_TOKEN = process.env.HOCUSPOCUS_TOKEN ?? "focus-compass-demo-token";
 
 // Настройка сервера Hocuspocus
 const server = new Server({
   // Порт, на котором будет слушать сервер (используется также в Dockerfile/docker-compose)
   port,
-  
+
   // Список расширений
   extensions: [
     new SQLite({
@@ -23,7 +24,7 @@ const server = new Server({
       database: "./data/db.sqlite",
     }),
   ],
-  
+
   // Дополнительно: хуки для аутентификации (например,
   // проверки токенов пользователя, если вы решите интегрировать PocketBase)
   // onAuthenticate: async (data) => {
@@ -32,7 +33,7 @@ const server = new Server({
   //   //   throw new Error('Not authorized!')
   //   // }
   // },
-  
+
   async onAuthenticate({ token, connection, documentName, request }) {
     console.log(`🔑 Попытка аутентификации для документа "${documentName}" от ${request.socket.remoteAddress} с токеном: ${token}`);
 
@@ -66,18 +67,30 @@ const server = new Server({
       console.error("❌ Некорректный URL запроса", error);
     }
 
-    if (pathname !== "/" && pathname !== "/index.html") {
-      return;
+    if (pathname === "/" || pathname === "/index.html") {
+      try {
+        const html = await readFile(demoFilePath, "utf8");
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(html);
+      } catch (error) {
+        console.error("❌ Не удалось отдать index.html", error);
+        response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+        response.end("Internal Server Error");
+      }
+      throw null;
     }
 
-    try {
-      const html = await readFile(demoFilePath, "utf8");
-      response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      response.end(html);
-    } catch (error) {
-      console.error("❌ Не удалось отдать index.html", error);
-      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
-      response.end("Internal Server Error");
+    if (pathname === "/inspector" || pathname === "/inspector.html") {
+      try {
+        const html = await readFile(inspectorFilePath, "utf8");
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(html);
+      } catch (error) {
+        console.error("❌ Не удалось отдать inspector.html", error);
+        response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+        response.end("Internal Server Error");
+      }
+      throw null;
     }
 
     // Бросаем falsy значение, чтобы предотвратить дефолтный ответ сервера.
@@ -88,7 +101,7 @@ const server = new Server({
   async onConnect() {
     console.log('✅ Клиент подключен');
   },
-  
+
   // Хук при отключении
   async onDisconnect() {
     console.log('❌ Клиент отключен');

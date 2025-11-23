@@ -13,6 +13,7 @@ RUN npm install --production
 # Копирование кода сервера
 COPY server.js ./
 COPY index.html ./
+COPY inspector.html ./
 
 # Создание директории для базы данных SQLite
 RUN mkdir -p /app/data

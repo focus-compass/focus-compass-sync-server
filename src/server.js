@@ -137,6 +137,34 @@ const server = new Server({
       }
     }
 
+    // --- REST API: List all images ---
+    if (request.method === "GET" && pathname === "/api/images") {
+      if (!checkAuth(request)) {
+        response.writeHead(401, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Unauthorized" }));
+        throw null;
+      }
+
+      try {
+        const { readdir, stat } = await import("node:fs/promises");
+        const files = await readdir(IMAGES_DIR);
+        const images = await Promise.all(
+          files.map(async (name) => {
+            const filePath = join(IMAGES_DIR, name);
+            const stats = await stat(filePath);
+            return { id: name, size: stats.size, modified: stats.mtime };
+          })
+        );
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ count: images.length, images }));
+        throw null;
+      } catch (err) {
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Failed to list images" }));
+        throw null;
+      }
+    }
+
     // --- REST API: Get Image ---
     if (request.method === "GET" && pathname.startsWith("/api/images/")) {
       if (!checkAuth(request)) {

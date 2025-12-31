@@ -39,12 +39,13 @@
     "@hocuspocus/provider": "^3.4.0",
     "@hocuspocus/server": "^3.4.0",
     "dotenv": "^17.2.3",
+    "formidable": "^3.5.4",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.27"
   },
   "devDependencies": {
+    "@eslint/js": "^9.6.0",
     "eslint": "^9.6.0",
-    "globals": "^15.6.0",
-    "@eslint/js": "^9.6.0"
+    "globals": "^15.6.0"
   }
 }

@@ -114,6 +114,7 @@ const server = new Server({
         }
 
         const targetPath = join(IMAGES_DIR, sanitizedId);
+        const metaPath = join(IMAGES_DIR, `${sanitizedId}.meta.json`);
 
         // Idempotency: Skip if already exists
         if (existsSync(targetPath)) {
@@ -123,6 +124,12 @@ const server = new Server({
         }
 
         await rename(imageFile.filepath, targetPath);
+
+        // Store metadata (MIME type)
+        if (imageFile.mimetype) {
+          const { writeFile } = await import("node:fs/promises");
+          await writeFile(metaPath, JSON.stringify({ mimeType: imageFile.mimetype }));
+        }
 
         response.writeHead(200, { "Content-Type": "application/json" });
         response.end(JSON.stringify({ success: true, id: sanitizedId }));
@@ -148,8 +155,12 @@ const server = new Server({
       try {
         const { readdir, stat } = await import("node:fs/promises");
         const files = await readdir(IMAGES_DIR);
+
+        // Filter out .meta.json files from listing
+        const imageFiles = files.filter(f => !f.endsWith('.meta.json'));
+
         const images = await Promise.all(
-          files.map(async (name) => {
+          imageFiles.map(async (name) => {
             const filePath = join(IMAGES_DIR, name);
             const stats = await stat(filePath);
             return { id: name, size: stats.size, modified: stats.mtime };
@@ -184,6 +195,7 @@ const server = new Server({
       }
 
       const filePath = join(IMAGES_DIR, sanitizedId);
+      const metaPath = join(IMAGES_DIR, `${sanitizedId}.meta.json`);
 
       if (!existsSync(filePath)) {
         response.writeHead(404, { "Content-Type": "application/json" });
@@ -191,7 +203,19 @@ const server = new Server({
         throw null;
       }
 
-      response.writeHead(200, { "Content-Type": "application/octet-stream" });
+      // Try to read metadata for Content-Type
+      let contentType = "image/webp"; // Default to WebP
+      try {
+        if (existsSync(metaPath)) {
+          const metaContent = await readFile(metaPath, "utf-8");
+          const meta = JSON.parse(metaContent);
+          if (meta.mimeType) contentType = meta.mimeType;
+        }
+      } catch (e) {
+        // Ignore metadata read errors
+      }
+
+      response.writeHead(200, { "Content-Type": contentType });
       createReadStream(filePath).pipe(response);
       throw null;
     }

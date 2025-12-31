@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Hocuspocus Inspector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="dns-prefetch" href="https://esm.sh" />
+  <link rel="preconnect" href="https://esm.sh" crossorigin />
+  <link rel="preconnect" href="https://compass.sarfex.dev" crossorigin />
+  <link rel="modulepreload" href="https://esm.sh/@hocuspocus/provider@3.4.0?bundle" />
+  <link rel="modulepreload" href="https://esm.sh/yjs@13.6.27" />
+  <style>
+    :root {
+      color-scheme: dark light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #0f172a;
+      --bg-muted: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 55%), var(--bg);
+      color: var(--text);
+    }
+
+    .shell {
+      width: min(1120px, 96vw);
+      margin: 0.5rem auto;
+      padding: 1rem 1.25rem;
+      border-radius: 1.5rem;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg-muted) 82%, rgba(15, 23, 42, 0.92));
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.55);
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 2.4vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+      margin-top: 0.2rem;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: min(260px, 100%);
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    input[type="text"] {
+      padding: 0.4rem 0.65rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at top, rgba(148, 163, 184, 0.12), transparent 55%),
+        color-mix(in srgb, var(--bg) 80%, rgba(15, 23, 42, 0.9));
+      color: var(--text);
+      font: inherit;
+      outline: none;
+      min-width: 0;
+    }
+
+    input[type="text"]:focus {
+      border-color: rgba(56, 189, 248, 0.65);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
+    }
+
+    button {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 0.4rem 0.9rem;
+      font: inherit;
+      cursor: pointer;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(15, 23, 42, 0.9));
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+
+    button[disabled] {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 0.9rem;
+    }
+
+    .panel {
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 75%, rgba(15, 23, 42, 0.85));
+      padding: 0.45rem 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.25rem;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .mode-label {
+      opacity: 0.8;
+    }
+
+    .mode-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      padding: 0.1rem 0.5rem;
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .mode-btn.active {
+      border-color: var(--accent);
+      color: #0f172a;
+      background: var(--accent);
+    }
+
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+    }
+
+    .toggle-track {
+      position: relative;
+      width: 32px;
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      flex-shrink: 0;
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.9);
+      transition: transform 0.16s ease, background 0.16s ease;
+    }
+
+    #verboseLog {
+      position: absolute;
+      opacity: 0;
+      width: 32px;
+      height: 16px;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    #verboseLog:checked+.toggle-track .toggle-thumb {
+      transform: translateX(14px);
+      background: var(--accent);
+    }
+
+    .keys-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .key-pill {
+      padding: 0.14rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .key-pill.active {
+      border-color: var(--accent);
+      color: #0f172a;
+      background: var(--accent);
+    }
+
+    pre {
+      margin: 0;
+      padding: 0.4rem;
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.9);
+      color: #e2e8f0;
+      font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.75rem;
+      max-height: 560px;
+      overflow: auto;
+      border: 1px solid rgba(30, 64, 175, 0.6);
+      line-height: 1.4;
+      letter-spacing: 0.01em;
+      white-space: pre-wrap;
+    }
+
+    code {
+      font-family: inherit;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.05rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 840px) {
+      .shell {
+        padding: 0.85rem 0.9rem;
+        gap: 0.7rem;
+      }
+
+      .content {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+    <header>
+      <h1>Hocuspocus Inspector</h1>
+      <div class="meta">
+        <div id="status">Status: Disconnected</div>
+        <div>
+          <span class="badge" id="serverBadge">Server: Disconnected</span>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="field-group">
+          <label for="docName">Document Name</label>
+          <input id="docName" type="text" placeholder="ws-..." value="ws-1760518262306" />
+        </div>
+        <button id="connectBtn">Connect</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <section class="panel">
+        <div class="panel-title">Document Structure</div>
+        <div class="mode-bar">
+          <span class="mode-label">Mode:</span>
+          <button type="button" id="modePretty" class="mode-btn active">Brief</button>
+          <button type="button" id="modeFull" class="mode-btn">Full JSON</button>
+        </div>
+        <div id="keysBar" class="keys-bar"></div>
+        <pre id="prettyOutput">// Connect to document to see Y.Doc structure...</pre>
+      </section>
+      <section class="panel">
+        <div class="panel-title">Update Log</div>
+        <pre id="logOutput">// Waiting for updates...</pre>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as Y from "https://esm.sh/yjs@13.6.27";
+    import { HocuspocusProvider } from "https://esm.sh/@hocuspocus/provider@3.4.0?deps=yjs@13.6.27";
+
+    // Read config from URL params with secure defaults
+    const urlParams = new URLSearchParams(window.location.search);
+    const providerUrl = urlParams.get("url") || `ws://${window.location.hostname}:8080`;
+    const AUTH_TOKEN = urlParams.get("token") || "focus-compass-demo-token";
+
+    const statusElement = document.getElementById("status");
+    const docNameInput = document.getElementById("docName");
+    const connectBtn = document.getElementById("connectBtn");
+    const keysBar = document.getElementById("keysBar");
+    const prettyOutput = document.getElementById("prettyOutput");
+    const logOutput = document.getElementById("logOutput");
+    const modePrettyBtn = document.getElementById("modePretty");
+    const modeFullBtn = document.getElementById("modeFull");
+
+    let provider = null;
+    let ydoc = null;
+    let lastResult = null;
+    let activeKey = null;
+    let updatesLog = [];
+    let viewMode = "pretty"; // 'pretty' | 'full'
+    let pendingUpdateMeta = null;
+
+    const setStatus = (text) => {
+      statusElement.textContent = `Status: ${text}`;
+    };
+
+    const safeStringify = (value) => {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch (error) {
+        return `"[Serialization Error: ${String(error)}]"`;
+      }
+    };
+
+    const normalizeValue = (value) => {
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
+
+      if (Array.isArray(value)) {
+        return value.map((item) => normalizeValue(item));
+      }
+
+      if (value && typeof value === "object") {
+        const obj = {};
+        for (const [k, v] of Object.entries(value)) {
+          obj[k] = normalizeValue(v);
+        }
+        return obj;
+      }
+
+      return value;
+    };
+
+    const renderPretty = () => {
+      if (!lastResult) {
+        prettyOutput.textContent = "// Data not loaded yet";
+        keysBar.innerHTML = "";
+        return;
+      }
+
+      if (viewMode === "full") {
+        keysBar.innerHTML = "";
+        prettyOutput.textContent = safeStringify(lastResult);
+        return;
+      }
+
+      const { shareKeys, data } = lastResult;
+
+      keysBar.innerHTML = "";
+
+      shareKeys.forEach((key) => {
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "key-pill" + (activeKey === key ? " active" : "");
+        pill.textContent = key;
+        pill.addEventListener("click", () => {
+          activeKey = key;
+          renderPretty();
+        });
+        keysBar.appendChild(pill);
+      });
+
+      if (!shareKeys.length) {
+        prettyOutput.textContent = "// No shared types in document";
+        return;
+      }
+
+      if (!activeKey || !shareKeys.includes(activeKey)) {
+        activeKey = shareKeys[0];
+      }
+
+      const value = data[activeKey];
+
+      if (!value) {
+        prettyOutput.textContent = `// No data for key "${activeKey}"`;
+        return;
+      }
+
+      // Special views for known structures
+      if (activeKey === "projects" && Array.isArray(value.data)) {
+        const lines = [];
+        lines.push("projects (" + value.data.length + "):\n");
+        value.data.forEach((p, index) => {
+          lines.push(`${index + 1}. ${p.title ?? p.id ?? "(no title)"}`);
+          if (p.id) {
+            lines.push(`   id: ${p.id}`);
+          }
+          if (p.position) {
+            lines.push(`   pos: x=${p.position.x}, y=${p.position.y}`);
+          }
+          if (p.color) {
+            lines.push(`   color: ${p.color}`);
+          }
+          lines.push("");
+        });
+        prettyOutput.textContent = lines.join("\n");
+        return;
+      }
+
+      if (activeKey === "texts" && Array.isArray(value.data)) {
+        const lines = [];
+        lines.push("texts (" + value.data.length + "):\n");
+        value.data.forEach((t, index) => {
+          const text = (t.text || "").slice(0, 80).replace(/\n/g, " ");
+          lines.push(`${index + 1}. ${text || "(empty)"}`);
+          if (t.position) {
+            lines.push(`   pos: x=${t.position.x}, y=${t.position.y}`);
+          }
+          if (t.fontSize) {
+            lines.push(`   fontSize: ${t.fontSize}`);
+          }
+          lines.push("");
+        });
+        prettyOutput.textContent = lines.join("\n");
+        return;
+      }
+
+      if (activeKey === "infoBlocks" && Array.isArray(value.data)) {
+        const lines = [];
+        lines.push("infoBlocks (" + value.data.length + "):\n");
+        value.data.forEach((b, index) => {
+          const title = b.title || "(no title)";
+          const content = (b.content || "").slice(0, 80).replace(/\n/g, " ");
+          lines.push(`${index + 1}. ${title}`);
+          if (content) {
+            lines.push(`   ${content}`);
+          }
+          if (b.position) {
+            lines.push(`   pos: x=${b.position.x}, y=${b.position.y}`);
+          }
+          lines.push("");
+        });
+        prettyOutput.textContent = lines.join("\n");
+        return;
+      }
+
+      // Fallback: just JSON
+      prettyOutput.textContent = safeStringify(value);
+    };
+
+    const renderLog = () => {
+      if (!updatesLog.length) {
+        logOutput.textContent = "// No updates yet";
+        return;
+      }
+
+      const lines = [];
+      lines.push(`Total updates: ${updatesLog.length}`);
+      lines.push("");
+
+      updatesLog.slice(-50).forEach((entry, index) => {
+        const num = updatesLog.length - 50 + index + 1;
+        const parts = [`#${num}`, entry.time];
+        if (typeof entry.size === "number") {
+          parts.push(`${entry.size} bytes`);
+        }
+        if (entry.source) {
+          parts.push(`src=${entry.source}`);
+        }
+        lines.push(parts.join("  ·  "));
+
+        if (entry.summary && entry.summary.length) {
+          lines.push("  changes:");
+          entry.summary.forEach((item) => {
+            if (typeof item === "string") {
+              lines.push(`    ${item}`);
+              return;
+            }
+
+            if (!item || typeof item !== "object") return;
+
+            if (item.line) {
+              lines.push(`    ${item.line}`);
+            }
+
+            if (Array.isArray(item.added) && item.added.length) {
+              lines.push(`      added: ${item.added.join(", ")}`);
+            }
+            if (Array.isArray(item.removed) && item.removed.length) {
+              lines.push(`      removed: ${item.removed.join(", ")}`);
+            }
+            if (Array.isArray(item.changed) && item.changed.length) {
+              lines.push(`      changed: ${item.changed.join(", ")}`);
+            }
+          });
+        }
+        logOutput && lines.push("");
+      });
+
+      logOutput.textContent = lines.join("\n");
+    };
+
+    const renderDoc = () => {
+      if (!ydoc) {
+        prettyOutput.textContent = "// Document not initialized";
+        logOutput.textContent = "// No data";
+        keysBar.innerHTML = "";
+        lastResult = null;
+        return;
+      }
+
+      const shareKeys = Array.from(ydoc.share.keys());
+      const data = {};
+      ydoc.share.forEach((type, name) => {
+        const base = typeof type.toJSON === "function" ? type.toJSON() : type;
+        data[name] = normalizeValue(base);
+      });
+
+      const result = {
+        docGuid: ydoc.guid,
+        shareKeys,
+        data,
+      };
+
+      // Build log entry based on diff
+      if (pendingUpdateMeta) {
+        const prevData = lastResult ? lastResult.data || {} : {};
+        const currData = result.data || {};
+
+        const changedKeys = new Set([
+          ...Object.keys(prevData),
+          ...Object.keys(currData),
+        ]);
+
+        const summary = [];
+
+        const toIdMap = (arr) => {
+          const map = new Map();
+          if (!Array.isArray(arr)) return map;
+          arr.forEach((item) => {
+            if (item && typeof item === "object" && typeof item.id === "string") {
+              map.set(item.id, item);
+            }
+          });
+          return map;
+        };
+
+        changedKeys.forEach((key) => {
+          const before = prevData[key];
+          const after = currData[key];
+
+          const same = JSON.stringify(before) === JSON.stringify(after);
+          if (same) return;
+
+          const beforeArr = before && Array.isArray(before.data) ? before.data : null;
+          const afterArr = after && Array.isArray(after.data) ? after.data : null;
+
+          if (beforeArr || afterArr) {
+            const prevLen = beforeArr ? beforeArr.length : 0;
+            const currLen = afterArr ? afterArr.length : 0;
+
+            const lineBase = `${key}: items ${prevLen} → ${currLen}`;
+
+            const prevMap = toIdMap(beforeArr || []);
+            const currMap = toIdMap(afterArr || []);
+
+            const added = [];
+            const removed = [];
+            const changed = [];
+
+            currMap.forEach((value, id) => {
+              if (!prevMap.has(id)) {
+                added.push(id);
+              } else {
+                const beforeItem = prevMap.get(id);
+                if (JSON.stringify(beforeItem) !== JSON.stringify(value)) {
+                  changed.push(id);
+                }
+              }
+            });
+
+            prevMap.forEach((_, id) => {
+              if (!currMap.has(id)) removed.push(id);
+            });
+
+            const extras = [];
+            if (added.length) extras.push(`+${added.length}`);
+            if (removed.length) extras.push(`-${removed.length}`);
+            if (changed.length) extras.push(`changed: ${changed.length}`);
+
+            if (extras.length) {
+              const entry = {
+                line: `${lineBase} (${extras.join(", ")})`,
+              };
+              if (added.length) {
+                entry.added = added.slice(0, 20);
+              }
+              if (removed.length) {
+                entry.removed = removed.slice(0, 20);
+              }
+              if (changed.length) {
+                entry.changed = changed.slice(0, 20);
+              }
+              summary.push(entry);
+            } else {
+              summary.push(lineBase);
+            }
+          } else {
+            summary.push(`${key}: changed`);
+          }
+        });
+
+        updatesLog.push({
+          time: pendingUpdateMeta.time,
+          size: pendingUpdateMeta.size,
+          source: pendingUpdateMeta.source,
+          summary,
+        });
+
+        pendingUpdateMeta = null;
+      }
+
+      lastResult = result;
+      renderPretty();
+      renderLog();
+    };
+
+    const debounce = (fn, delay) => {
+      let timer = null;
+      return (...args) => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
+    };
+
+    const renderDocDebounced = debounce(renderDoc, 80);
+
+    const cleanup = () => {
+      if (provider) {
+        provider.destroy();
+        provider = null;
+      }
+      ydoc = null;
+    };
+
+    const detectSharedKeys = (name) => {
+      return new Promise((resolve) => {
+        const probeDoc = new Y.Doc();
+        const keys = new Set();
+
+        const probeProvider = new HocuspocusProvider({
+          url: providerUrl,
+          name,
+          document: probeDoc,
+          token: AUTH_TOKEN,
+        });
+
+        const finalize = () => {
+          try {
+            probeProvider.destroy();
+          } catch { }
+          resolve(Array.from(keys));
+        };
+
+        probeProvider.on("synced", (isSynced) => {
+          if (!isSynced) {
+            finalize();
+            return;
+          }
+
+          try {
+            probeDoc.share.forEach((_, key) => {
+              keys.add(key);
+            });
+          } catch { }
+
+          finalize();
+        });
+
+        probeProvider.on("error", () => {
+          finalize();
+        });
+      });
+    };
+
+    const connect = async () => {
+      const name = docNameInput.value.trim();
+      if (!name) {
+        setStatus("enter document name");
+        return;
+      }
+
+      cleanup();
+
+      setStatus("connecting (detecting keys)...");
+      connectBtn.disabled = true;
+
+      const shareKeys = await detectSharedKeys(name);
+
+      setStatus("connecting (loading data)...");
+
+      updatesLog = [];
+      logOutput.textContent = "// Waiting for updates...";
+
+      ydoc = new Y.Doc();
+
+      // For each found key, try to subscribe to all main Y-types
+      // to guarantee content retrieval
+      shareKeys.forEach((key) => {
+        try {
+          ydoc.getMap(key);
+        } catch { }
+        try {
+          ydoc.getArray(key);
+        } catch { }
+        try {
+          ydoc.getText(key);
+        } catch { }
+      });
+
+      ydoc.on("update", (update, origin) => {
+        const size = update ? update.length : 0;
+        const source = origin && origin.constructor && origin.constructor.name
+          ? origin.constructor.name
+          : origin || null;
+
+        pendingUpdateMeta = {
+          time: new Date().toLocaleTimeString("en-US", { hour12: false }),
+          size,
+          source,
+        };
+
+        renderDocDebounced();
+      });
+
+      provider = new HocuspocusProvider({
+        url: providerUrl,
+        name,
+        document: ydoc,
+        token: AUTH_TOKEN,
+      });
+
+      provider.on("authenticationFailed", ({ reason }) => {
+        const message = reason ? `Auth failed: ${reason}` : "Auth failed";
+        setStatus(message);
+        connectBtn.disabled = false;
+      });
+
+      provider.on("authenticated", () => {
+        setStatus("authenticated, waiting for sync...");
+      });
+
+      provider.on("status", ({ status }) => {
+        setStatus(status);
+      });
+
+      provider.on("synced", (isSynced) => {
+        if (isSynced) {
+          setStatus("synced");
+          renderDoc();
+        } else {
+          setStatus("sync interrupted");
+        }
+      });
+
+      provider.on("disconnect", () => {
+        setStatus("disconnected");
+      });
+
+      provider.on("close", () => {
+        setStatus("connection closed");
+      });
+
+      provider.on("error", (event) => {
+        setStatus(`error — ${event.message ?? event}`);
+      });
+    };
+
+    connectBtn.addEventListener("click", connect);
+
+    modePrettyBtn.addEventListener("click", () => {
+      viewMode = "pretty";
+      modePrettyBtn.classList.add("active");
+      modeFullBtn.classList.remove("active");
+      renderPretty();
+    });
+
+    modeFullBtn.addEventListener("click", () => {
+      viewMode = "full";
+      modeFullBtn.classList.add("active");
+      modePrettyBtn.classList.remove("active");
+      renderPretty();
+    });
+
+    // Auto-connect if URL params present
+    if (urlParams.get("connect") === "true") {
+      connect();
+    }
+  </script>
+</body>
+
+</html>

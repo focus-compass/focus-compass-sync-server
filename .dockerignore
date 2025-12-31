@@ -1,0 +1,36 @@
+# Зависимости
+node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Документация
+README.md
+LICENSE
+
+# Данные
+data
+*.sqlite
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Тесты
+test
+tests
+*.test.js

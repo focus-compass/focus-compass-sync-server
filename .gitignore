@@ -1,6 +1,5 @@
 # Зависимости
 node_modules/
-package-lock.json
 
 # Переменные окружения
 .env
@@ -33,9 +32,13 @@ yarn-error.log*
 Thumbs.db
 
 # Docker
-.dockerignore
+# (dockerignore is handled by Docker itself)
 
 # Временные файлы
 *.tmp
 tmp/
 temp/
+
+# Backups
+backups/
+test_backups/

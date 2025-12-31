@@ -1,18 +1,18 @@
 # Focus Compass - Hocuspocus Server
 
-WebSocket сервер для real-time коллаборации на базе [Hocuspocus](https://tiptap.dev/docs/hocuspocus/introduction) с SQLite персистентностью.
+WebSocket server for real-time collaboration based on [Hocuspocus](https://tiptap.dev/docs/hocuspocus/introduction) with SQLite persistence.
 
-## Что такое Hocuspocus?
+## What is Hocuspocus?
 
-Hocuspocus — это WebSocket бэкенд на базе CRDT (Conflict-free Replicated Data Type) с использованием библиотеки Yjs. Он обеспечивает:
+Hocuspocus is a WebSocket backend based on CRDT (Conflict-free Replicated Data Type) using the Yjs library. It provides:
 
-- ✅ **Real-time синхронизацию** данных между клиентами
-- ✅ **Конфликт-свободную коллаборацию** (несколько пользователей могут одновременно редактировать данные)
-- ✅ **Персистентность** данных в SQLite
-- ✅ **Offline-first** подход
-- ✅ **Автоматическое разрешение конфликтов**
+- ✅ **Real-time synchronization** of data between clients
+- ✅ **Conflict-free collaboration** (multiple users can edit data simultaneously)
+- ✅ **Persistence** of data in SQLite
+- ✅ **Offline-first** approach
+- ✅ **Automatic conflict resolution**
 
-## Архитектура
+## Architecture
 
 ```
 ┌─────────────┐
@@ -29,87 +29,73 @@ Hocuspocus — это WebSocket бэкенд на базе CRDT (Conflict-free R
                         Port 8080
 ```
 
-## Быстрый старт
+## Quick Start
 
-### Запуск с Docker Compose (рекомендуется)
+### Run with Docker Compose (Recommended)
 
 ```bash
-# 1. Скопируйте example файл с переменными окружения (опционально)
+# 1. Copy example env file (optional)
 cp .env.example .env
 
-# 2. Отредактируйте .env если нужен другой порт (опционально)
-# nano .env
-
-# 3. Запуск сервера
+# 2. Start server
 docker-compose up -d
 
-# 4. Просмотр логов
+# 3. View logs
 docker-compose logs -f
 
-# 5. Проверка статуса (healthcheck)
+# 4. Check status
 docker ps
 
-# Остановка сервера
+# Stop server
 docker-compose down
 
-# Полная очистка (включая данные)
+# Full cleanup (including data)
 docker-compose down -v
 ```
 
-### Запуск локально
+### Run Locally
 
 ```bash
-# Установка зависимостей
+# Install dependencies
 npm install
 
-# Запуск сервера
+# Start server
 npm start
 ```
 
-Сервер будет доступен на `ws://localhost:8080`
+The server will be available at `ws://localhost:8080`.
 
-## Конфигурация
+## Configuration
 
-### Основные файлы
+### Key Files
 
-- **`server.js`** - конфигурация Hocuspocus сервера
-- **`Dockerfile`** - образ Docker для деплоя
-- **`docker-compose.yml`** - оркестрация контейнера
-- **`package.json`** - зависимости проекта
+- **`server.js`** - Hocuspocus server configuration
+- **`Dockerfile`** - Docker image for deployment
+- **`docker-compose.yml`** - Container orchestration
+- **`package.json`** - Project dependencies
 
-### Переменные окружения
+### Environment Variables
 
-Создайте файл `.env` в корне проекта (или скопируйте `.env.example`):
+Create a `.env` file in the project root (or copy `.env.example`):
 
 ```bash
-# Порт для Hocuspocus сервера (по умолчанию 8080)
+# Port for Hocuspocus server (default 8080)
 HOCUSPOCUS_PORT=8080
 
-# Окружение Node.js (production/development)
+# Node.js environment (production/development)
 NODE_ENV=production
 ```
 
-Docker Compose автоматически подхватит эти переменные.
+### Persistence
 
-### Порты
+The SQLite database is saved in the Docker volume `hocuspocus-data`, mounted to `/app/data` inside the container.
+Database file: `/app/data/db.sqlite`.
 
-По умолчанию сервер слушает на порту **8080**. Для изменения порта:
+**Important**: Removing the volume with `docker-compose down -v` will lose all data!
 
-1. В `server.js` измените `port: 8080`
-2. В `Dockerfile` измените `EXPOSE 8080`
-3. В `docker-compose.yml` измените маппинг портов
+## Client Connection
 
-### Персистентность
-
-База данных SQLite сохраняется в Docker volume `hocuspocus-data`, который монтируется в `/app/data` внутри контейнера.
-
-Файл базы данных: `/app/data/db.sqlite`
-
-**Важно**: При удалении volume командой `docker-compose down -v` все данные будут потеряны!
-
-## Подключение клиента
-
-### JavaScript/TypeScript (браузер)
+### JavaScript/TypeScript (Browser)
 
 ```bash
 npm install @hocuspocus/provider yjs
@@ -119,239 +105,41 @@ npm install @hocuspocus/provider yjs
 import * as Y from 'yjs'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 
-// Создание Yjs документа
+// Create Yjs document
 const doc = new Y.Doc()
 
-// Подключение к серверу
+// Connect to server
 const provider = new HocuspocusProvider({
   url: 'ws://localhost:8080',
-  name: 'my-document', // уникальное имя документа
+  name: 'my-document', // unique document name
   document: doc,
 })
-
-// Работа с данными
-const yText = doc.getText('content')
-yText.observe(() => {
-  console.log('Контент изменен:', yText.toString())
-})
-
-// Обновление данных
-yText.insert(0, 'Привет, мир!')
 ```
 
-### React + Tiptap
-
-```bash
-npm install @tiptap/react @tiptap/starter-kit @tiptap/extension-collaboration
-npm install @hocuspocus/provider yjs
-```
-
-```jsx
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Collaboration from '@tiptap/extension-collaboration'
-import * as Y from 'yjs'
-import { HocuspocusProvider } from '@hocuspocus/provider'
-
-const ydoc = new Y.Doc()
-
-function Editor() {
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        history: false, // важно! отключаем встроенную историю
-      }),
-      Collaboration.configure({
-        document: ydoc,
-      }),
-    ],
-    content: '<p>Начните печатать...</p>',
-  })
-
-  // Подключаемся к Hocuspocus
-  const provider = new HocuspocusProvider({
-    url: 'ws://localhost:8080',
-    name: 'my-document',
-    document: ydoc,
-  })
-
-  return <EditorContent editor={editor} />
-}
-```
-
-## API Endpoints
-
-Hocuspocus использует WebSocket протокол. После подключения к `ws://localhost:8080` клиент может:
-
-- **Создавать документы** - автоматически при первом подключении с именем документа
-- **Читать документы** - получать актуальное состояние из SQLite
-- **Обновлять документы** - отправлять изменения в real-time
-- **Синхронизироваться** - получать изменения от других клиентов
-
-## Мониторинг
-
-### Проверка работоспособности
-
-```bash
-# Проверка, что контейнер запущен и здоров (смотрите на колонку STATUS)
-docker ps | grep hocuspocus
-# STATUS должен быть "Up X minutes (healthy)"
-
-# Логи сервера
-docker-compose logs -f hocuspocus-sync
-
-# Вход в контейнер
-docker exec -it hocuspocus_server sh
-
-# Проверка базы данных
-docker exec -it hocuspocus_server ls -lh /app/data/
-
-# Проверка статистики контейнера (CPU, память)
-docker stats hocuspocus_server
-
-# Проверка healthcheck вручную
-docker inspect --format='{{json .State.Health}}' hocuspocus_server | jq
-```
+## Monitoring
 
 ### Healthcheck
 
-Docker Compose настроен с автоматическим healthcheck:
-- **Интервал проверки**: каждые 30 секунд
-- **Таймаут**: 10 секунд
-- **Попытки**: 3 раза перед объявлением unhealthy
-- **Начальный период**: 40 секунд (время на старт сервера)
+Docker Compose is configured with an automatic healthcheck:
+- **Interval**: 30s
+- **Timeout**: 10s
+- **Retries**: 3
 
-Статусы:
-- `starting` - контейнер только запустился
-- `healthy` - сервер работает нормально
-- `unhealthy` - сервер не отвечает (автоматически перезапустится)
+### Logs
 
-### Логи
+Server outputs logs like:
+- `🚀 Hocuspocus server starting on port 8080...`
+- `✅ Server running at http://localhost:8080`
 
-Сервер выводит следующие логи:
-- `🚀 Hocuspocus server listening on port 8080...` - сервер запущен
-- `✅ Клиент подключен` - новое подключение
-- `❌ Клиент отключен` - клиент отключился
+## Production Deployment
 
-## Расширение функциональности
+### Recommendations
 
-### Аутентификация
+1. **Use HTTPS/WSS** - Configure SSL certificates (e.g., via Nginx reverse proxy).
+2. **Add Redis** - For scaling to multiple instances.
+3. **Configure Auth** - Protect access to documents.
+4. **Backup** - Regularly backup the SQLite database.
 
-Раскомментируйте и настройте хук `onAuthenticate` в `server.js`:
+## License
 
-```javascript
-async onAuthenticate(data) {
-  const { token } = data
-
-  // Проверка токена (например, JWT)
-  const user = await verifyToken(token)
-  
-  if (!user) {
-    throw new Error('Not authorized!')
-  }
-
-  // Возвращаем данные пользователя в context
-  return {
-    user: user,
-  }
-}
-```
-
-### Дополнительные расширения
-
-Hocuspocus поддерживает множество расширений:
-
-- **Redis** - для масштабирования на несколько серверов
-- **Webhooks** - для уведомлений о событиях
-- **Logger** - для расширенного логирования
-- **Throttle** - для ограничения rate-limit
-
-```bash
-npm install @hocuspocus/extension-redis
-npm install @hocuspocus/extension-webhook
-```
-
-## Troubleshooting
-
-### Порт уже используется
-
-```bash
-# Найти процесс на порту 8080
-netstat -ano | findstr :8080  # Windows
-lsof -i :8080                 # Linux/Mac
-
-# Изменить порт в docker-compose.yml
-ports:
-  - "3001:8080"  # внешний:внутренний
-```
-
-### База данных не сохраняется
-
-Проверьте, что volume правильно примонтирован:
-
-```bash
-docker volume ls
-docker volume inspect focus-compass-server_hocuspocus-data
-```
-
-### Клиент не может подключиться
-
-1. Проверьте, что сервер запущен: `docker ps`
-2. Проверьте URL подключения (должен быть `ws://`, не `wss://` для локальной разработки)
-3. Проверьте CORS настройки (добавьте в `server.js`)
-
-## Production деплой
-
-### Рекомендации
-
-1. **Используйте HTTPS/WSS** - настройте SSL сертификаты
-2. **Добавьте Redis** - для масштабирования на несколько инстансов
-3. **Настройте аутентификацию** - защитите доступ к документам
-4. **Настройте backup** - регулярно создавайте резервные копии SQLite
-5. **Мониторинг** - используйте Prometheus/Grafana для метрик
-
-### Пример с Nginx reverse proxy
-
-```nginx
-upstream hocuspocus {
-    server localhost:8080;
-}
-
-server {
-    listen 443 ssl;
-    server_name your-domain.com;
-
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location / {
-        proxy_pass http://hocuspocus;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-    }
-}
-```
-
-## Зависимости
-
-- **Node.js** 20 (Alpine)
-- **@hocuspocus/server** ^2.10.0
-- **@hocuspocus/extension-sqlite** ^3.4.0
-- **yjs** ^13.6.14
-
-## Лицензия
-
-ISC
-
-## Полезные ссылки
-
-- [Документация Hocuspocus](https://tiptap.dev/docs/hocuspocus/introduction)
-- [Yjs Documentation](https://docs.yjs.dev/)
-- [Tiptap Editor](https://tiptap.dev/)
-- [GitHub Repository](https://github.com/ueberdosis/hocuspocus)
-
-## Поддержка
-
-Для вопросов и багрепортов создавайте issues в репозитории.
+Apache-2.0 - see [LICENSE](LICENSE).

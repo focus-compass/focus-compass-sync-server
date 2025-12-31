@@ -1,25 +1,23 @@
-# Использование официального образа Node.js (обновлено до актуальной LTS)
-FROM node:22-alpine
+# Use official Node.js image (updated to current LTS)
+FROM node:24-alpine
 
-# Установка рабочей директории внутри контейнера
+# Set working directory inside container
 WORKDIR /app
 
-# Копирование package.json и package-lock.json
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Установка зависимостей
+# Install dependencies
 RUN npm install --production
 
-# Копирование кода сервера
-COPY server.js ./
-COPY index.html ./
-COPY inspector.html ./
+# Copy source code
+COPY src ./src
 
-# Создание директории для базы данных SQLite
+# Create directory for SQLite database
 RUN mkdir -p /app/data
 
-# Сервер Hocuspocus по умолчанию слушает на порту 8080
+# Hocuspocus server listens on port 8080 by default
 EXPOSE 8080
 
-# Команда запуска сервера
+# Command to start the server
 CMD [ "npm", "start" ]

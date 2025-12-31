@@ -1,28 +1,50 @@
 {
   "name": "focus-compass-server",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "WebSocket server for real-time collaboration based on Hocuspocus (CRDT/Yjs) with SQLite persistence",
+  "main": "src/server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
-    "start": "node server.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/focus-compass/server.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
+  "keywords": [
+    "hocuspocus",
+    "yjs",
+    "crdt",
+    "websocket",
+    "collaboration",
+    "sqlite",
+    "realtime"
+  ],
+  "author": "Focus Masters",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/focus-compass/server/issues"
   },
   "homepage": "https://github.com/focus-compass/server#readme",
   "dependencies": {
+    "@hocuspocus/extension-logger": "^3.4.0",
     "@hocuspocus/extension-sqlite": "^3.4.0",
     "@hocuspocus/provider": "^3.4.0",
     "@hocuspocus/server": "^3.4.0",
+    "dotenv": "^17.2.3",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.27"
+  },
+  "devDependencies": {
+    "eslint": "^9.6.0",
+    "globals": "^15.6.0",
+    "@eslint/js": "^9.6.0"
   }
 }

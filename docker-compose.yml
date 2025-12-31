@@ -2,34 +2,34 @@ version: '3.8'
 
 services:
   hocuspocus-sync:
-    # Собираем образ из текущей папки, используя Dockerfile
+    # Build image from current directory using Dockerfile
     build: .
     
-    # Имя контейнера для удобства
+    # Container name for convenience
     container_name: hocuspocus_server
     
-    # Перезапускать всегда, чтобы обеспечить высокий аптайм
+    # Always restart to ensure high uptime
     restart: unless-stopped
     
-    # Сопоставление портов:
-    # 8080 (хост) -> 8080 (контейнер)
-    # Вы можете изменить 8080 на хосте, например, на 3000
+    # Port mapping:
+    # 8080 (host) -> 8080 (container)
+    # You can change 8080 on the host to e.g. 3000
     ports:
       - "${HOCUSPOCUS_PORT:-8080}:8080"
     
-    # Переменные окружения
+    # Environment variables
     environment:
       - NODE_ENV=production
       - PORT=8080
     
-    # Персистентность данных:
-    # Монтируем Docker Volume (или локальную папку) для хранения базы данных SQLite.
-    # Это гарантирует, что данные сохранятся при перезапуске или обновлении контейнера.
-    # 'hocuspocus-data' - это именованный volume, который Docker создает сам.
+    # Data Persistence:
+    # Mount Docker Volume (or local folder) to store SQLite database.
+    # This ensures data is preserved across container restarts or updates.
+    # 'hocuspocus-data' is a named volume managed by Docker.
     volumes:
       - hocuspocus-data:/app/data
     
-    # Healthcheck для мониторинга работоспособности контейнера
+    # Healthcheck to monitor container status
     healthcheck:
       test: ["CMD", "node", "-e", "require('net').connect({port:8080,host:'localhost'}).on('error',()=>process.exit(1)).on('connect',()=>process.exit(0))"]
       interval: 30s
@@ -37,7 +37,7 @@ services:
       retries: 3
       start_period: 40s
     
-    # Ограничения ресурсов для предотвращения чрезмерного потребления
+    # Resource limits to prevent excessive consumption
     deploy:
       resources:
         limits:
@@ -47,23 +47,23 @@ services:
           cpus: '0.25'
           memory: 128M
     
-    # Настройка логирования
+    # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
     
-    # Сеть (опционально, но полезно для изоляции)
+    # Network (optional but useful for isolation)
     networks:
       - hocuspocus-network
 
-# Определение именованного тома для персистентного хранения
+# Define named volume for persistent storage
 volumes:
   hocuspocus-data:
     driver: local
 
-# Определение сети для изоляции
+# Define network for isolation
 networks:
   hocuspocus-network:
     driver: bridge

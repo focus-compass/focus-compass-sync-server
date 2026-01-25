@@ -44,6 +44,13 @@ const checkAuth = (req) => {
   return authHeader === `Bearer ${AUTH_TOKEN}`;
 };
 
+// Check if value is a Yjs type that needs recursive extraction
+const isYjsType = (val) =>
+  val && typeof val === 'object' && ('_map' in val || '_start' in val);
+
+// Recursively extract value, handling nested Yjs types
+const extractValue = (val) => isYjsType(val) ? extractYjsContent(val) : val;
+
 // Extract content from Yjs shared types (handles AbstractType)
 const extractYjsContent = (sharedType) => {
   if (!sharedType) return null;
@@ -51,33 +58,37 @@ const extractYjsContent = (sharedType) => {
   // Try standard toJSON first (works for properly typed instances)
   try {
     const json = sharedType.toJSON();
-    if (json !== undefined && json !== null && Object.keys(json).length > 0) {
-      return json;
+    if (json !== undefined && json !== null) {
+      // For non-empty results, return them
+      if (typeof json === 'string') return json;
+      if (Array.isArray(json) && json.length > 0) return json;
+      if (typeof json === 'object' && Object.keys(json).length > 0) return json;
     }
   } catch {
     // Continue to manual extraction
   }
 
   // Manual extraction for AbstractType instances
-  // Check if it's Map-like (has _map with entries)
-  if (sharedType._map && sharedType._map.size > 0) {
+  // Check if it's Map-like (has _map property)
+  if (sharedType._map) {
+    if (sharedType._map.size === 0) return {};
     const result = {};
     for (const [mapKey, item] of sharedType._map.entries()) {
-      if (!item || !item.content) continue;
+      if (!item) continue;
+      // Skip deleted items
+      if (item.deleted) continue;
+      if (!item.content) {
+        result[mapKey] = null;
+        continue;
+      }
       try {
         const contentArr = item.content.getContent();
         if (contentArr.length === 0) {
           result[mapKey] = null;
         } else if (contentArr.length === 1) {
-          const val = contentArr[0];
-          // Recursively extract nested Yjs types
-          result[mapKey] = val && typeof val === 'object' && val._map !== undefined
-            ? extractYjsContent(val)
-            : val;
+          result[mapKey] = extractValue(contentArr[0]);
         } else {
-          result[mapKey] = contentArr.map(v =>
-            v && typeof v === 'object' && v._map !== undefined ? extractYjsContent(v) : v
-          );
+          result[mapKey] = contentArr.map(extractValue);
         }
       } catch {
         result[mapKey] = null;
@@ -86,19 +97,19 @@ const extractYjsContent = (sharedType) => {
     return result;
   }
 
-  // Check if it's Array-like (has _start linked list)
-  if (sharedType._start !== undefined && sharedType._start !== null) {
+  // Check if it's Array/Text-like (has _start linked list)
+  if ('_start' in sharedType) {
+    // Empty array/text
+    if (sharedType._start === null) return [];
+
     const result = [];
     let current = sharedType._start;
     while (current) {
-      if (current.content && !current.deleted) {
+      if (!current.deleted && current.content) {
         try {
           const contentArr = current.content.getContent();
           for (const val of contentArr) {
-            // Recursively extract nested Yjs types
-            result.push(val && typeof val === 'object' && val._map !== undefined
-              ? extractYjsContent(val)
-              : val);
+            result.push(extractValue(val));
           }
         } catch {
           // Skip invalid items
@@ -106,11 +117,14 @@ const extractYjsContent = (sharedType) => {
       }
       current = current.right;
     }
+    // If all items are strings (Y.Text), join them
+    if (result.length > 0 && result.every(v => typeof v === 'string')) {
+      return result.join('');
+    }
     return result;
   }
 
-  // Empty or unknown type
-  return sharedType._map ? {} : []
+  return null;
 };
 
 const server = new Server({
@@ -118,6 +132,11 @@ const server = new Server({
   timeout: 30000,
   debounce: 2000,
   maxDebounce: 10000,
+  // Disable garbage collection to preserve full history
+  // Warning: Documents will grow larger over time
+  yDocOptions: {
+    gc: false,
+  },
   extensions: [
     new SQLite({ database: DB_PATH }),
     new Logger(),
@@ -382,8 +401,183 @@ const server = new Server({
       }
     }
 
+    // --- REST API: Admin - Get Document History Info ---
+    if (request.method === "GET" && pathname.match(/^\/api\/admin\/documents\/[^/]+\/history$/)) {
+      if (!checkAuth(request)) {
+        response.writeHead(401, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Unauthorized" }));
+        throw null;
+      }
+
+      const docName = decodeURIComponent(pathname.replace("/api/admin/documents/", "").replace("/history", ""));
+
+      try {
+        if (!existsSync(DB_PATH)) {
+          response.writeHead(404, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ error: "Database not found" }));
+          throw null;
+        }
+
+        const db = new DatabaseSync(DB_PATH, { readOnly: true });
+        const row = db.prepare("SELECT name, data FROM documents WHERE name = ?").get(docName);
+        db.close();
+
+        if (!row) {
+          response.writeHead(404, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ error: "Document not found" }));
+          throw null;
+        }
+
+        const data = new Uint8Array(row.data);
+        const ydoc = new Y.Doc({ gc: false });
+        Y.applyUpdate(ydoc, data);
+
+        const snapshot = Y.snapshot(ydoc);
+        const stateVector = Object.fromEntries(snapshot.sv);
+        const totalOperations = Array.from(snapshot.sv.values()).reduce((a, b) => a + b, 0);
+
+        const clients = Array.from(snapshot.sv.entries()).map(([id, ops]) => ({
+          id: String(id),
+          operations: ops,
+        }));
+
+        ydoc.destroy();
+
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({
+          name: docName,
+          stateVector,
+          totalOperations,
+          clients,
+        }));
+        throw null;
+      } catch (err) {
+        if (err === null) throw null;
+        console.error("Admin history error:", err);
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Failed to read document history" }));
+        throw null;
+      }
+    }
+
+    // --- REST API: Admin - Get Document State at Operations Count ---
+    if (request.method === "GET" && pathname.match(/^\/api\/admin\/documents\/[^/]+\/at$/)) {
+      if (!checkAuth(request)) {
+        response.writeHead(401, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Unauthorized" }));
+        throw null;
+      }
+
+      const url = new URL(request.url, `http://${host}`);
+      const docName = decodeURIComponent(pathname.replace("/api/admin/documents/", "").replace("/at", ""));
+
+      try {
+        if (!existsSync(DB_PATH)) {
+          response.writeHead(404, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ error: "Database not found" }));
+          throw null;
+        }
+
+        const db = new DatabaseSync(DB_PATH, { readOnly: true });
+        const row = db.prepare("SELECT name, data FROM documents WHERE name = ?").get(docName);
+        db.close();
+
+        if (!row) {
+          response.writeHead(404, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ error: "Document not found" }));
+          throw null;
+        }
+
+        const data = new Uint8Array(row.data);
+        const ydoc = new Y.Doc({ gc: false });
+        Y.applyUpdate(ydoc, data);
+
+        const currentSnapshot = Y.snapshot(ydoc);
+        const totalOps = Array.from(currentSnapshot.sv.values()).reduce((a, b) => a + b, 0);
+
+        // Get target ops from query (default to total)
+        const targetOps = Math.min(totalOps, Math.max(0, Number(url.searchParams.get("ops")) || totalOps));
+
+        // Distribute ops proportionally across clients
+        const partialSv = new Map();
+        if (totalOps > 0) {
+          const ratio = targetOps / totalOps;
+          for (const [client, clock] of currentSnapshot.sv) {
+            partialSv.set(client, Math.floor(clock * ratio));
+          }
+        }
+
+        // Create partial delete set - filter to items within our time range
+        const partialDsClients = new Map();
+        for (const [clientId, deleteItems] of currentSnapshot.ds.clients) {
+          const maxClock = partialSv.get(clientId) || 0;
+          const filteredItems = [];
+          for (const item of deleteItems) {
+            if (item.clock + item.len <= maxClock) {
+              filteredItems.push(item);
+            } else if (item.clock < maxClock) {
+              filteredItems.push({ clock: item.clock, len: maxClock - item.clock });
+            }
+          }
+          if (filteredItems.length > 0) {
+            partialDsClients.set(clientId, filteredItems);
+          }
+        }
+
+        const partialSnapshot = { sv: partialSv, ds: { clients: partialDsClients } };
+        const partialDoc = Y.createDocFromSnapshot(ydoc, partialSnapshot);
+
+        // Extract content from the partial doc
+        // First try to get root map directly (common pattern)
+        const content = {};
+        const rootMap = partialDoc.getMap("root");
+        if (rootMap && rootMap.size > 0) {
+          content.root = rootMap.toJSON();
+        }
+
+        // If no root map, try iterating share entries
+        if (Object.keys(content).length === 0) {
+          for (const [key] of ydoc.share.entries()) {
+            const sharedType = partialDoc.share.get(key);
+            if (sharedType) {
+              try {
+                const json = sharedType.toJSON();
+                if (json && (typeof json !== "object" || Object.keys(json).length > 0)) {
+                  content[key] = json;
+                }
+              } catch {
+                const extracted = extractYjsContent(sharedType);
+                if (extracted) {
+                  content[key] = extracted;
+                }
+              }
+            }
+          }
+        }
+
+        partialDoc.destroy();
+        ydoc.destroy();
+
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({
+          name: docName,
+          ops: targetOps,
+          totalOps,
+          stateVector: Object.fromEntries(partialSv),
+          content,
+        }));
+        throw null;
+      } catch (err) {
+        if (err === null) throw null;
+        console.error("Admin history-at error:", err);
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Failed to read document state" }));
+        throw null;
+      }
+    }
+
     // --- REST API: Admin - Get Document Content ---
-    if (request.method === "GET" && pathname.startsWith("/api/admin/documents/")) {
+    if (request.method === "GET" && pathname.startsWith("/api/admin/documents/") && !pathname.includes("/history") && !pathname.includes("/at")) {
       if (!checkAuth(request)) {
         response.writeHead(401, { "Content-Type": "application/json" });
         response.end(JSON.stringify({ error: "Unauthorized" }));
@@ -437,6 +631,45 @@ const server = new Server({
         console.error("Admin document error:", err);
         response.writeHead(500, { "Content-Type": "application/json" });
         response.end(JSON.stringify({ error: "Failed to read document" }));
+        throw null;
+      }
+    }
+
+    // --- REST API: Admin - Delete Document ---
+    if (request.method === "DELETE" && pathname.startsWith("/api/admin/documents/")) {
+      if (!checkAuth(request)) {
+        response.writeHead(401, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Unauthorized" }));
+        throw null;
+      }
+
+      const docName = decodeURIComponent(pathname.replace("/api/admin/documents/", ""));
+
+      try {
+        if (!existsSync(DB_PATH)) {
+          response.writeHead(404, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ error: "Database not found" }));
+          throw null;
+        }
+
+        const db = new DatabaseSync(DB_PATH);
+        const result = db.prepare("DELETE FROM documents WHERE name = ?").run(docName);
+        db.close();
+
+        if (result.changes === 0) {
+          response.writeHead(404, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ error: "Document not found" }));
+          throw null;
+        }
+
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ success: true, deleted: docName }));
+        throw null;
+      } catch (err) {
+        if (err === null) throw null;
+        console.error("Admin delete error:", err);
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Failed to delete document" }));
         throw null;
       }
     }

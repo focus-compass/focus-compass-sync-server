@@ -6,7 +6,14 @@
       "Bash(git commit:*)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "Bash(node --check:*)"
+      "Bash(node --check:*)",
+      "WebFetch(domain:docs.yjs.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.tag1.com)",
+      "WebFetch(domain:discuss.yjs.dev)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:www.tag1consulting.com)"
     ]
   }
 }

@@ -27,8 +27,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const adminFilePath = join(__dirname, "admin.html");
 const indexFilePath = join(__dirname, "index.html");
 
-const DEFAULT_DEMO_TOKEN = "focus-compass-demo-token";
-
 const DB_PATH = process.env.DB_PATH ?? "./data/db.sqlite";
 const IMAGES_DIR = process.env.IMAGES_DIR ?? "./data/images";
 const UPLOAD_TMP_DIR = join(IMAGES_DIR, ".tmp");
@@ -46,16 +44,6 @@ const persistedToken =
 
 let authToken = envToken || persistedToken || "";
 
-if (
-  process.env.NODE_ENV === "production" &&
-  authToken === DEFAULT_DEMO_TOKEN &&
-  process.env.ALLOW_INSECURE_DEMO_TOKEN !== "true"
-) {
-  console.error(
-    "❌ Refusing to start with demo token in production. Set HOCUSPOCUS_TOKEN or ALLOW_INSECURE_DEMO_TOKEN=true"
-  );
-  process.exit(1);
-}
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
 const BACKUP_INTERVAL_MINUTES = readNumberEnv("BACKUP_INTERVAL_MINUTES", 60);
@@ -118,9 +106,9 @@ const server = new Server({
       const url = parseRequestUrl(request);
       const firstSeg = url?.pathname
         ? url.pathname
-            .split("/")
-            .filter(Boolean)
-            .slice(0, 1)[0]
+          .split("/")
+          .filter(Boolean)
+          .slice(0, 1)[0]
         : null;
       if (firstSeg) candidate = firstSeg;
     }

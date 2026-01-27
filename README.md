@@ -69,7 +69,7 @@ The server will be available at `ws://localhost:8080`.
 
 ### Key Files
 
-- **`server.js`** - Hocuspocus server configuration
+- **`src/server.js`** - Hocuspocus server configuration
 - **`Dockerfile`** - Docker image for deployment
 - **`docker-compose.yml`** - Container orchestration
 - **`package.json`** - Project dependencies
@@ -79,12 +79,35 @@ The server will be available at `ws://localhost:8080`.
 Create a `.env` file in the project root (or copy `.env.example`):
 
 ```bash
-# Port for Hocuspocus server (default 8080)
+# HTTP/WebSocket port the server listens on
+PORT=8080
+
+# Docker Compose host port mapping (optional)
 HOCUSPOCUS_PORT=8080
 
-# Node.js environment (production/development)
-NODE_ENV=production
+# Required in production (Bearer token for WS + REST)
+HOCUSPOCUS_TOKEN=your-secret-token
+
+# Data paths
+DB_PATH=./data/db.sqlite
+IMAGES_DIR=./data/images
+BACKUP_DIR=./data/backups
+
+# Backups
+BACKUP_INTERVAL_MINUTES=60
+BACKUP_RETENTION_DAYS=7
+
+# Upload limits
+MAX_UPLOAD_BYTES=10485760
+
+# CORS (comma-separated allowlist or '*')
+CORS_ALLOW_ORIGINS=*
+
+# Yjs GC (set true to reduce doc size, loses full history)
+YJS_GC=false
 ```
+
+Note: when `NODE_ENV=production`, the server requires `HOCUSPOCUS_TOKEN` (and refuses to start with the demo token unless `ALLOW_INSECURE_DEMO_TOKEN=true`).
 
 ### Persistence
 
@@ -124,6 +147,8 @@ Docker Compose is configured with an automatic healthcheck:
 - **Interval**: 30s
 - **Timeout**: 10s
 - **Retries**: 3
+
+The server also exposes `GET /healthz` which returns `{ ok: true }`.
 
 ### Logs
 

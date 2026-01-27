@@ -3,277 +3,633 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Yjs Database Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Focus Compass Admin</title>
   <style>
     :root {
-      color-scheme: dark light;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --bg: #0f172a;
-      --bg-muted: #1e293b;
-      --border: #334155;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --accent: #38bdf8;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --error: #ef4444;
+      color-scheme: light;
+      --bg: #f6f2ea;
+      --panel: rgba(255, 255, 255, 0.72);
+      --panel-solid: #ffffff;
+      --ink: #0f172a;
+      --muted: rgba(15, 23, 42, 0.65);
+      --border: rgba(15, 23, 42, 0.12);
+      --shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+      --accent: #0f766e;
+      --accent-2: #b45309;
+      --danger: #b91c1c;
+      --ok: #166534;
+      --code: "Consolas", "JetBrains Mono", "Fira Code", monospace;
+      --ui: "Candara", "Trebuchet MS", "Segoe UI", sans-serif;
+      --radius: 18px;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       margin: 0;
-      min-height: 100vh;
-      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.15), transparent 55%), var(--bg);
-      color: var(--text);
-      padding: 1rem;
+      font-family: var(--ui);
+      color: var(--ink);
+      background:
+        radial-gradient(900px 500px at 20% 10%, rgba(15, 118, 110, 0.12), transparent 60%),
+        radial-gradient(700px 420px at 80% 0%, rgba(180, 83, 9, 0.10), transparent 60%),
+        repeating-linear-gradient(135deg, rgba(15, 23, 42, 0.02) 0 2px, transparent 2px 10px),
+        var(--bg);
+      overflow-x: hidden;
     }
 
-    .shell {
-      max-width: 1200px;
-      margin: 0 auto;
+    .app {
+      min-height: 100%;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      animation: app-in 240ms ease-out;
     }
 
-    header {
+    @keyframes app-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--border);
+      background: rgba(246, 242, 234, 0.72);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 1rem 1rem;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
+      justify-content: space-between;
       gap: 1rem;
     }
 
-    h1 {
-      margin: 0;
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
-
-    .auth-form {
+    .brand {
       display: flex;
-      gap: 0.5rem;
-      align-items: center;
+      flex-direction: column;
+      gap: 0.15rem;
     }
 
-    input[type="text"],
-    input[type="password"] {
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.5rem;
+    .brand-title {
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      font-size: 1.1rem;
+      line-height: 1.1;
+    }
+
+    .brand-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: var(--code);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .field label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    input[type="password"],
+    input[type="text"] {
       border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 0.55rem 0.7rem;
       font: inherit;
       outline: none;
-      min-width: 200px;
+      min-width: 240px;
     }
 
     input:focus {
-      border-color: var(--accent);
+      border-color: rgba(15, 118, 110, 0.45);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10);
     }
 
     button {
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      border: none;
-      background: var(--accent);
-      color: var(--bg);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 0.55rem 0.8rem;
       font: inherit;
-      font-weight: 600;
+      font-weight: 650;
       cursor: pointer;
-      transition: opacity 0.2s;
+      background: var(--accent);
+      color: white;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+      user-select: none;
     }
 
     button:hover {
-      opacity: 0.85;
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
     }
 
     button:disabled {
-      opacity: 0.5;
+      opacity: 0.55;
       cursor: not-allowed;
+      transform: none;
     }
 
-    button.secondary {
-      background: var(--bg-muted);
-      color: var(--text);
-      border: 1px solid var(--border);
+    button.ghost {
+      background: rgba(255, 255, 255, 0.65);
+      border-color: var(--border);
+      color: var(--ink);
     }
 
     button.danger {
-      background: var(--error);
+      background: var(--danger);
       color: white;
     }
 
-    button.danger:hover {
-      background: #dc2626;
-    }
-
-    .btn-icon {
-      padding: 0.4rem 0.6rem;
+    button.tiny {
+      padding: 0.4rem 0.55rem;
+      border-radius: 10px;
       font-size: 0.85rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
     }
 
-    .stats-grid {
+    .layout {
+      width: 100%;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 1rem;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: 220px 1fr;
+      gap: 1rem;
+      align-items: start;
+      flex: 1;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .nav {
+      position: sticky;
+      top: 88px;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    @media (max-width: 980px) {
+      .nav {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+
+    .nav button {
+      width: 100%;
+      justify-content: flex-start;
+      text-align: left;
+    }
+
+    @media (max-width: 980px) {
+      .nav button {
+        width: auto;
+      }
+    }
+
+    .nav button.ghost.active {
+      border-color: rgba(15, 118, 110, 0.35);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10);
+    }
+
+    .nav-meta {
+      margin-top: 0.5rem;
+      padding: 0.8rem 0.9rem;
+      border: 1px dashed rgba(15, 23, 42, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.5);
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.35;
+      white-space: pre-line;
+    }
+
+    .main {
+      display: grid;
       gap: 1rem;
     }
 
-    .stat-card {
-      background: var(--bg-muted);
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .panel {
+      background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 1rem;
-      padding: 1.25rem;
-    }
-
-    .stat-label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 0.25rem;
-    }
-
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--accent);
-    }
-
-    .section {
-      background: var(--bg-muted);
-      border: 1px solid var(--border);
-      border-radius: 1rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       overflow: hidden;
     }
 
-    .section-header {
-      padding: 1rem 1.25rem;
+    .panel-header {
+      padding: 0.95rem 1rem;
       border-bottom: 1px solid var(--border);
       display: flex;
+      align-items: baseline;
       justify-content: space-between;
-      align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
 
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 600;
+    .panel-title {
       margin: 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
     }
 
-    .section-actions {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
+    .panel-sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-family: var(--code);
     }
 
-    .doc-list {
-      max-height: 400px;
-      overflow-y: auto;
+    .panel-body {
+      padding: 1rem;
     }
 
-    .doc-item {
-      padding: 0.85rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 980px) {
+      .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 0.9rem;
+      display: grid;
+      gap: 0.35rem;
+      min-height: 96px;
+    }
+
+    .card-kicker {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card-value {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .card-sub {
+      font-family: var(--code);
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 340px 1fr;
       gap: 1rem;
-      transition: background 0.15s;
+      align-items: start;
     }
 
-    .doc-item:last-child {
-      border-bottom: none;
+    @media (max-width: 980px) {
+      .split {
+        grid-template-columns: 1fr;
+      }
     }
 
-    .doc-item:hover {
-      background: rgba(56, 189, 248, 0.1);
+    .list {
+      display: grid;
+      gap: 0.35rem;
+      max-height: 560px;
+      overflow: auto;
+      padding-right: 0.25rem;
     }
 
-    .doc-item.selected {
-      background: rgba(56, 189, 248, 0.2);
-    }
-
-    .doc-info {
-      flex: 1;
-      min-width: 0;
+    .list-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 0.65rem 0.75rem;
       cursor: pointer;
+      transition: background 120ms ease, transform 120ms ease;
+    }
+
+    .list-item:hover {
+      background: rgba(15, 118, 110, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .list-item.active {
+      background: rgba(15, 118, 110, 0.12);
+      border-color: rgba(15, 118, 110, 0.28);
+    }
+
+    .list-top {
       display: flex;
-      justify-content: space-between;
+      gap: 0.6rem;
       align-items: center;
-      gap: 1rem;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .mini {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: var(--code);
     }
 
     .doc-name {
-      font-weight: 500;
-      word-break: break-all;
+      font-weight: 800;
+      line-height: 1.2;
+      word-break: break-word;
     }
 
     .doc-meta {
+      margin-top: 0.25rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: var(--code);
       display: flex;
-      gap: 1rem;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      flex-shrink: 0;
+      gap: 0.6rem;
+      flex-wrap: wrap;
     }
 
-    .doc-actions {
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.22rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.7);
+      font-family: var(--code);
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .pill.ok {
+      border-color: rgba(22, 101, 52, 0.25);
+      background: rgba(22, 101, 52, 0.10);
+    }
+
+    .pill.warn {
+      border-color: rgba(180, 83, 9, 0.25);
+      background: rgba(180, 83, 9, 0.10);
+    }
+
+    .detail {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .detail-header {
       display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .detail-title {
+      display: grid;
       gap: 0.25rem;
-      opacity: 0;
-      transition: opacity 0.15s;
+      min-width: 0;
     }
 
-    .doc-item:hover .doc-actions {
-      opacity: 1;
+    .detail-title h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      word-break: break-word;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .doc-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0.75rem;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .doc-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .history {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.65);
+      overflow: hidden;
+    }
+
+    .history-head {
+      padding: 0.75rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.6rem;
+    }
+
+    .history-head strong {
+      font-weight: 900;
+    }
+
+    .history-list {
+      max-height: 420px;
+      overflow: auto;
+      padding: 0.4rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .history-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.75);
+      padding: 0.55rem 0.65rem;
+      cursor: pointer;
+      transition: background 120ms ease, transform 120ms ease;
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    .history-item:hover {
+      background: rgba(180, 83, 9, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .history-item.active {
+      background: rgba(180, 83, 9, 0.12);
+      border-color: rgba(180, 83, 9, 0.28);
+    }
+
+    .history-line {
+      font-weight: 850;
+      font-size: 0.9rem;
+      line-height: 1.2;
+    }
+
+    .history-sub {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-family: var(--code);
+      word-break: break-word;
     }
 
     .viewer {
-      padding: 1.25rem;
-      max-height: 500px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.65);
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.35rem;
+      padding: 0.45rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .tab {
+      padding: 0.45rem 0.65rem;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: rgba(15, 118, 110, 0.10);
+      border-color: rgba(15, 118, 110, 0.24);
+    }
+
+    .viewer-meta {
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-family: var(--code);
+      font-size: 0.8rem;
+    }
+
+    .viewer-body {
+      padding: 0.85rem;
+      max-height: 520px;
       overflow: auto;
     }
 
-    .viewer-placeholder {
-      color: var(--text-muted);
+    .empty {
+      padding: 2.2rem 1rem;
       text-align: center;
-      padding: 2rem;
+      color: var(--muted);
+      font-family: var(--code);
     }
 
     .json-tree {
-      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-family: var(--code);
       font-size: 0.85rem;
       line-height: 1.5;
     }
 
     .json-key {
-      color: #7dd3fc;
+      color: #0369a1;
+      font-weight: 700;
     }
 
     .json-string {
-      color: #86efac;
+      color: #0f766e;
     }
 
     .json-number {
-      color: #fcd34d;
+      color: #b45309;
     }
 
     .json-boolean {
-      color: #f472b6;
+      color: #2563eb;
     }
 
     .json-null {
-      color: var(--text-muted);
+      color: var(--muted);
     }
 
     .json-bracket {
-      color: var(--text-muted);
+      color: var(--muted);
     }
 
     .collapsible {
@@ -283,653 +639,681 @@
 
     .collapsible::before {
       content: "\25BC ";
-      font-size: 0.7em;
-      color: var(--text-muted);
+      font-size: 0.75em;
+      color: var(--muted);
     }
 
     .collapsible.collapsed::before {
       content: "\25B6 ";
     }
 
-    .collapsed+.json-content {
+    .collapsed + .json-content {
       display: none;
     }
 
     .indent {
-      margin-left: 1.5rem;
+      margin-left: 1.25rem;
     }
 
-    .error-msg {
-      color: var(--error);
-      padding: 1rem;
-      text-align: center;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 2rem;
-      color: var(--text-muted);
-    }
-
-    .loading::after {
-      content: "";
-      animation: dots 1.5s infinite;
-    }
-
-    @keyframes dots {
-
-      0%,
-      20% {
-        content: ".";
-      }
-
-      40% {
-        content: "..";
-      }
-
-      60%,
-      100% {
-        content: "...";
-      }
-    }
-
-    .tabs {
+    .images-toolbar {
       display: flex;
       gap: 0.5rem;
-      padding: 0 1.25rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 1100px) {
+      .images-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .images-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .img-card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.75);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 150px auto;
+    }
+
+    .img-thumb {
+      background:
+        radial-gradient(300px 140px at 30% 20%, rgba(15, 118, 110, 0.16), transparent 60%),
+        radial-gradient(260px 160px at 80% 0%, rgba(180, 83, 9, 0.12), transparent 60%),
+        #f8fafc;
       border-bottom: 1px solid var(--border);
-    }
-
-    .tab {
-      padding: 0.75rem 1rem;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      color: var(--text-muted);
-      transition: all 0.2s;
-    }
-
-    .tab:hover {
-      color: var(--text);
-    }
-
-    .tab.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
-    }
-
-    .raw-view {
-      background: var(--bg);
-      padding: 1rem;
-      border-radius: 0.5rem;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      font-family: "JetBrains Mono", "Fira Code", monospace;
-      font-size: 0.8rem;
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
     }
 
-    .modal-overlay.visible {
-      opacity: 1;
-      visibility: visible;
+    .img-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
     }
 
-    .modal {
-      background: var(--bg-muted);
+    .img-thumb.ready img {
+      display: block;
+    }
+
+    .img-thumb .img-fallback {
+      font-family: var(--code);
+      font-weight: 900;
+      color: rgba(15, 23, 42, 0.55);
+      background: rgba(255, 255, 255, 0.75);
       border: 1px solid var(--border);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      max-width: 400px;
-      width: 90%;
-      transform: scale(0.95);
-      transition: transform 0.2s;
+      border-radius: 999px;
+      padding: 0.25rem 0.6rem;
+      position: absolute;
+      bottom: 0.65rem;
+      left: 0.65rem;
+      max-width: calc(100% - 1.3rem);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .modal-overlay.visible .modal {
-      transform: scale(1);
+    .img-body {
+      padding: 0.75rem 0.85rem;
+      display: grid;
+      gap: 0.45rem;
     }
 
-    .modal-title {
-      margin: 0 0 0.5rem;
-      font-size: 1.25rem;
+    .img-id {
+      font-weight: 900;
+      font-family: var(--code);
+      font-size: 0.9rem;
+      word-break: break-word;
     }
 
-    .modal-body {
-      color: var(--text-muted);
-      margin-bottom: 1.5rem;
-    }
-
-    .modal-body code {
-      background: var(--bg);
-      padding: 0.15rem 0.4rem;
-      border-radius: 0.25rem;
-      color: var(--accent);
-      word-break: break-all;
-    }
-
-    .modal-actions {
+    .img-meta {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-family: var(--code);
       display: flex;
-      gap: 0.75rem;
-      justify-content: flex-end;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .img-actions {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
     }
 
     .toast {
       position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      background: var(--bg-muted);
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 999;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.92);
       border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      padding: 1rem 1.25rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      transform: translateY(100px);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      transform: translateY(16px);
       opacity: 0;
-      transition: all 0.3s;
-      z-index: 1001;
+      transition: transform 160ms ease, opacity 160ms ease;
+      max-width: min(520px, calc(100vw - 2rem));
+      pointer-events: none;
     }
 
     .toast.visible {
-      transform: translateY(0);
       opacity: 1;
-    }
-
-    .toast.success {
-      border-color: var(--success);
+      transform: translateY(0);
     }
 
     .toast.error {
-      border-color: var(--error);
+      border-color: rgba(185, 28, 28, 0.25);
+      background: rgba(254, 242, 242, 0.96);
     }
 
-    /* History slider */
-    .history-controls {
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg);
-    }
-
-    .history-slider-container {
-      display: flex;
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      z-index: 1000;
+      display: none;
       align-items: center;
-      gap: 1rem;
+      justify-content: center;
+      padding: 1rem;
     }
 
-    .history-slider {
-      flex: 1;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      outline: none;
-    }
-
-    .history-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      background: var(--accent);
-      border-radius: 50%;
-      cursor: pointer;
-      transition: transform 0.15s;
-    }
-
-    .history-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-
-    .history-slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: var(--accent);
-      border-radius: 50%;
-      cursor: pointer;
-      border: none;
-    }
-
-    .history-value {
-      min-width: 6rem;
-      text-align: right;
-      font-weight: 600;
-      color: var(--accent);
-      font-size: 0.95rem;
-      font-family: "JetBrains Mono", "Fira Code", monospace;
-    }
-
-    .history-info {
+    .modal.visible {
       display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 720px;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateY(8px);
+      animation: modal-in 160ms ease-out;
+    }
+
+    @keyframes modal-in {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(8px);
+      }
+    }
+
+    .modal-head {
+      padding: 0.95rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
       justify-content: space-between;
-      margin-top: 0.75rem;
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      gap: 0.75rem;
     }
 
-    .history-info code {
-      background: var(--bg-muted);
-      padding: 0.1rem 0.3rem;
-      border-radius: 0.25rem;
-      font-family: "JetBrains Mono", "Fira Code", monospace;
+    .modal-head h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: -0.01em;
     }
 
-    .history-content {
-      padding: 1.25rem;
-      max-height: 400px;
-      overflow: auto;
+    .modal-body {
+      padding: 1rem;
+    }
+
+    .modal-actions {
+      padding: 0.85rem 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .preview {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .preview img {
+      width: 100%;
+      max-height: 64vh;
+      object-fit: contain;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+    }
+
+    .preview-meta {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      font-family: var(--code);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .hint {
+      font-family: var(--code);
+      color: var(--muted);
+      font-size: 0.85rem;
     }
   </style>
 </head>
 
 <body>
-  <div class="shell">
-    <header>
-      <h1>Yjs Database Admin</h1>
-      <div class="auth-form">
-        <input type="password" id="token" placeholder="Bearer Token" />
-        <button onclick="connect()">Connect</button>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-title">Focus Compass Admin</div>
+          <div class="brand-sub">SQLite + Yjs snapshots</div>
+        </div>
+        <div class="top-actions">
+          <div class="field">
+            <label for="token">Token</label>
+            <input type="password" id="token" placeholder="Bearer token" autocomplete="current-password" />
+          </div>
+          <button id="connectBtn">Connect</button>
+          <button id="refreshAllBtn" class="ghost" disabled>Refresh</button>
+        </div>
       </div>
     </header>
 
-    <div id="content" style="display: none;">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Database Size</div>
-          <div class="stat-value" id="db-size">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Documents</div>
-          <div class="stat-value" id="doc-count">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Data Size</div>
-          <div class="stat-value" id="total-data">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Images</div>
-          <div class="stat-value" id="image-count">-</div>
-        </div>
+    <div class="layout">
+      <div class="nav">
+        <button class="ghost" data-view="overview">Overview</button>
+        <button class="ghost" data-view="documents">Documents</button>
+        <button class="ghost" data-view="images">Images</button>
+        <div class="nav-meta" id="navMeta">Disconnected</div>
       </div>
 
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Documents</h2>
-          <button class="secondary" onclick="refreshData()">Refresh</button>
-        </div>
-        <div class="doc-list" id="doc-list">
-          <div class="loading">Loading documents</div>
-        </div>
-      </div>
+      <main class="main">
+        <section class="view" id="view-overview">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Storage</h2>
+              <div class="panel-sub" id="overviewSub">-</div>
+            </div>
+            <div class="panel-body">
+              <div class="cards">
+                <div class="card">
+                  <div class="card-kicker">Database</div>
+                  <div class="card-value" id="statDb">-</div>
+                  <div class="card-sub" id="statDbSub">-</div>
+                </div>
+                <div class="card">
+                  <div class="card-kicker">Backups</div>
+                  <div class="card-value" id="statBackups">-</div>
+                  <div class="card-sub" id="statBackupsSub">-</div>
+                </div>
+                <div class="card">
+                  <div class="card-kicker">Images</div>
+                  <div class="card-value" id="statImages">-</div>
+                  <div class="card-sub" id="statImagesSub">-</div>
+                </div>
+                <div class="card">
+                  <div class="card-kicker">Total</div>
+                  <div class="card-value" id="statTotal">-</div>
+                  <div class="card-sub" id="statTotalSub">-</div>
+                </div>
+              </div>
+              <div style="margin-top: 0.9rem" class="hint" id="overviewHint">Use Refresh to see new backups after edits.</div>
+            </div>
+          </div>
+        </section>
 
-      <div class="section" id="viewer-section" style="display: none;">
-        <div class="section-header">
-          <h2 class="section-title">Document: <span id="viewer-doc-name">-</span></h2>
-          <div class="section-actions">
-            <button class="btn-icon secondary" onclick="copyJson()" title="Copy JSON">Copy</button>
-            <button class="btn-icon danger" onclick="confirmDelete(state.currentDoc)" title="Delete">Delete</button>
+        <section class="view" id="view-documents">
+          <div class="split">
+            <div class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">Documents</h2>
+                <div class="panel-sub" id="docsSub">-</div>
+              </div>
+              <div class="panel-body">
+                <div class="list-top">
+                  <input type="text" id="docSearch" placeholder="Search documents" autocomplete="off" />
+                  <button class="ghost tiny" id="docsRefreshBtn">Refresh</button>
+                </div>
+                <div class="list" id="docList"></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">Viewer</h2>
+                <div class="panel-sub" id="viewerSub">-</div>
+              </div>
+              <div class="panel-body">
+                <div id="docEmpty" class="empty">Select a document</div>
+
+                <div id="docDetail" class="detail" style="display: none;">
+                  <div class="detail-header">
+                    <div class="detail-title">
+                      <h2 id="docTitle">-</h2>
+                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <span class="pill ok" id="docVersion">Current</span>
+                        <span class="pill" id="docMetaPill">-</span>
+                      </div>
+                    </div>
+                    <div class="detail-actions">
+                      <button class="ghost tiny" id="docRefreshBtn">Refresh</button>
+                      <button class="ghost tiny" id="docCopyBtn">Copy JSON</button>
+                      <button class="danger tiny" id="docDeleteBtn">Delete</button>
+                    </div>
+                  </div>
+
+                  <div class="doc-grid">
+                    <div class="history">
+                      <div class="history-head">
+                        <strong>History</strong>
+                        <span class="panel-sub" id="docHistorySub">-</span>
+                      </div>
+                      <div class="history-list" id="docHistory"></div>
+                    </div>
+
+                    <div class="viewer">
+                      <div class="tabs">
+                        <button class="tab active" data-tab="tree">Tree</button>
+                        <button class="tab" data-tab="raw">Raw</button>
+                      </div>
+                      <div class="viewer-meta" id="docViewerMeta">-</div>
+                      <div class="viewer-body" id="docViewer"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="tabs">
-          <div class="tab active" data-tab="tree" onclick="switchTab('tree')">Tree View</div>
-          <div class="tab" data-tab="raw" onclick="switchTab('raw')">Raw JSON</div>
-          <div class="tab" data-tab="structure" onclick="switchTab('structure')">CRDT Structure</div>
-          <div class="tab" data-tab="history" onclick="switchTab('history')">History</div>
-        </div>
-        <div id="history-controls" class="history-controls" style="display: none;">
-          <div class="history-slider-container">
-            <input type="range" class="history-slider" id="history-slider" min="0" max="100" value="100" />
-            <span class="history-value" id="history-value">0 / 0</span>
+        </section>
+
+        <section class="view" id="view-images">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Images</h2>
+              <div class="panel-sub" id="imagesSub">-</div>
+            </div>
+            <div class="panel-body">
+              <div class="images-toolbar">
+                <input type="text" id="imageSearch" placeholder="Search image IDs" autocomplete="off" />
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <button class="ghost" id="imagesRefreshBtn">Refresh</button>
+                </div>
+              </div>
+              <div class="images-grid" id="imagesGrid"></div>
+            </div>
           </div>
-          <div class="history-info">
-            <span>Operations: <code id="history-ops">-</code></span>
-            <span>Clients: <code id="history-clients">-</code></span>
-          </div>
-        </div>
-        <div class="viewer" id="viewer">
-          <div class="viewer-placeholder">Select a document to view its contents</div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
-
-    <div id="error" class="error-msg" style="display: none;"></div>
   </div>
 
-  <!-- Delete Confirmation Modal -->
-  <div class="modal-overlay" id="delete-modal">
-    <div class="modal">
-      <h3 class="modal-title">Delete Document</h3>
+  <div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="confirmTitle">Confirm</h3>
+        <button class="ghost tiny" id="confirmCloseBtn">Close</button>
+      </div>
       <div class="modal-body">
-        Are you sure you want to delete <code id="delete-doc-name"></code>? This action cannot be undone.
+        <div id="confirmBody" class="hint">-</div>
       </div>
       <div class="modal-actions">
-        <button class="secondary" onclick="closeModal()">Cancel</button>
-        <button class="danger" onclick="executeDelete()">Delete</button>
+        <button class="ghost" id="confirmCancelBtn">Cancel</button>
+        <button class="danger" id="confirmOkBtn">Delete</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast notification -->
+  <div class="modal" id="imageModal" role="dialog" aria-modal="true" aria-labelledby="imageTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="imageTitle">Image</h3>
+        <button class="ghost tiny" id="imageCloseBtn">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="preview">
+          <img id="imagePreview" alt="" />
+          <div class="preview-meta" id="imageMeta">-</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost" id="imageCopyBtn">Copy ID</button>
+        <button class="danger" id="imageDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
-    // State
     const state = {
-      authToken: localStorage.getItem("admin-token") || "",
-      currentDoc: null,
-      currentData: null,
-      currentTab: "tree",
-      deleteTarget: null,
-      historyData: null,
-      historyOps: 0,
-      currentOps: 0
+      token: localStorage.getItem("admin-token") || "",
+      connected: false,
+      activeView: "overview",
+      lastRefreshIso: null,
+
+      dbInfo: null,
+      backups: [],
+      backupsTotalBytes: null,
+      docs: [],
+
+      images: [],
+
+      selectedDoc: null,
+      selectedDocVersion: { kind: "current", backup: null },
+      selectedDocData: null,
+      selectedTab: "tree",
+
+      docSearch: "",
+      imageSearch: "",
+
+      confirm: { open: false, title: "", body: "", onConfirm: null },
+      imageModal: { open: false, id: null, blobUrl: null },
+
+      thumbUrls: new Map(),
+      thumbQueue: [],
+      thumbInFlight: 0,
+      thumbWanted: new Set(),
     };
 
-    // DOM helpers
     const $ = (id) => document.getElementById(id);
-    const $$ = (sel) => document.querySelectorAll(sel);
 
-    // API
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, (c) => {
+        switch (c) {
+          case "&":
+            return "&amp;";
+          case "<":
+            return "&lt;";
+          case ">":
+            return "&gt;";
+          case "\"":
+            return "&quot;";
+          case "'":
+            return "&#39;";
+          default:
+            return c;
+        }
+      });
+    }
+
+    function formatBytes(bytes) {
+      const n = Number(bytes) || 0;
+      if (!n) return "0 B";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB", "GB", "TB"];
+      const i = Math.floor(Math.log(n) / Math.log(k));
+      return `${parseFloat((n / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    }
+
+    function formatLocalDateTime(isoString) {
+      if (!isoString) return "";
+      try {
+        return new Date(isoString).toLocaleString();
+      } catch {
+        return String(isoString);
+      }
+    }
+
+    function toast(msg, type = "") {
+      const el = $("toast");
+      el.className = `toast ${type}`.trim();
+      el.textContent = msg;
+      el.classList.add("visible");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("visible"), 2600);
+    }
+
     async function apiCall(endpoint, options = {}) {
       const res = await fetch(`${location.origin}${endpoint}`, {
         ...options,
         headers: {
-          Authorization: `Bearer ${state.authToken}`,
-          ...options.headers
-        }
+          Authorization: `Bearer ${state.token}`,
+          ...options.headers,
+        },
       });
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `${res.status} ${res.statusText}`);
       }
+
       return res.json();
     }
 
-    // Utils
-    function formatBytes(bytes) {
-      if (!bytes || bytes === 0) return "0 B";
-      const k = 1024;
-      const sizes = ["B", "KB", "MB", "GB"];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-    }
-
-    function escapeHtml(str) {
-      if (typeof str !== "string") return str;
-      const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-      return str.replace(/[&<>"']/g, c => map[c]);
-    }
-
-    function showError(msg) {
-      $("error").textContent = msg;
-      $("error").style.display = "block";
-    }
-
-    function hideError() {
-      $("error").style.display = "none";
-    }
-
-    function showToast(msg, type = "success") {
-      const toast = $("toast");
-      toast.textContent = msg;
-      toast.className = `toast visible ${type}`;
-      setTimeout(() => toast.classList.remove("visible"), 3000);
-    }
-
-    // Modal
-    function openModal(docName) {
-      state.deleteTarget = docName;
-      $("delete-doc-name").textContent = docName;
-      $("delete-modal").classList.add("visible");
-    }
-
-    function closeModal() {
-      $("delete-modal").classList.remove("visible");
-      state.deleteTarget = null;
-    }
-
-    function confirmDelete(docName) {
-      if (!docName) return;
-      openModal(docName);
-    }
-
-    async function executeDelete() {
-      const docName = state.deleteTarget;
-      if (!docName) return;
-
-      closeModal();
-
-      try {
-        await apiCall(`/api/admin/documents/${encodeURIComponent(docName)}`, {
-          method: "DELETE"
-        });
-
-        showToast(`Deleted "${docName}"`);
-
-        // Clear viewer if deleted doc was selected
-        if (state.currentDoc === docName) {
-          state.currentDoc = null;
-          state.currentData = null;
-          $("viewer-section").style.display = "none";
-        }
-
-        await refreshData();
-      } catch (err) {
-        showToast(`Failed to delete: ${err.message}`, "error");
-      }
-    }
-
-    // Auth
-    async function connect() {
-      state.authToken = $("token").value.trim();
-      if (!state.authToken) {
-        showError("Please enter a token");
-        return;
-      }
-
-      try {
-        await refreshData();
-        $("content").style.display = "block";
-        hideError();
-        localStorage.setItem("admin-token", state.authToken);
-      } catch (err) {
-        showError(`Connection failed: ${err.message}`);
-      }
-    }
-
-    // Data
-    async function refreshData() {
-      try {
-        const [dbInfo, images] = await Promise.all([
-          apiCall("/api/admin/db-info"),
-          apiCall("/api/images").catch(() => ({ count: 0 }))
-        ]);
-
-        $("db-size").textContent = formatBytes(dbInfo.dbSize);
-        $("doc-count").textContent = dbInfo.documentCount;
-        $("total-data").textContent = formatBytes(dbInfo.totalDataSize);
-        $("image-count").textContent = images.count;
-
-        renderDocList(dbInfo.documents);
-      } catch (err) {
-        showError(`Failed to load: ${err.message}`);
-      }
-    }
-
-    function renderDocList(docs) {
-      const list = $("doc-list");
-
-      if (!docs?.length) {
-        list.innerHTML = '<div class="viewer-placeholder">No documents found</div>';
-        return;
-      }
-
-      list.innerHTML = docs.map(doc => `
-        <div class="doc-item ${state.currentDoc === doc.name ? 'selected' : ''}" data-name="${escapeHtml(doc.name)}">
-          <div class="doc-info" onclick="selectDoc('${escapeHtml(doc.name)}')">
-            <span class="doc-name">${escapeHtml(doc.name)}</span>
-            <span class="doc-meta">
-              <span>${formatBytes(doc.dataSize)}</span>
-              <span>${doc.sharedTypes} types</span>
-            </span>
-          </div>
-          <div class="doc-actions">
-            <button class="btn-icon danger" onclick="event.stopPropagation(); confirmDelete('${escapeHtml(doc.name)}')" title="Delete">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    async function selectDoc(name) {
-      state.currentDoc = name;
-      state.historyData = null;
-      state.historyContent = null;
-      state.historyOps = 0;
-      state.currentOps = 0;
-      $("history-slider").value = 0;
-      $("history-value").textContent = "0 / 0";
-      $("viewer-section").style.display = "block";
-      $("viewer-doc-name").textContent = name;
-      $("viewer").innerHTML = '<div class="loading">Loading document</div>';
-
-      // Reset to tree view and hide history controls
-      if (state.currentTab === "history") {
-        $("history-controls").style.display = "none";
-        state.currentTab = "tree";
-        $$(".tab").forEach(el => el.classList.toggle("active", el.dataset.tab === "tree"));
-      }
-
-      // Update selection
-      $$(".doc-item").forEach(el => {
-        el.classList.toggle("selected", el.dataset.name === name);
+    async function apiBlob(endpoint) {
+      const res = await fetch(`${location.origin}${endpoint}`, {
+        headers: {
+          Authorization: `Bearer ${state.token}`,
+        },
       });
 
-      try {
-        state.currentData = await apiCall(`/api/admin/documents/${encodeURIComponent(name)}`);
-        renderCurrentTab();
-      } catch (err) {
-        $("viewer").innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
-      }
-    }
-
-    // Tabs & Rendering
-    function switchTab(tab) {
-      state.currentTab = tab;
-      $$(".tab").forEach(el => el.classList.toggle("active", el.dataset.tab === tab));
-
-      // Show/hide history controls
-      const historyControls = $("history-controls");
-      if (tab === "history") {
-        historyControls.style.display = "block";
-        loadHistoryInfo();
-      } else {
-        historyControls.style.display = "none";
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `${res.status} ${res.statusText}`);
       }
 
-      renderCurrentTab();
+      return res.blob();
     }
 
-    function renderCurrentTab() {
-      if (!state.currentData) return;
+    function setConnected(connected) {
+      state.connected = connected;
+      $("refreshAllBtn").disabled = !connected;
 
-      const viewer = $("viewer");
-      const { content } = state.currentData;
-
-      switch (state.currentTab) {
-        case "tree":
-          viewer.innerHTML = `<div class="json-tree">${renderJsonTree(content)}</div>`;
-          break;
-        case "raw":
-          viewer.innerHTML = `<div class="raw-view">${escapeHtml(JSON.stringify(content, null, 2))}</div>`;
-          break;
-        case "structure":
-          viewer.innerHTML = `<div class="json-tree">${renderStructureInfo(state.currentData)}</div>`;
-          break;
-        case "history":
-          renderHistoryView();
-          break;
-      }
+      $("navMeta").textContent = connected
+        ? `Connected\nLast refresh: ${state.lastRefreshIso ? formatLocalDateTime(state.lastRefreshIso) : "-"}`
+        : "Disconnected";
     }
 
-    // History functions
-    async function loadHistoryInfo() {
-      if (!state.currentDoc) return;
-
-      try {
-        const historyInfo = await apiCall(`/api/admin/documents/${encodeURIComponent(state.currentDoc)}/history`);
-        state.historyData = historyInfo;
-        state.historyOps = historyInfo.totalOperations;
-
-        // Setup slider for operations (0 to totalOperations)
-        const slider = $("history-slider");
-        slider.min = 0;
-        slider.max = historyInfo.totalOperations;
-        slider.value = historyInfo.totalOperations;
-
-        $("history-clients").textContent = historyInfo.clients.length;
-        $("history-ops").textContent = historyInfo.totalOperations;
-
-        loadHistoryAtOps(historyInfo.totalOperations);
-      } catch (err) {
-        $("viewer").innerHTML = `<div class="error-msg">Failed to load history: ${err.message}</div>`;
-      }
+    function setView(view) {
+      state.activeView = view;
+      document.querySelectorAll(".view").forEach((el) => {
+        el.classList.toggle("active", el.id === `view-${view}`);
+      });
+      document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.view === view);
+      });
     }
 
-    function updateHistoryDisplay(ops) {
-      if (!state.historyData) return;
-      const total = state.historyData.totalOperations;
-      $("history-value").textContent = `${ops} / ${total}`;
+    function calcImagesBytes(images) {
+      if (!Array.isArray(images)) return 0;
+      return images.reduce((sum, img) => sum + (Number(img?.size) || 0), 0);
     }
 
-    let historyLoadTimeout = null;
-    async function loadHistoryAtOps(ops) {
-      if (!state.currentDoc || !state.historyData) return;
-
-      const total = state.historyData.totalOperations;
-      ops = Math.max(0, Math.min(ops, total));
-
-      $("history-slider").value = ops;
-      updateHistoryDisplay(ops);
-
-      // Debounce loading
-      if (historyLoadTimeout) clearTimeout(historyLoadTimeout);
-      historyLoadTimeout = setTimeout(async () => {
-        try {
-          const data = await apiCall(`/api/admin/documents/${encodeURIComponent(state.currentDoc)}/at?ops=${ops}`);
-          state.historyContent = data.content;
-          state.currentOps = ops;
-          renderHistoryView();
-        } catch (err) {
-          $("viewer").innerHTML = `<div class="error-msg">Failed to load state: ${err.message}</div>`;
-        }
-      }, 100);
+    function calcBackupsBytes(backups, fallbackTotal) {
+      const fallback = Number(fallbackTotal);
+      if (Number.isFinite(fallback) && fallback > 0) return fallback;
+      if (!Array.isArray(backups)) return 0;
+      return backups.reduce(
+        (sum, b) => sum + (Number(b?.totalSizeBytes) || Number(b?.sizeBytes) || 0),
+        0
+      );
     }
 
-    function renderHistoryView() {
-      const viewer = $("viewer");
-      const content = state.historyContent || {};
+    function renderOverview() {
+      const db = state.dbInfo;
+      const dbBytes = db ? Number(db.dbTotalSize ?? db.dbSize) || 0 : 0;
+      const backupsBytes = calcBackupsBytes(state.backups, state.backupsTotalBytes);
+      const imagesBytes = calcImagesBytes(state.images);
+      const totalBytes = dbBytes + backupsBytes + imagesBytes;
 
-      if (Object.keys(content).length === 0) {
-        viewer.innerHTML = '<div class="viewer-placeholder">No data at this point in history</div>';
+      $("overviewSub").textContent = state.lastRefreshIso
+        ? `Last refresh ${formatLocalDateTime(state.lastRefreshIso)}`
+        : "-";
+
+      $("statDb").textContent = formatBytes(dbBytes);
+      $("statDbSub").textContent = db
+        ? `${db.documentCount} docs | sidecars ${formatBytes(Number(db.dbSidecarsSize) || 0)}`
+        : "-";
+
+      $("statBackups").textContent = formatBytes(backupsBytes);
+      $("statBackupsSub").textContent = `${state.backups.length} snapshots`;
+
+      $("statImages").textContent = formatBytes(imagesBytes);
+      $("statImagesSub").textContent = `${state.images.length} files`;
+
+      $("statTotal").textContent = formatBytes(totalBytes);
+      $("statTotalSub").textContent = `DB + backups + images`;
+    }
+
+    function renderDocList() {
+      const list = $("docList");
+      list.innerHTML = "";
+
+      const q = state.docSearch.trim().toLowerCase();
+      const docs = Array.isArray(state.docs) ? state.docs : [];
+      const filtered = q ? docs.filter((d) => String(d.name).toLowerCase().includes(q)) : docs;
+
+      $("docsSub").textContent = `${filtered.length} / ${docs.length}`;
+
+      if (!filtered.length) {
+        list.innerHTML = '<div class="empty">No documents</div>';
         return;
       }
 
-      viewer.innerHTML = `<div class="json-tree">${renderJsonTree(content)}</div>`;
+      for (const doc of filtered) {
+        const item = document.createElement("div");
+        item.className = "list-item";
+        item.dataset.name = doc.name;
+        if (state.selectedDoc === doc.name) item.classList.add("active");
+
+        const name = document.createElement("div");
+        name.className = "doc-name";
+        name.textContent = doc.name;
+
+        const meta = document.createElement("div");
+        meta.className = "doc-meta";
+        meta.textContent = `${formatBytes(doc.dataSize)} | ${doc.sharedTypes} types`;
+
+        item.appendChild(name);
+        item.appendChild(meta);
+        list.appendChild(item);
+      }
+    }
+
+    function renderDocHistory() {
+      const el = $("docHistory");
+      el.innerHTML = "";
+
+      const backups = Array.isArray(state.backups) ? state.backups : [];
+      $("docHistorySub").textContent = backups.length ? `${backups.length} backups` : "No backups";
+
+      const mkItem = (label, sub, isActive, kind, backupFile) => {
+        const item = document.createElement("div");
+        item.className = "history-item";
+        if (isActive) item.classList.add("active");
+        item.dataset.kind = kind;
+        item.dataset.backup = backupFile || "";
+
+        const line = document.createElement("div");
+        line.className = "history-line";
+        line.textContent = label;
+
+        const s = document.createElement("div");
+        s.className = "history-sub";
+        s.textContent = sub;
+
+        item.appendChild(line);
+        item.appendChild(s);
+        return item;
+      };
+
+      const currentActive = state.selectedDocVersion.kind === "current";
+      el.appendChild(mkItem("Current", "Live database", currentActive, "current", null));
+
+      for (const b of backups) {
+        const file = String(b.file || "");
+        const label = b.createdAt ? formatLocalDateTime(b.createdAt) : file;
+        const size = Number(b.totalSizeBytes ?? b.sizeBytes) || 0;
+        const sub = `${formatBytes(size)} | ${file}`;
+        const active = state.selectedDocVersion.kind === "backup" && state.selectedDocVersion.backup === file;
+        el.appendChild(mkItem(label, sub, active, "backup", file));
+      }
     }
 
     function renderJsonTree(obj, depth = 0) {
@@ -937,117 +1321,590 @@
       if (obj === undefined) return '<span class="json-null">undefined</span>';
 
       const type = typeof obj;
-
       if (type === "string") {
         const escaped = escapeHtml(obj);
-        const display = escaped.length > 200 ? `${escaped.slice(0, 200)}...` : escaped;
+        const display = escaped.length > 240 ? `${escaped.slice(0, 240)}...` : escaped;
         return `<span class="json-string">"${display}"</span>`;
       }
-
       if (type === "number") return `<span class="json-number">${obj}</span>`;
       if (type === "boolean") return `<span class="json-boolean">${obj}</span>`;
 
       if (Array.isArray(obj)) {
         if (!obj.length) return '<span class="json-bracket">[]</span>';
-
-        const items = obj.map((item, i) =>
-          `<div class="indent">${renderJsonTree(item, depth + 1)}${i < obj.length - 1 ? ',' : ''}</div>`
-        ).join("");
-
+        const items = obj
+          .map(
+            (item, i) =>
+              `<div class="indent">${renderJsonTree(item, depth + 1)}${i < obj.length - 1 ? "," : ""}</div>`
+          )
+          .join("");
         const collapsed = depth > 2 ? " collapsed" : "";
-        return `<span class="collapsible${collapsed}" onclick="this.classList.toggle('collapsed')">Array(${obj.length})</span>` +
-          `<div class="json-content"><span class="json-bracket">[</span>${items}<span class="json-bracket">]</span></div>`;
+        return (
+          `<span class="collapsible${collapsed}" onclick="this.classList.toggle('collapsed')">Array(${obj.length})</span>` +
+          `<div class="json-content"><span class="json-bracket">[</span>${items}<span class="json-bracket">]</span></div>`
+        );
       }
 
       if (type === "object") {
         const keys = Object.keys(obj);
         if (!keys.length) return '<span class="json-bracket">{}</span>';
-
-        const items = keys.map((key, i) =>
-          `<div class="indent"><span class="json-key">"${escapeHtml(key)}"</span>: ${renderJsonTree(obj[key], depth + 1)}${i < keys.length - 1 ? ',' : ''}</div>`
-        ).join("");
-
+        const items = keys
+          .map(
+            (key, i) =>
+              `<div class="indent"><span class="json-key">"${escapeHtml(key)}"</span>: ${renderJsonTree(obj[key], depth + 1)}${i < keys.length - 1 ? "," : ""}</div>`
+          )
+          .join("");
         const collapsed = depth > 2 ? " collapsed" : "";
-        return `<span class="collapsible${collapsed}" onclick="this.classList.toggle('collapsed')">Object(${keys.length})</span>` +
-          `<div class="json-content"><span class="json-bracket">{</span>${items}<span class="json-bracket">}</span></div>`;
+        return (
+          `<span class="collapsible${collapsed}" onclick="this.classList.toggle('collapsed')">Object(${keys.length})</span>` +
+          `<div class="json-content"><span class="json-bracket">{</span>${items}<span class="json-bracket">}</span></div>`
+        );
       }
 
-      return String(obj);
+      return escapeHtml(String(obj));
     }
 
-    function renderStructureInfo(data) {
-      const info = {
-        documentName: data.name,
-        binarySize: formatBytes(data.binarySize),
-        sharedTypes: data.sharedTypeNames,
-        typeDetails: {}
-      };
-
-      for (const [key, value] of Object.entries(data.content)) {
-        info.typeDetails[key] = analyzeType(value);
+    function renderDocViewer() {
+      if (!state.selectedDoc) {
+        $("docEmpty").style.display = "block";
+        $("docDetail").style.display = "none";
+        $("viewerSub").textContent = "-";
+        return;
       }
 
-      return renderJsonTree(info);
-    }
+      $("docEmpty").style.display = "none";
+      $("docDetail").style.display = "grid";
+      $("docTitle").textContent = state.selectedDoc;
 
-    function analyzeType(value) {
-      if (value == null) return { type: "null" };
-
-      if (Array.isArray(value)) {
-        return {
-          type: "Y.Array",
-          length: value.length,
-          itemTypes: [...new Set(value.map(v => Array.isArray(v) ? "array" : typeof v))]
-        };
+      const v = state.selectedDocVersion;
+      if (v.kind === "backup" && v.backup) {
+        $("docVersion").textContent = "Backup";
+        $("docVersion").className = "pill warn";
+      } else {
+        $("docVersion").textContent = "Current";
+        $("docVersion").className = "pill ok";
       }
 
-      if (typeof value === "object") {
-        const keys = Object.keys(value);
-        return {
-          type: "Y.Map",
-          keyCount: keys.length,
-          keys: keys.slice(0, 20),
-          ...(keys.length > 20 && { hasMore: true })
-        };
+      const data = state.selectedDocData;
+      const exists = data && data.exists !== false;
+      const binarySize = data ? Number(data.binarySize) || 0 : 0;
+      const sharedCount = data && Array.isArray(data.sharedTypeNames) ? data.sharedTypeNames.length : 0;
+
+      $("docMetaPill").textContent = exists ? `${formatBytes(binarySize)} | ${sharedCount} types` : "Not present";
+      $("docViewerMeta").textContent = exists
+        ? `binary ${formatBytes(binarySize)} | shared ${sharedCount}`
+        : "Document not present in this snapshot";
+
+      renderDocHistory();
+
+      const viewer = $("docViewer");
+      if (!exists) {
+        viewer.innerHTML = '<div class="empty">Document not present in this backup</div>';
+        $("viewerSub").textContent = v.kind === "backup" ? "Backup" : "Current";
+        return;
       }
 
-      if (typeof value === "string") {
-        return { type: "Y.Text", length: value.length };
+      const content = data && data.content ? data.content : {};
+      if (state.selectedTab === "raw") {
+        viewer.innerHTML = `<pre class="json-tree">${escapeHtml(JSON.stringify(content, null, 2))}</pre>`;
+      } else {
+        if (content && typeof content === "object" && Object.keys(content).length === 0) {
+          viewer.innerHTML = '<div class="empty">No data</div>';
+        } else {
+          viewer.innerHTML = `<div class="json-tree">${renderJsonTree(content)}</div>`;
+        }
       }
 
-      return { type: typeof value };
+      $("viewerSub").textContent = v.kind === "backup" ? "Backup" : "Current";
     }
 
-    function copyJson() {
-      if (!state.currentData) return;
-      navigator.clipboard.writeText(JSON.stringify(state.currentData.content, null, 2))
-        .then(() => showToast("Copied to clipboard"))
-        .catch(err => showToast(`Failed to copy: ${err.message}`, "error"));
+    function revokeThumbs() {
+      for (const url of state.thumbUrls.values()) {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      }
+      state.thumbUrls.clear();
+      state.thumbQueue = [];
+      state.thumbWanted.clear();
+      state.thumbInFlight = 0;
     }
 
-    // Init
-    if (state.authToken) {
-      $("token").value = state.authToken;
+    function rememberThumb(id, url) {
+      state.thumbUrls.set(id, url);
+      state.thumbQueue.push(id);
+      const limit = 48;
+      while (state.thumbQueue.length > limit) {
+        const oldId = state.thumbQueue.shift();
+        if (!oldId) break;
+        const oldUrl = state.thumbUrls.get(oldId);
+        state.thumbUrls.delete(oldId);
+        if (oldUrl) {
+          try {
+            URL.revokeObjectURL(oldUrl);
+          } catch {
+            // ignore
+          }
+        }
+      }
     }
 
-    // Handle Enter key in token input
-    $("token").addEventListener("keydown", e => {
-      if (e.key === "Enter") connect();
-    });
+    async function loadThumb(id, imgEl, hostEl) {
+      if (!state.connected) return;
+      if (!state.thumbWanted.has(id)) return;
+      if (state.thumbInFlight >= 4) return;
+      if (!imgEl || !hostEl) return;
 
-    // Close modal on escape or overlay click
-    document.addEventListener("keydown", e => {
-      if (e.key === "Escape") closeModal();
-    });
+      const cached = state.thumbUrls.get(id);
+      if (cached) {
+        imgEl.src = cached;
+        hostEl.classList.add("ready");
+        return;
+      }
 
-    $("delete-modal").addEventListener("click", e => {
-      if (e.target === $("delete-modal")) closeModal();
-    });
+      state.thumbInFlight++;
+      try {
+        const blob = await apiBlob(`/api/images/${encodeURIComponent(id)}`);
+        if (!state.thumbWanted.has(id)) return;
+        const url = URL.createObjectURL(blob);
+        rememberThumb(id, url);
+        imgEl.src = url;
+        hostEl.classList.add("ready");
+      } catch {
+        // ignore thumbnail failures
+      } finally {
+        state.thumbInFlight--;
+      }
+    }
 
-    // History slider event
-    $("history-slider").addEventListener("input", e => {
-      loadHistoryAtOps(Number(e.target.value));
-    });
+    function renderImages() {
+      const grid = $("imagesGrid");
+      grid.innerHTML = "";
+
+      revokeThumbs();
+
+      const q = state.imageSearch.trim().toLowerCase();
+      const images = Array.isArray(state.images) ? state.images : [];
+      const filtered = q ? images.filter((img) => String(img.id).toLowerCase().includes(q)) : images;
+
+      const totalBytes = calcImagesBytes(filtered);
+      $("imagesSub").textContent = `${filtered.length} files | ${formatBytes(totalBytes)}`;
+
+      if (!filtered.length) {
+        grid.innerHTML = '<div class="empty">No images</div>';
+        return;
+      }
+
+      for (const img of filtered) {
+        const id = String(img.id);
+        const size = Number(img.size) || 0;
+        const modified = img.modified ? formatLocalDateTime(img.modified) : "-";
+
+        const card = document.createElement("div");
+        card.className = "img-card";
+        card.dataset.id = id;
+
+        const thumb = document.createElement("div");
+        thumb.className = "img-thumb";
+        const imageEl = document.createElement("img");
+        imageEl.alt = id;
+        thumb.appendChild(imageEl);
+
+        const fallback = document.createElement("div");
+        fallback.className = "img-fallback";
+        fallback.textContent = id;
+        thumb.appendChild(fallback);
+
+        const body = document.createElement("div");
+        body.className = "img-body";
+
+        const title = document.createElement("div");
+        title.className = "img-id";
+        title.textContent = id;
+
+        const meta = document.createElement("div");
+        meta.className = "img-meta";
+        meta.textContent = `${formatBytes(size)} | ${modified}`;
+
+        const actions = document.createElement("div");
+        actions.className = "img-actions";
+
+        const viewBtn = document.createElement("button");
+        viewBtn.className = "ghost tiny";
+        viewBtn.textContent = "View";
+        viewBtn.dataset.action = "view";
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "danger tiny";
+        delBtn.textContent = "Delete";
+        delBtn.dataset.action = "delete";
+
+        actions.appendChild(viewBtn);
+        actions.appendChild(delBtn);
+
+        body.appendChild(title);
+        body.appendChild(meta);
+        body.appendChild(actions);
+
+        card.appendChild(thumb);
+        card.appendChild(body);
+        grid.appendChild(card);
+
+        state.thumbWanted.add(id);
+
+        // Lazy thumb: only load if card is on screen.
+        observeThumb(card, id, imageEl, thumb);
+      }
+    }
+
+    let thumbObserver = null;
+    function observeThumb(cardEl, id, imgEl, hostEl) {
+      if (!thumbObserver) {
+        thumbObserver = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              const el = entry.target;
+              thumbObserver.unobserve(el);
+              const imageId = el.dataset.id;
+              const imgNode = el.querySelector("img");
+              const host = el.querySelector(".img-thumb");
+              if (!imageId || !imgNode || !host) continue;
+              loadThumb(imageId, imgNode, host);
+            }
+          },
+          { root: null, rootMargin: "160px", threshold: 0.01 }
+        );
+      }
+      thumbObserver.observe(cardEl);
+    }
+
+    function openConfirm({ title, body, onConfirm }) {
+      state.confirm = { open: true, title, body, onConfirm };
+      $("confirmTitle").textContent = title;
+      $("confirmBody").textContent = body;
+      $("confirmModal").classList.add("visible");
+    }
+
+    function closeConfirm() {
+      state.confirm = { open: false, title: "", body: "", onConfirm: null };
+      $("confirmModal").classList.remove("visible");
+    }
+
+    async function refreshAll() {
+      if (!state.token) return;
+      $("refreshAllBtn").disabled = true;
+      try {
+        const [dbInfo, backupsData, imagesData] = await Promise.all([
+          apiCall("/api/admin/db-info"),
+          apiCall("/api/admin/backups"),
+          apiCall("/api/images"),
+        ]);
+
+        state.dbInfo = dbInfo;
+        state.docs = Array.isArray(dbInfo.documents) ? dbInfo.documents : [];
+
+        state.backups = Array.isArray(backupsData.backups) ? backupsData.backups : [];
+        const backupsTotal = Number(backupsData.totalSizeBytes);
+        state.backupsTotalBytes = Number.isFinite(backupsTotal) ? backupsTotal : null;
+
+        state.images = Array.isArray(imagesData.images) ? imagesData.images : [];
+
+        state.lastRefreshIso = new Date().toISOString();
+        setConnected(true);
+
+        renderOverview();
+        renderDocList();
+        renderImages();
+
+        if (state.selectedDoc) {
+          await reloadSelectedDoc();
+        } else {
+          renderDocViewer();
+        }
+      } catch (err) {
+        setConnected(false);
+        toast(`Refresh failed: ${err.message}`, "error");
+      } finally {
+        $("refreshAllBtn").disabled = !state.connected;
+      }
+    }
+
+    async function loadDoc(name, version = { kind: "current", backup: null }) {
+      const endpoint =
+        version.kind === "backup" && version.backup
+          ? `/api/admin/documents/${encodeURIComponent(name)}?backup=${encodeURIComponent(version.backup)}`
+          : `/api/admin/documents/${encodeURIComponent(name)}`;
+
+      return apiCall(endpoint);
+    }
+
+    async function reloadSelectedDoc() {
+      if (!state.selectedDoc) return;
+      try {
+        state.selectedDocData = await loadDoc(state.selectedDoc, state.selectedDocVersion);
+      } catch (err) {
+        toast(`Failed to load document: ${err.message}`, "error");
+        state.selectedDocData = null;
+      }
+      renderDocViewer();
+    }
+
+    async function selectDoc(name) {
+      state.selectedDoc = name;
+      state.selectedDocVersion = { kind: "current", backup: null };
+      state.selectedTab = "tree";
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "tree"));
+      renderDocList();
+      await reloadSelectedDoc();
+    }
+
+    async function selectDocVersion(kind, backupFile) {
+      if (!state.selectedDoc) return;
+      state.selectedDocVersion =
+        kind === "backup" && backupFile ? { kind: "backup", backup: backupFile } : { kind: "current", backup: null };
+      await reloadSelectedDoc();
+    }
+
+    async function deleteSelectedDoc() {
+      if (!state.selectedDoc) return;
+      const name = state.selectedDoc;
+      await apiCall(`/api/admin/documents/${encodeURIComponent(name)}`, { method: "DELETE" });
+      toast(`Deleted document: ${name}`);
+      state.selectedDoc = null;
+      state.selectedDocData = null;
+      await refreshAll();
+      renderDocViewer();
+    }
+
+    function copySelectedDocJson() {
+      if (!state.selectedDocData || state.selectedDocData.exists === false) return;
+      const txt = JSON.stringify(state.selectedDocData.content || {}, null, 2);
+      navigator.clipboard
+        .writeText(txt)
+        .then(() => toast("Copied JSON"))
+        .catch((err) => toast(`Copy failed: ${err.message}`, "error"));
+    }
+
+    async function openImageModal(id) {
+      $("imageTitle").textContent = id;
+      $("imageMeta").textContent = "Loading";
+      $("imagePreview").src = "";
+      $("imagePreview").alt = id;
+
+      state.imageModal = { open: true, id, blobUrl: null };
+      $("imageModal").classList.add("visible");
+
+      try {
+        const blob = await apiBlob(`/api/images/${encodeURIComponent(id)}`);
+        const url = URL.createObjectURL(blob);
+        state.imageModal.blobUrl = url;
+        $("imagePreview").src = url;
+
+        const img = state.images.find((x) => String(x.id) === id);
+        const size = img ? Number(img.size) || 0 : blob.size;
+        const modified = img && img.modified ? formatLocalDateTime(img.modified) : "-";
+        $("imageMeta").textContent = `Size ${formatBytes(size)} | Modified ${modified}`;
+      } catch (err) {
+        $("imageMeta").textContent = `Failed to load: ${err.message}`;
+      }
+    }
+
+    function closeImageModal() {
+      $("imageModal").classList.remove("visible");
+      if (state.imageModal.blobUrl) {
+        try {
+          URL.revokeObjectURL(state.imageModal.blobUrl);
+        } catch {
+          // ignore
+        }
+      }
+      state.imageModal = { open: false, id: null, blobUrl: null };
+    }
+
+    function copyImageId() {
+      const id = state.imageModal.id;
+      if (!id) return;
+      navigator.clipboard
+        .writeText(id)
+        .then(() => toast("Copied image ID"))
+        .catch((err) => toast(`Copy failed: ${err.message}`, "error"));
+    }
+
+    async function deleteImage(id) {
+      await apiCall(`/api/images/${encodeURIComponent(id)}`, { method: "DELETE" });
+      toast(`Deleted image: ${id}`);
+    }
+
+    function wireEvents() {
+      $("token").value = state.token;
+
+      $("connectBtn").addEventListener("click", async () => {
+        state.token = $("token").value.trim();
+        if (!state.token) {
+          toast("Token required", "error");
+          return;
+        }
+        localStorage.setItem("admin-token", state.token);
+        await refreshAll();
+      });
+
+      $("token").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("connectBtn").click();
+      });
+
+      $("refreshAllBtn").addEventListener("click", refreshAll);
+
+      document.querySelectorAll(".nav button[data-view]").forEach((btn) => {
+        btn.addEventListener("click", () => setView(btn.dataset.view));
+      });
+
+      $("docsRefreshBtn").addEventListener("click", refreshAll);
+      $("imagesRefreshBtn").addEventListener("click", refreshAll);
+
+      $("docSearch").addEventListener("input", (e) => {
+        state.docSearch = e.target.value;
+        renderDocList();
+      });
+
+      $("imageSearch").addEventListener("input", (e) => {
+        state.imageSearch = e.target.value;
+        renderImages();
+      });
+
+      $("docList").addEventListener("click", (e) => {
+        const item = e.target.closest(".list-item");
+        if (!item) return;
+        selectDoc(item.dataset.name);
+      });
+
+      $("docHistory").addEventListener("click", (e) => {
+        const item = e.target.closest(".history-item");
+        if (!item) return;
+        const kind = item.dataset.kind;
+        const backup = item.dataset.backup || null;
+        selectDocVersion(kind, backup);
+      });
+
+      document.querySelectorAll(".tabs").forEach((tabs) => {
+        tabs.addEventListener("click", (e) => {
+          const tab = e.target.closest(".tab");
+          if (!tab) return;
+          state.selectedTab = tab.dataset.tab;
+          tabs.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
+          renderDocViewer();
+        });
+      });
+
+      $("docRefreshBtn").addEventListener("click", async () => {
+        await refreshAll();
+      });
+
+      $("docCopyBtn").addEventListener("click", copySelectedDocJson);
+
+      $("docDeleteBtn").addEventListener("click", () => {
+        if (!state.selectedDoc) return;
+        openConfirm({
+          title: "Delete document",
+          body: `This will delete "${state.selectedDoc}" from the current database. Backups are not changed.`,
+          onConfirm: async () => {
+            closeConfirm();
+            try {
+              await deleteSelectedDoc();
+            } catch (err) {
+              toast(`Delete failed: ${err.message}`, "error");
+            }
+          },
+        });
+      });
+
+      $("confirmCloseBtn").addEventListener("click", closeConfirm);
+      $("confirmCancelBtn").addEventListener("click", closeConfirm);
+      $("confirmModal").addEventListener("click", (e) => {
+        if (e.target === $("confirmModal")) closeConfirm();
+      });
+      $("confirmOkBtn").addEventListener("click", async () => {
+        if (typeof state.confirm.onConfirm === "function") {
+          await state.confirm.onConfirm();
+        }
+      });
+
+      $("imagesGrid").addEventListener("click", async (e) => {
+        const btn = e.target.closest("button[data-action]");
+        const card = e.target.closest(".img-card");
+        if (!card) return;
+        const id = card.dataset.id;
+        if (!id) return;
+
+        const action = btn ? btn.dataset.action : "view";
+
+        if (action === "view") {
+          await openImageModal(id);
+          return;
+        }
+
+        if (action === "delete") {
+          openConfirm({
+            title: "Delete image",
+            body: `Delete image "${id}"?`,
+            onConfirm: async () => {
+              closeConfirm();
+              try {
+                await deleteImage(id);
+                await refreshAll();
+              } catch (err) {
+                toast(`Delete failed: ${err.message}`, "error");
+              }
+            },
+          });
+        }
+      });
+
+      $("imageCloseBtn").addEventListener("click", closeImageModal);
+      $("imageModal").addEventListener("click", (e) => {
+        if (e.target === $("imageModal")) closeImageModal();
+      });
+      $("imageCopyBtn").addEventListener("click", copyImageId);
+      $("imageDeleteBtn").addEventListener("click", () => {
+        const id = state.imageModal.id;
+        if (!id) return;
+        openConfirm({
+          title: "Delete image",
+          body: `Delete image "${id}"?`,
+          onConfirm: async () => {
+            closeConfirm();
+            closeImageModal();
+            try {
+              await deleteImage(id);
+              await refreshAll();
+            } catch (err) {
+              toast(`Delete failed: ${err.message}`, "error");
+            }
+          },
+        });
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeConfirm();
+          closeImageModal();
+        }
+      });
+    }
+
+    function boot() {
+      wireEvents();
+      setView("overview");
+
+      if (state.token) {
+        setConnected(true);
+        $("refreshAllBtn").disabled = false;
+        refreshAll();
+      }
+    }
+
+    boot();
   </script>
 </body>
 

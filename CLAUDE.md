@@ -13,7 +13,6 @@ npm run dev      # Start server with file watching (node --watch)
 npm start        # Run production server
 npm run lint     # Check code with ESLint
 npm run lint:fix # Auto-fix ESLint violations
-npm run format   # Format code with Prettier
 ```
 
 Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
@@ -33,8 +32,11 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 - `GET /api/images/{id}` - Retrieve image with MIME type
 
 **Static Routes**:
-- `/` or `/index.html` - Demo client UI
-- `/inspector` or `/inspector.html` - Server debugging UI
+- `/` or `/index.html` - Plain text health page
+- `/admin` or `/admin.html` - Admin UI (requires token)
+
+**Healthcheck**:
+- `GET /healthz` - Returns `{ ok: true }`
 
 ## Key Patterns
 
@@ -49,9 +51,13 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 PORT=8080                           # Server port
 HOCUSPOCUS_TOKEN=your-secret-token  # Bearer token for auth
 DB_PATH=./data/db.sqlite            # SQLite database path
+IMAGES_DIR=./data/images            # Image storage directory
+BACKUP_DIR=./data/backups           # Backup directory
 BACKUP_INTERVAL_MINUTES=60          # Backup frequency
 BACKUP_RETENTION_DAYS=7             # Backup retention
-IMAGES_DIR=./data/images            # Image storage directory
+MAX_UPLOAD_BYTES=10485760           # Upload limit (bytes)
+CORS_ALLOW_ORIGINS=*                # CORS allowlist (comma-separated) or '*'
+YJS_GC=false                        # Enable Yjs GC (smaller docs, less history)
 ```
 
 ## Docker

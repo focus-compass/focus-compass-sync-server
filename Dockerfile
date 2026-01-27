@@ -1,23 +1,30 @@
-# Use official Node.js image (updated to current LTS)
-FROM node:24-alpine
+# Use official Node.js image
+FROM node:24-alpine AS deps
 
-# Set working directory inside container
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Build deps for native modules (e.g. sqlite3)
+RUN apk add --no-cache python3 make g++
+
+# Install production dependencies
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm install --production
 
-# Copy source code
+FROM node:24-alpine
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
 COPY src ./src
 
-# Create directory for SQLite database
-RUN mkdir -p /app/data
+# Writable data dir (db/images/backups) lives on a volume
+RUN mkdir -p /app/data && chown -R node:node /app
 
-# Hocuspocus server listens on port 8080 by default
+USER node
+
 EXPOSE 8080
 
-# Command to start the server
-CMD [ "npm", "start" ]
+CMD ["node", "src/server.js"]

@@ -11,8 +11,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "lint:fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -36,7 +35,6 @@
   "dependencies": {
     "@hocuspocus/extension-logger": "^3.4.0",
     "@hocuspocus/extension-sqlite": "^3.4.0",
-    "@hocuspocus/provider": "^3.4.0",
     "@hocuspocus/server": "^3.4.0",
     "dotenv": "^17.2.3",
     "formidable": "^3.5.4",
@@ -46,6 +44,6 @@
   "devDependencies": {
     "@eslint/js": "^9.6.0",
     "eslint": "^9.6.0",
-    "globals": "^15.6.0"
+    "globals": "^17.1.0"
   }
 }

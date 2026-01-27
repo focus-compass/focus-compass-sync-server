@@ -19,8 +19,18 @@ services:
     
     # Environment variables
     environment:
-      - NODE_ENV=production
-      - PORT=8080
+      NODE_ENV: production
+      PORT: 8080
+      # Optional (see .env.example). If omitted, the server starts in setup mode.
+      HOCUSPOCUS_TOKEN: ${HOCUSPOCUS_TOKEN}
+      DB_PATH: ${DB_PATH:-./data/db.sqlite}
+      IMAGES_DIR: ${IMAGES_DIR:-./data/images}
+      BACKUP_DIR: ${BACKUP_DIR:-./data/backups}
+      BACKUP_INTERVAL_MINUTES: ${BACKUP_INTERVAL_MINUTES:-60}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-10485760}
+      CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
+      YJS_GC: ${YJS_GC:-false}
     
     # Data Persistence:
     # Mount Docker Volume (or local folder) to store SQLite database.
@@ -31,7 +41,7 @@ services:
     
     # Healthcheck to monitor container status
     healthcheck:
-      test: ["CMD", "node", "-e", "require('net').connect({port:8080,host:'localhost'}).on('error',()=>process.exit(1)).on('connect',()=>process.exit(0))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3

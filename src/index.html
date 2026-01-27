@@ -3,250 +3,906 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Hocuspocus Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="dns-prefetch" href="https://esm.sh" />
-  <link rel="preconnect" href="https://esm.sh" crossorigin />
-  <link rel="preconnect" href="https://compass.sarfex.dev" crossorigin />
-  <link rel="modulepreload" href="https://esm.sh/@hocuspocus/provider@3.4.0?bundle" />
-  <link rel="modulepreload" href="https://esm.sh/yjs@13.6.27" />
+  <title>Focus Compass Server</title>
   <style>
     :root {
-      color-scheme: dark light;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --bg: #0f172a;
-      --bg-muted: #1e293b;
-      --border: #334155;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --accent: #38bdf8;
+      color-scheme: light;
+      --bg: #f7f3ed;
+      --panel: rgba(255, 255, 255, 0.72);
+      --panel-solid: #ffffff;
+      --ink: #0f172a;
+      --muted: rgba(15, 23, 42, 0.68);
+      --border: rgba(15, 23, 42, 0.12);
+      --shadow: 0 20px 55px rgba(15, 23, 42, 0.14);
+      --accent: #0f766e;
+      --accent-2: #b45309;
+      --danger: #b91c1c;
+      --ok: #166534;
+      --code: "Consolas", "JetBrains Mono", "Fira Code", monospace;
+      --ui: "Optima", "Candara", "Trebuchet MS", sans-serif;
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
     }
 
     body {
       margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 55%), var(--bg);
-      color: var(--text);
+      font-family: var(--ui);
+      color: var(--ink);
+      background:
+        radial-gradient(920px 560px at 15% 0%, rgba(15, 118, 110, 0.14), transparent 62%),
+        radial-gradient(760px 520px at 88% 8%, rgba(180, 83, 9, 0.10), transparent 58%),
+        repeating-linear-gradient(135deg, rgba(15, 23, 42, 0.018) 0 2px, transparent 2px 10px),
+        var(--bg);
+      overflow-x: hidden;
     }
 
-    .shell {
-      width: min(960px, 92vw);
-      margin: 4vh auto;
-      padding: 2.5rem;
-      border-radius: 1.5rem;
-      border: 1px solid var(--border);
-      background: color-mix(in srgb, var(--bg-muted) 82%, rgba(15, 23, 42, 0.92));
-      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.55);
-      display: flex;
-      flex-direction: column;
-      gap: 1.75rem;
+    .app {
+      min-height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      animation: app-in 240ms ease-out;
+    }
+
+    @keyframes app-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     header {
+      padding: 1.25rem 1rem 0.5rem;
       display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
+      justify-content: center;
     }
 
-    h1 {
+    .brand {
+      width: min(980px, calc(100vw - 2rem));
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.95rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .brand h1 {
       margin: 0;
-      font-size: clamp(2rem, 3.5vw, 2.7rem);
-      font-weight: 700;
+      font-size: 1.08rem;
+      font-weight: 900;
       letter-spacing: -0.02em;
     }
 
-    .meta {
-      display: grid;
-      gap: 0.4rem;
-      font-size: 0.95rem;
-      color: var(--text-muted);
+    .brand .sub {
+      font-family: var(--code);
+      font-size: 0.82rem;
+      color: var(--muted);
+      white-space: nowrap;
     }
 
-    textarea#editor {
-      min-height: clamp(320px, 45vh, 520px);
-      padding: 1.2rem 1.4rem;
-      font: inherit;
-      border-radius: 1rem;
+    main {
+      padding: 0.85rem 1rem 1.25rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .card {
+      width: min(980px, calc(100vw - 2rem));
+      background: var(--panel);
       border: 1px solid var(--border);
-      background: color-mix(in srgb, var(--bg) 75%, rgba(15, 23, 42, 0.85));
-      color: var(--text);
-      resize: vertical;
+      border-radius: calc(var(--radius) + 6px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 1.05rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.28rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.6);
+      font-family: var(--code);
+      font-size: 0.78rem;
+      font-weight: 850;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .pill.ok {
+      border-color: rgba(22, 101, 52, 0.25);
+      background: rgba(22, 101, 52, 0.10);
+    }
+
+    .pill.warn {
+      border-color: rgba(180, 83, 9, 0.25);
+      background: rgba(180, 83, 9, 0.10);
+    }
+
+    .pill.bad {
+      border-color: rgba(185, 28, 28, 0.25);
+      background: rgba(254, 242, 242, 0.96);
+    }
+
+    .card-body {
+      padding: 1.1rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 0.85rem 0.95rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+    }
+
+    .panel-sub {
+      font-family: var(--code);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .panel-body {
+      padding: 0.95rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .hint code {
+      font-family: var(--code);
+      font-size: 0.92em;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.3rem;
+    }
+
+    label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+      font: inherit;
       outline: none;
-      white-space: pre-wrap;
-      line-height: 1.55;
-      box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      width: 100%;
+      font-family: var(--code);
     }
 
-    textarea#editor:focus {
-      border-color: rgba(56, 189, 248, 0.65);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(148, 163, 184, 0.1);
+    input:focus {
+      border-color: rgba(15, 118, 110, 0.45);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10);
     }
 
-    @media (max-width: 640px) {
-      .shell {
-        padding: 1.75rem;
-        gap: 1.5rem;
+    button {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 0.6rem 0.85rem;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+      user-select: none;
+      justify-content: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    button:hover {
+      opacity: 0.93;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.ghost {
+      background: rgba(255, 255, 255, 0.65);
+      border-color: var(--border);
+      color: var(--ink);
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .codebox {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 14px;
+      padding: 0.7rem 0.75rem;
+      font-family: var(--code);
+      font-weight: 800;
+      word-break: break-all;
+      line-height: 1.4;
+    }
+
+    .list {
+      display: grid;
+      gap: 0.45rem;
+      max-height: 520px;
+      overflow: auto;
+      padding-right: 0.15rem;
+    }
+
+    .item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 0.65rem 0.75rem;
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .item strong {
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .item .meta {
+      font-family: var(--code);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .toast {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 999;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      transform: translateY(16px);
+      opacity: 0;
+      transition: transform 160ms ease, opacity 160ms ease;
+      max-width: min(520px, calc(100vw - 2rem));
+      pointer-events: none;
+      color: var(--ink);
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.error {
+      border-color: rgba(185, 28, 28, 0.25);
+      background: rgba(254, 242, 242, 0.96);
+    }
+
+    footer {
+      padding: 0.5rem 1rem 1.25rem;
+      display: flex;
+      justify-content: center;
+      color: var(--muted);
+      font-family: var(--code);
+      font-size: 0.82rem;
+    }
+
+    footer a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+
+    .step {
+      display: none;
+    }
+
+    .step.active {
+      display: grid;
+      gap: 1rem;
+      animation: step-in 180ms ease-out;
+    }
+
+    @keyframes step-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
       }
 
-      textarea#editor {
-        min-height: 280px;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="shell">
+  <div class="app">
     <header>
-      <h1>Hocuspocus</h1>
-      <div class="meta">
-        <div id="status">Status: initializing…</div>
+      <div class="brand">
+        <h1>Focus Compass Server</h1>
+        <div class="sub" id="subline">Starting…</div>
       </div>
     </header>
 
-    <textarea id="editor" placeholder="Start typing to share with other clients…"></textarea>
+    <main>
+      <div class="card" role="main" aria-live="polite">
+        <div class="card-head">
+          <h2 class="card-title" id="title">Loading</h2>
+          <div class="pill" id="statusPill">…</div>
+        </div>
 
+        <div class="card-body">
+          <section class="step active" id="step-loading">
+            <div class="hint">Checking server status…</div>
+          </section>
+
+          <section class="step" id="step-setup">
+            <div class="row">
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>First-time setup</h2>
+                  <div class="panel-sub">Locks your server</div>
+                </div>
+                <div class="panel-body">
+                  <div class="hint">
+                    This server needs a token for all WebSocket + REST access.
+                    Generate it once, then store it somewhere safe.
+                  </div>
+
+                  <div class="btn-row">
+                    <button id="setupBtn">Generate token</button>
+                    <button class="ghost" id="setupRefreshBtn">Re-check</button>
+                  </div>
+
+                  <div class="hint" id="setupError" style="display: none;"></div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>What you get</h2>
+                  <div class="panel-sub">ws(s)://host/&lt;token&gt;</div>
+                </div>
+                <div class="panel-body">
+                  <div class="hint">After generating, you can copy a ready-to-use WebSocket URL.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="step" id="step-login">
+            <div class="row">
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>Sign in</h2>
+                  <div class="panel-sub">Token required</div>
+                </div>
+                <div class="panel-body">
+                  <div class="field">
+                    <label for="tokenInput">Token</label>
+                    <input type="password" id="tokenInput" placeholder="Paste token" autocomplete="current-password" />
+                  </div>
+                  <div class="btn-row">
+                    <button id="loginBtn">Continue</button>
+                    <button class="ghost" id="logoutBtn" style="display: none;">Forget saved token</button>
+                  </div>
+                  <div class="hint" id="loginError" style="display: none;"></div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>Tip</h2>
+                  <div class="panel-sub">Open /&lt;token&gt;</div>
+                </div>
+                <div class="panel-body">
+                  <div class="hint">
+                    If you have a link like <code>http(s)://host/&lt;token&gt;</code>, just open it. This page will save the token.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="step" id="step-dashboard">
+            <div class="row">
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>Connection</h2>
+                  <div class="panel-sub" id="connSub">-</div>
+                </div>
+                <div class="panel-body">
+                  <div>
+                    <label>WebSocket URL</label>
+                    <div class="codebox" id="wsUrl">-</div>
+                    <div class="btn-row" style="margin-top: 0.55rem;">
+                      <button id="copyWsBtn" class="ghost">Copy WS URL</button>
+                      <button id="copyTokenBtn" class="ghost">Copy token</button>
+                      <button id="hideTokenBtn" class="ghost">Hide token</button>
+                    </div>
+                  </div>
+
+                  <div class="hint" id="dashError" style="display: none;"></div>
+
+                  <div class="btn-row" style="margin-top: 0.35rem;">
+                    <a href="/admin" target="_blank" rel="noopener noreferrer">Open admin UI</a>
+                    <span class="panel-sub">|</span>
+                    <button class="danger" id="dashLogoutBtn">Logout</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>Documents</h2>
+                  <div class="panel-sub" id="docsSub">-</div>
+                </div>
+                <div class="panel-body">
+                  <div class="list" id="docList"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <span>Focus Compass Server · <a href="/healthz" target="_blank" rel="noopener noreferrer">healthz</a></span>
+    </footer>
   </div>
 
-  <script type="module">
-    import * as Y from "https://esm.sh/yjs@13.6.27";
-    import { HocuspocusProvider } from "https://esm.sh/@hocuspocus/provider@3.4.0?deps=yjs@13.6.27";
+  <div class="toast" id="toast"></div>
 
-    const statusElement = document.getElementById("status");
-    const editor = document.getElementById("editor");
+  <script>
+    const TOKEN_KEY = "focus-compass-token";
+    const ADMIN_TOKEN_KEY = "admin-token";
 
-    // Read config from URL params with secure defaults
-    const urlParams = new URLSearchParams(window.location.search);
-    const providerUrl = urlParams.get("url") || `ws://${window.location.hostname}:8080`;
-    const AUTH_TOKEN = urlParams.get("token") || "focus-compass-demo-token";
-    const TEXT_CACHE_KEY = "hocuspocus-demo-text";
+    const TOKEN_RE = /^[A-Za-z0-9_-]{16,256}$/;
 
-    const storage = (() => {
-      try {
-        return window.localStorage ?? null;
-      } catch (error) {
-        console.warn("Could not access localStorage", error);
-        return null;
-      }
-    })();
+    const $ = (id) => document.getElementById(id);
 
-    const persistSnapshot = (text) => {
-      if (!storage) return;
-
-      try {
-        storage.setItem(TEXT_CACHE_KEY, text);
-      } catch (error) {
-        console.warn("Could not save local document copy", error);
-      }
+    const state = {
+      initialized: null,
+      envManaged: false,
+      token: "",
+      showToken: false,
+      docs: [],
     };
 
-    const restoreCachedContent = () => {
-      if (!storage) return false;
-
-      try {
-        const cached = storage.getItem(TEXT_CACHE_KEY);
-        if (!cached) return false;
-
-        editor.value = cached;
-        return true;
-      } catch (error) {
-        console.warn("Could not restore local document copy", error);
-        return false;
-      }
-    };
-
-    const ydoc = new Y.Doc();
-    const yText = ydoc.getText("demo");
-
-    const hadCachedContent = restoreCachedContent();
-    if (hadCachedContent) {
-      statusElement.textContent = "Status: loaded local data, waiting for sync…";
+    function toast(msg, type = "") {
+      const el = $("toast");
+      el.className = `toast ${type}`.trim();
+      el.textContent = msg;
+      el.classList.add("visible");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("visible"), 2600);
     }
 
-    const applyRemoteContent = () => {
-      const newText = yText.toString();
-      if (editor.value === newText) return;
+    function setStep(name) {
+      document.querySelectorAll(".step").forEach((el) => el.classList.toggle("active", el.id === `step-${name}`));
+    }
 
-      if (document.activeElement === editor) {
-        const { selectionStart, selectionEnd } = editor;
-        editor.value = newText;
-        editor.setSelectionRange(selectionStart, selectionEnd);
-      } else {
-        editor.value = newText;
-      }
+    function formatBytes(bytes) {
+      const n = Number(bytes) || 0;
+      if (!n) return "0 B";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB", "GB", "TB"];
+      const i = Math.floor(Math.log(n) / Math.log(k));
+      return `${parseFloat((n / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    }
 
-      persistSnapshot(newText);
-    };
+    function loadStoredToken() {
+      const raw = localStorage.getItem(TOKEN_KEY) || "";
+      const token = raw.trim();
+      return TOKEN_RE.test(token) ? token : "";
+    }
 
-    let isLocalChange = false;
+    function saveToken(token) {
+      state.token = String(token || "").trim();
+      if (!state.token) return;
+      localStorage.setItem(TOKEN_KEY, state.token);
+      localStorage.setItem(ADMIN_TOKEN_KEY, state.token);
+      $("logoutBtn").style.display = "inline-flex";
+    }
 
-    const handleRemoteUpdate = () => {
-      if (isLocalChange) return;
-      applyRemoteContent();
-    };
+    function clearToken() {
+      state.token = "";
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
 
-    const provider = new HocuspocusProvider({
-      url: providerUrl,
-      name: "demo-document",
-      document: ydoc,
-      token: AUTH_TOKEN,
-    });
+    function readTokenFromPath() {
+      const raw = (location.pathname || "").replace(/^\/+|\/+$/g, "");
+      if (!raw) return "";
+      if (!TOKEN_RE.test(raw)) return "";
+      return raw;
+    }
 
-    provider.on("authenticationFailed", ({ reason }) => {
-      const message = reason ? `Auth failed: ${reason}` : "Auth failed";
-      statusElement.textContent = `Status: ${message}`;
-    });
+    function wsUrlForToken(token, revealToken) {
+      const scheme = location.protocol === "https:" ? "wss" : "ws";
+      const t = revealToken ? token : token.replace(/.(?=.{8})/g, "*");
+      return `${scheme}://${location.host}/${t}`;
+    }
 
-    provider.on("authenticated", () => {
-      statusElement.textContent = "Status: successfully authenticated";
-    });
+    async function apiJson(endpoint, { method = "GET", token = "", body = null } = {}) {
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (body) headers["Content-Type"] = "application/json";
 
-    provider.on("status", ({ status }) => {
-      statusElement.textContent = `Status: ${status}`;
-    });
-
-    provider.on("synced", (isSynced) => {
-      statusElement.textContent = isSynced
-        ? "Status: sync complete"
-        : "Status: sync interrupted";
-
-      if (isSynced) {
-        handleRemoteUpdate();
-      }
-    });
-
-    provider.on("disconnect", () => {
-      statusElement.textContent = "Status: disconnected";
-    });
-
-    provider.on("close", () => {
-      statusElement.textContent = "Status: connection closed";
-    });
-
-    provider.on("error", (event) => {
-      statusElement.textContent = `Status: error — ${event.message ?? event}`;
-    });
-
-    yText.observe(handleRemoteUpdate);
-
-    editor.addEventListener("input", () => {
-      isLocalChange = true;
-      ydoc.transact(() => {
-        yText.delete(0, yText.length);
-        yText.insert(0, editor.value);
+      const res = await fetch(endpoint, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : null,
       });
-      isLocalChange = false;
 
-      persistSnapshot(editor.value);
-    });
-
-    if (!hadCachedContent) {
-      handleRemoteUpdate();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data && data.error ? String(data.error) : `${res.status} ${res.statusText}`;
+        throw new Error(msg);
+      }
+      return data;
     }
+
+    async function refreshStatus() {
+      const status = await apiJson("/api/auth/status");
+      state.initialized = Boolean(status.initialized);
+      state.envManaged = Boolean(status.envManaged);
+      return status;
+    }
+
+    function renderTop() {
+      const initialized = state.initialized;
+      let pillText = "…";
+      let pillClass = "pill";
+
+      if (initialized === false) {
+        pillText = "Setup required";
+        pillClass = "pill warn";
+      } else if (initialized === true) {
+        pillText = "Locked";
+        pillClass = "pill ok";
+      }
+
+      $("statusPill").className = pillClass;
+      $("statusPill").textContent = pillText;
+
+      const subParts = [location.host];
+      if (state.envManaged) subParts.push("env-managed token");
+      $("subline").textContent = subParts.join(" · ");
+    }
+
+    function renderDocs() {
+      const list = $("docList");
+      list.innerHTML = "";
+      const docs = Array.isArray(state.docs) ? state.docs : [];
+      $("docsSub").textContent = `${docs.length} docs`;
+
+      if (!docs.length) {
+        list.innerHTML = '<div class="hint">No documents yet.</div>';
+        return;
+      }
+
+      for (const d of docs) {
+        const item = document.createElement("div");
+        item.className = "item";
+
+        const title = document.createElement("strong");
+        title.textContent = d.name;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = `${formatBytes(d.dataSize)} | ${d.sharedTypes} types`;
+
+        item.appendChild(title);
+        item.appendChild(meta);
+        list.appendChild(item);
+      }
+    }
+
+    function renderDashboard() {
+      $("title").textContent = "Ready";
+      $("connSub").textContent = `Host ${location.host}`;
+
+      const wsUrl = wsUrlForToken(state.token, state.showToken);
+      $("wsUrl").textContent = wsUrl;
+      $("hideTokenBtn").textContent = state.showToken ? "Hide token" : "Reveal token";
+    }
+
+    async function tryLoadDocs(token) {
+      const dbInfo = await apiJson("/api/admin/db-info", { token });
+      state.docs = Array.isArray(dbInfo.documents) ? dbInfo.documents : [];
+      renderDocs();
+    }
+
+    async function goDashboard(errorMessage = "") {
+      $("dashError").style.display = errorMessage ? "block" : "none";
+      if (errorMessage) $("dashError").textContent = errorMessage;
+      setStep("dashboard");
+      renderTop();
+      renderDashboard();
+      renderDocs();
+    }
+
+    async function goLogin(message = "") {
+      $("title").textContent = "Sign in";
+      setStep("login");
+      renderTop();
+
+      const stored = loadStoredToken();
+      if (stored) {
+        $("logoutBtn").style.display = "inline-flex";
+      }
+
+      $("loginError").style.display = message ? "block" : "none";
+      if (message) $("loginError").textContent = message;
+    }
+
+    async function goSetup(message = "") {
+      $("title").textContent = "Setup";
+      setStep("setup");
+      renderTop();
+      $("setupError").style.display = message ? "block" : "none";
+      if (message) $("setupError").textContent = message;
+    }
+
+    async function bootstrap() {
+      setStep("loading");
+
+      const pathToken = readTokenFromPath();
+      if (pathToken) {
+        saveToken(pathToken);
+        try {
+          history.replaceState({}, "", "/");
+        } catch {
+          // ignore
+        }
+      }
+
+      state.token = loadStoredToken();
+      if (state.token) {
+        $("logoutBtn").style.display = "inline-flex";
+      }
+
+      let status;
+      try {
+        status = await refreshStatus();
+      } catch (err) {
+        $("title").textContent = "Offline";
+        $("statusPill").className = "pill bad";
+        $("statusPill").textContent = "Error";
+        setStep("loading");
+        const holder = $("step-loading");
+        holder.innerHTML = "";
+        const hint = document.createElement("div");
+        hint.className = "hint";
+        hint.appendChild(document.createTextNode("Failed to reach server: "));
+        const code = document.createElement("code");
+        code.textContent = String(err.message);
+        hint.appendChild(code);
+        holder.appendChild(hint);
+        return;
+      }
+
+      renderTop();
+
+      if (!status.initialized) {
+        await goSetup();
+        return;
+      }
+
+      if (!state.token) {
+        await goLogin();
+        return;
+      }
+
+      try {
+        await tryLoadDocs(state.token);
+        await goDashboard();
+      } catch (err) {
+        const msg = String(err?.message || "");
+        const isAuth = msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("not authorized");
+        if (isAuth) {
+          await goLogin("Saved token was rejected. Paste the correct token or open /<token>.");
+        } else {
+          state.docs = [];
+          await goDashboard(`Failed to load documents: ${msg}`);
+        }
+      }
+    }
+
+    async function copyText(txt) {
+      try {
+        await navigator.clipboard.writeText(txt);
+        toast("Copied");
+      } catch (err) {
+        toast(`Copy failed: ${err.message}`, "error");
+      }
+    }
+
+    function wire() {
+      $("setupBtn").addEventListener("click", async () => {
+        $("setupBtn").disabled = true;
+        try {
+          const res = await apiJson("/api/auth/setup", { method: "POST" });
+          saveToken(res.token);
+          state.showToken = true;
+          toast("Token generated");
+          await refreshStatus();
+          try {
+            await tryLoadDocs(res.token);
+            await goDashboard();
+          } catch (err) {
+            state.docs = [];
+            await goDashboard(`Failed to load documents: ${err.message}`);
+          }
+        } catch (err) {
+          if (String(err.message).toLowerCase().includes("already")) {
+            await bootstrap();
+            return;
+          }
+          await goSetup(`Setup failed: ${err.message}`);
+        } finally {
+          $("setupBtn").disabled = false;
+        }
+      });
+
+      $("setupRefreshBtn").addEventListener("click", bootstrap);
+
+      $("loginBtn").addEventListener("click", async () => {
+        const token = $("tokenInput").value.trim();
+        if (!token) {
+          $("loginError").textContent = "Token required";
+          $("loginError").style.display = "block";
+          return;
+        }
+        $("loginBtn").disabled = true;
+        try {
+          await tryLoadDocs(token);
+          saveToken(token);
+          state.showToken = false;
+          toast("Signed in");
+          await goDashboard();
+        } catch (err) {
+          $("loginError").textContent = err.message;
+          $("loginError").style.display = "block";
+        } finally {
+          $("loginBtn").disabled = false;
+        }
+      });
+
+      $("tokenInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("loginBtn").click();
+      });
+
+      $("logoutBtn").addEventListener("click", () => {
+        clearToken();
+        $("tokenInput").value = "";
+        toast("Token cleared");
+        bootstrap();
+      });
+
+      $("dashLogoutBtn").addEventListener("click", () => {
+        clearToken();
+        toast("Logged out");
+        bootstrap();
+      });
+
+      $("copyWsBtn").addEventListener("click", () => {
+        if (!state.token) return;
+        copyText(wsUrlForToken(state.token, true));
+      });
+
+      $("copyTokenBtn").addEventListener("click", () => {
+        if (!state.token) return;
+        copyText(state.token);
+      });
+
+      $("hideTokenBtn").addEventListener("click", () => {
+        state.showToken = !state.showToken;
+        renderDashboard();
+      });
+    }
+
+    wire();
+    bootstrap();
   </script>
 </body>
 

@@ -1579,11 +1579,15 @@
       localStorage.removeItem(ADMIN_TOKEN_KEY);
     }
 
-    function readTokenFromPath() {
-      const raw = (location.pathname || "").replace(/^\/+|\/+$/g, "");
-      if (!raw) return "";
-      if (!TOKEN_RE.test(raw)) return "";
-      return raw;
+    function readTokenFromHash() {
+      const rawHash = String(location.hash || "").replace(/^#/, "");
+      const cleaned = rawHash.replace(/^\/+|\/+$/g, "");
+      if (!cleaned) return "";
+
+      const token = cleaned.split("/").filter(Boolean)[0] || "";
+      if (!token) return "";
+      if (!TOKEN_RE.test(token)) return "";
+      return token;
     }
 
     function tokenFromInput(raw) {
@@ -1607,8 +1611,14 @@
         return { token: "", error: "Invalid connection link" };
       }
 
-      const parts = String(url.pathname || "").replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
-      const token = parts[0] || "";
+      const hash = String(url.hash || "").replace(/^#/, "");
+      const hashParts = hash.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+      const pathParts = String(url.pathname || "")
+        .replace(/^\/+|\/+$/g, "")
+        .split("/")
+        .filter(Boolean);
+
+      const token = (hashParts[0] || pathParts[0] || "").trim();
 
       if (!token) return { token: "", error: "No master token found in link" };
       if (token.includes("*")) {
@@ -1640,7 +1650,7 @@
     function wsUrlForToken(token, revealToken) {
       const scheme = location.protocol === "https:" ? "wss" : "ws";
       const t = revealToken ? token : token.replace(/.(?=.{8})/g, "*");
-      return `${scheme}://${location.host}/${t}`;
+      return `${scheme}://${location.host}/#${t}`;
     }
 
     function docLinkForName(token, docName) {
@@ -2070,9 +2080,9 @@
       closeDocModal();
       setStep("loading");
 
-      const pathToken = readTokenFromPath();
-      if (pathToken) {
-        saveToken(pathToken);
+      const hashToken = readTokenFromHash();
+      if (hashToken) {
+        saveToken(hashToken);
         try {
           history.replaceState({}, "", "/");
         } catch {
@@ -2123,7 +2133,9 @@
         const msg = String(err?.message || "");
         const isAuth = msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("not authorized");
         if (isAuth) {
-          await goLogin("Saved master token was rejected. Paste the correct master token or open /<master-token>.");
+          await goLogin(
+            "Saved master token was rejected. Paste the correct master token or open /#<master-token>."
+          );
         } else {
           state.docs = [];
           await goDashboard(`Failed to load data: ${msg}`);

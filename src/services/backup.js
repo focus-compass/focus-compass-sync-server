@@ -84,8 +84,6 @@ export class BackupService {
                 }
             }
 
-            console.log(`✅ Backup: ${backupPath}`);
-
             this.lastBackupTime = now;
             await this._cleanOldBackups();
         } catch (error) {
@@ -120,7 +118,7 @@ export class BackupService {
                         }
                     }
 
-                    console.log(`🗑️ Deleted old backup: ${file}`);
+                    // Intentionally quiet on cleanup success.
                 }
             }
         } catch (error) {

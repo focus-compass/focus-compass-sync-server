@@ -1,8 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { text } from "../lib/responses.js";
 
-const TOKEN_PATH_RE = /^\/[A-Za-z0-9_-]{16,256}\/?$/;
-
 export const handleStaticRequest = async ({
   request,
   response,
@@ -15,7 +13,7 @@ export const handleStaticRequest = async ({
   }
 
   try {
-    if (pathname === "/" || pathname === "/index.html" || TOKEN_PATH_RE.test(pathname)) {
+    if (pathname === "/" || pathname === "/index.html") {
       const content = await readFile(indexFilePath, "utf-8");
       response.writeHead(200, {
         "Content-Type": "text/html; charset=utf-8",

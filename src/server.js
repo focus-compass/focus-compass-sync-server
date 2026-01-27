@@ -1,6 +1,5 @@
 import "dotenv/config";
 
-import { Logger } from "@hocuspocus/extension-logger";
 import { SQLite } from "@hocuspocus/extension-sqlite";
 import { Server } from "@hocuspocus/server";
 import { mkdir } from "node:fs/promises";
@@ -87,7 +86,7 @@ const server = new Server({
   yDocOptions: {
     gc: YJS_GC,
   },
-  extensions: [new SQLite({ database: DB_PATH }), new Logger()],
+  extensions: [new SQLite({ database: DB_PATH })],
 
   async onAuthenticate({ token, request, requestParameters }) {
     const expected = getAuthToken();
@@ -197,18 +196,14 @@ const server = new Server({
   },
 });
 
-console.log(`🚀 Hocuspocus server starting on port ${port}...`);
-console.log(`📁 Database: ${DB_PATH}`);
-console.log(`🖼️  Images: ${IMAGES_DIR}`);
-console.log(`💾 Backups: ${BACKUP_DIR}`);
-console.log(`🧹 Yjs GC: ${YJS_GC ? "enabled" : "disabled"}`);
+console.log(`Hocuspocus server starting on port ${port}...`);
 
 if (envManaged) {
-  console.log(`🔐 Auth: env token (HOCUSPOCUS_TOKEN) is set`);
+  console.log("Auth: env token is set");
 } else if (getAuthToken()) {
-  console.log(`🔐 Auth: token loaded from ${AUTH_FILE_PATH}`);
+  console.log("Auth: token loaded from disk");
 } else {
-  console.log(`🔐 Auth: not initialized (open http://localhost:${port} to set up)`);
+  console.log(`Auth: not initialized (open http://localhost:${port}/)`);
 }
 
 try {
@@ -230,7 +225,7 @@ try {
   process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
   await server.listen();
-  console.log(`✅ Server running at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 } catch (error) {
   console.error("❌ Failed to start server:", error);
   process.exit(1);

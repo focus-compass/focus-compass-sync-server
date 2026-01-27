@@ -24,7 +24,6 @@ import { BackupService } from "./services/backup.js";
 
 const port = readNumberEnv("PORT", 8080);
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const adminFilePath = join(__dirname, "admin.html");
 const indexFilePath = join(__dirname, "index.html");
 
 const DB_PATH = process.env.DB_PATH ?? "./data/db.sqlite";
@@ -139,7 +138,7 @@ const server = new Server({
       const pathname = url.pathname;
 
       // --- Healthcheck ---
-      if (request.method === "GET" && pathname === "/healthz") {
+      if (request.method === "GET" && pathname === "/health") {
         json(response, 200, { ok: true });
       }
 
@@ -150,6 +149,7 @@ const server = new Server({
         authFilePath: AUTH_FILE_PATH,
         getToken: getAuthToken,
         setToken: setAuthToken,
+        checkAuth: isAuthed,
         envManaged,
       });
 
@@ -177,7 +177,6 @@ const server = new Server({
         request,
         response,
         pathname,
-        adminFilePath,
         indexFilePath,
       });
     } catch (err) {

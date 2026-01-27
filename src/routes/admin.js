@@ -10,7 +10,7 @@ import {
 import { statOrNull } from "../lib/fs.js";
 import { safeDecodeURIComponent } from "../lib/http.js";
 import { json } from "../lib/responses.js";
-import { countSharedTypes, getContent } from "../yjs/inspect.js";
+import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
 const MAX_DOC_NAME_LENGTH = 512;
 
@@ -196,12 +196,15 @@ const handleDbInfo = async ({ request, response, dbPath, checkAuth }) => {
         const dataSize = data ? data.byteLength : 0;
         totalDataSize += dataSize;
 
-        const sharedTypes = countSharedTypes(data);
+        const summary = getWorkspaceSummary(data);
 
         return {
           name: row.name,
           dataSize,
-          sharedTypes,
+          sharedTypes: summary.sharedTypes,
+          workspace: summary.workspace,
+          projectCount: summary.projectCount,
+          lastUpdatedAt: summary.lastUpdatedAt,
         };
       });
 

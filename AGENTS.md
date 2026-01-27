@@ -26,9 +26,9 @@ Docker:
 - Stop: `docker compose down` (wipe volume: `docker compose down -v`, destructive)
 
 Smoke checks:
-- `curl http://localhost:8080/healthz`
+- `curl http://localhost:8080/health`
 - `curl -H "Authorization: Bearer $HOCUSPOCUS_TOKEN" http://localhost:8080/api/images`
-- Admin UI: `http://localhost:8080/admin`
+- Admin UI: `http://localhost:8080/`
 
 ### Tests
 - Current state: no tests are configured (no `npm test` script; no test deps).
@@ -44,9 +44,9 @@ Smoke checks:
 - Lint a single file: `npx eslint src/server.js` (add `--fix` to auto-fix).
 
 ## Repo Layout (high-signal files)
-- `src/server.js`: Hocuspocus server; REST routes; static `/` + `/admin` serving
+- `src/server.js`: Hocuspocus server; REST routes; static `/` serving
 - `src/services/backup.js`: `BackupService` used by `onStoreDocument`
-- `src/admin.html`: static admin UI served by the server
+- `src/index.html`: static admin UI served by the server
 - `eslint.config.js`: ESLint v9 flat config
 - `docker-compose.yml`, `Dockerfile`: production containerization
 - `CLAUDE.md`: repository-specific operational notes (keep consistent)
@@ -139,7 +139,7 @@ When changing Yjs/Hocuspocus behavior:
 - Prefer small, explicit changes; this server is intentionally minimal.
 - Avoid expensive synchronous work inside request hooks.
 
-### Admin UI (`src/admin.html`)
+### Admin UI (`src/index.html`)
 - Served as a static file; no bundler and no external dependencies.
 - Keep it self-contained (inline CSS/JS) and avoid adding frameworks.
 - When changing API payload shapes, update both server handlers and this UI.

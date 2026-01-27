@@ -32,11 +32,10 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 - `GET /api/images/{id}` - Retrieve image with MIME type
 
 **Static Routes**:
-- `/` or `/index.html` - Plain text health page
-- `/admin` or `/admin.html` - Admin UI (requires token)
+- `/` or `/index.html` - HTML UI (see `src/index.html`)
 
 **Healthcheck**:
-- `GET /healthz` - Returns `{ ok: true }`
+- `GET /health` (health-check) - Returns `{ ok: true }`
 
 ## Key Patterns
 

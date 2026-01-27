@@ -8,20 +8,33 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f7f3ed;
-      --panel: rgba(255, 255, 255, 0.72);
-      --panel-solid: #ffffff;
-      --ink: #0f172a;
-      --muted: rgba(15, 23, 42, 0.68);
-      --border: rgba(15, 23, 42, 0.12);
-      --shadow: 0 20px 55px rgba(15, 23, 42, 0.14);
-      --accent: #0f766e;
-      --accent-2: #b45309;
-      --danger: #b91c1c;
-      --ok: #166534;
-      --code: "Consolas", "JetBrains Mono", "Fira Code", monospace;
-      --ui: "Optima", "Candara", "Trebuchet MS", sans-serif;
-      --radius: 18px;
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --surface-2: #f1f3f4;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --primary: #1a73e8;
+      --primary-hover: #1669d2;
+      --danger: #d93025;
+      --ok: #188038;
+      --warn: #f29900;
+      --shadow: 0 1px 2px rgba(60, 64, 67, 0.30), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --ui:
+        "Inter",
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        "Noto Sans",
+        "Liberation Sans",
+        sans-serif;
+      --code: var(--ui);
     }
 
     * {
@@ -36,215 +49,373 @@
     body {
       margin: 0;
       font-family: var(--ui);
-      color: var(--ink);
-      background:
-        radial-gradient(920px 560px at 15% 0%, rgba(15, 118, 110, 0.14), transparent 62%),
-        radial-gradient(760px 520px at 88% 8%, rgba(180, 83, 9, 0.10), transparent 58%),
-        repeating-linear-gradient(135deg, rgba(15, 23, 42, 0.018) 0 2px, transparent 2px 10px),
-        var(--bg);
-      overflow-x: hidden;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
 
     .app {
       min-height: 100%;
       display: grid;
       grid-template-rows: auto 1fr auto;
-      animation: app-in 240ms ease-out;
+      animation: app-in 180ms ease-out;
     }
 
     @keyframes app-in {
       from {
         opacity: 0;
-        transform: translateY(6px);
       }
 
       to {
         opacity: 1;
-        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .app {
+        animation: none;
+      }
+
+      .step.active {
+        animation: none;
+      }
+
+      button {
+        transition: none;
       }
     }
 
     header {
-      padding: 1.25rem 1rem 0.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 14px 16px 12px;
       display: flex;
       justify-content: center;
+      background: linear-gradient(180deg, rgba(248, 249, 250, 0.92), rgba(248, 249, 250, 0.72));
+      border-bottom: 1px solid rgba(218, 220, 224, 0.75);
+      backdrop-filter: blur(10px);
     }
 
     .brand {
-      width: min(980px, calc(100vw - 2rem));
+      width: min(960px, calc(100vw - 32px));
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      padding: 0.95rem 1rem;
+      gap: 12px;
+      padding: 10px 12px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.55);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 1px 0 rgba(60, 64, 67, 0.08);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .brand h1 {
       margin: 0;
-      font-size: 1.08rem;
-      font-weight: 900;
-      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
     }
 
-    .brand .sub {
-      font-family: var(--code);
-      font-size: 0.82rem;
-      color: var(--muted);
-      white-space: nowrap;
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(26, 115, 232, 0.10);
+      border: 1px solid rgba(26, 115, 232, 0.25);
+      box-shadow: 0 1px 0 rgba(60, 64, 67, 0.06);
+      flex: 0 0 auto;
+    }
+
+    .brand-mark svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .text-primary {
+      color: var(--primary);
+    }
+
+    #topLogoutBtn {
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 12px;
     }
 
     main {
-      padding: 0.85rem 1rem 1.25rem;
+      padding: 8px 16px 24px;
       display: flex;
       justify-content: center;
       align-items: flex-start;
     }
 
+    .container {
+      width: min(960px, calc(100vw - 32px));
+      display: grid;
+      gap: 16px;
+    }
+
     .card {
-      width: min(980px, calc(100vw - 2rem));
-      background: var(--panel);
+      width: min(960px, calc(100vw - 32px));
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: calc(var(--radius) + 6px);
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow: hidden;
     }
 
     .card-head {
-      padding: 1.05rem 1.1rem;
+      padding: 16px;
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     .card-title {
       margin: 0;
-      font-size: 1.15rem;
-      font-weight: 900;
-      letter-spacing: -0.02em;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
     }
 
     .pill {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      padding: 0.28rem 0.6rem;
+      padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.6);
+      background: var(--surface-2);
       font-family: var(--code);
-      font-size: 0.78rem;
-      font-weight: 850;
-      color: var(--ink);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
       white-space: nowrap;
     }
 
     .pill.ok {
-      border-color: rgba(22, 101, 52, 0.25);
-      background: rgba(22, 101, 52, 0.10);
+      border-color: rgba(24, 128, 56, 0.35);
+      background: rgba(24, 128, 56, 0.10);
+      color: var(--ok);
     }
 
     .pill.warn {
-      border-color: rgba(180, 83, 9, 0.25);
-      background: rgba(180, 83, 9, 0.10);
+      border-color: rgba(242, 153, 0, 0.35);
+      background: rgba(242, 153, 0, 0.10);
+      color: #7a4f00;
     }
 
     .pill.bad {
-      border-color: rgba(185, 28, 28, 0.25);
-      background: rgba(254, 242, 242, 0.96);
+      border-color: rgba(217, 48, 37, 0.35);
+      background: rgba(217, 48, 37, 0.10);
+      color: var(--danger);
     }
 
     .card-body {
-      padding: 1.1rem;
+      padding: 16px;
       display: grid;
-      gap: 1rem;
+      gap: 16px;
     }
 
     .row {
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 1rem;
-      align-items: start;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .row.one-col {
+      grid-template-columns: 1fr;
+    }
+
+    .dash-row {
+      grid-template-columns: 13fr 7fr;
     }
 
     @media (max-width: 900px) {
       .row {
         grid-template-columns: 1fr;
       }
+
+      .dash-row {
+        grid-template-columns: 1fr;
+      }
     }
 
     .panel {
-      background: rgba(255, 255, 255, 0.72);
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
 
     .panel-head {
-      padding: 0.85rem 0.95rem;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      gap: 0.75rem;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
     .panel-head h2 {
       margin: 0;
-      font-size: 0.95rem;
-      font-weight: 900;
-      letter-spacing: -0.01em;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
     }
 
     .panel-sub {
       font-family: var(--code);
       color: var(--muted);
-      font-size: 0.82rem;
+      font-size: 12px;
     }
 
     .panel-body {
-      padding: 0.95rem;
+      padding: 16px;
       display: grid;
-      gap: 0.75rem;
+      gap: 12px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .panel-head h2.setup-banner {
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.2px;
+      line-height: 1.25;
+    }
+
+    .setup-body {
+      background: radial-gradient(900px 320px at 0% 0%, rgba(26, 115, 232, 0.06), transparent 60%);
+    }
+
+    .setup-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .setup-copy {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .setup-actions {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 12px;
+    }
+
+    .setup-panel {
+      justify-self: start;
+      width: 100%;
+      max-width: 620px;
+    }
+
+    #tokenNewInput {
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        "Liberation Mono",
+        "Courier New",
+        monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #setupError {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(217, 48, 37, 0.35);
+      background: rgba(217, 48, 37, 0.06);
+      color: var(--danger);
+    }
+
+    @media (max-width: 720px) {
+      .setup-panel {
+        max-width: none;
+      }
     }
 
     .hint {
       color: var(--muted);
-      font-size: 0.92rem;
+      font-size: 14px;
       line-height: 1.45;
     }
 
     .hint code {
       font-family: var(--code);
-      font-size: 0.92em;
+      font-size: 0.95em;
+    }
+
+    .info-note {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(26, 115, 232, 0.25);
+      background: rgba(26, 115, 232, 0.06);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .info-note strong {
+      color: var(--text);
+      font-weight: 600;
     }
 
     .field {
       display: grid;
-      gap: 0.3rem;
+      gap: 6px;
     }
 
     label {
-      font-size: 0.72rem;
+      font-size: 12px;
       color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
     }
 
     input[type="password"],
     input[type="text"] {
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 12px;
-      padding: 0.6rem 0.75rem;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
       font: inherit;
       outline: none;
       width: 100%;
@@ -252,114 +423,642 @@
     }
 
     input:focus {
-      border-color: rgba(15, 118, 110, 0.45);
-      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10);
+      border-color: rgba(26, 115, 232, 0.75);
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
     }
 
     button {
       border: 1px solid transparent;
-      border-radius: 12px;
-      padding: 0.6rem 0.85rem;
+      border-radius: 999px;
+      padding: 10px 14px;
+      min-height: 40px;
       font: inherit;
-      font-weight: 700;
+      font-weight: 600;
+      line-height: 1;
       cursor: pointer;
-      background: var(--accent);
+      background: var(--primary);
       color: white;
-      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+      transition: background 120ms ease, box-shadow 120ms ease;
       user-select: none;
       justify-content: center;
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
+      gap: 8px;
     }
 
     button:hover {
-      opacity: 0.93;
-      transform: translateY(-1px);
-    }
-
-    button:active {
-      transform: translateY(0);
+      background: var(--primary-hover);
     }
 
     button:disabled {
       opacity: 0.55;
       cursor: not-allowed;
-      transform: none;
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.22);
     }
 
     button.ghost {
-      background: rgba(255, 255, 255, 0.65);
+      background: transparent;
       border-color: var(--border);
-      color: var(--ink);
+      color: var(--primary);
+    }
+
+    button.ghost:hover {
+      background: rgba(26, 115, 232, 0.06);
+    }
+
+    #copyWsBtn .icon-check {
+      display: none;
+    }
+
+    #copyWsBtn.copied {
+      background: rgba(24, 128, 56, 0.08);
+      border-color: rgba(24, 128, 56, 0.35);
+      color: var(--ok);
+    }
+
+    #copyWsBtn.copied:hover {
+      background: rgba(24, 128, 56, 0.12);
+      border-color: rgba(24, 128, 56, 0.42);
+    }
+
+    #copyWsBtn.copied .icon-copy {
+      display: none;
+    }
+
+    #copyWsBtn.copied .icon-check {
+      display: block;
     }
 
     button.danger {
       background: var(--danger);
     }
 
+    button.danger:hover {
+      background: #c5221f;
+    }
+
     .btn-row {
       display: flex;
-      gap: 0.5rem;
+      gap: 10px;
       flex-wrap: wrap;
       align-items: center;
     }
 
+    .btn-row a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0 10px;
+      border-radius: 999px;
+    }
+
+    .btn-row a:hover {
+      background: rgba(26, 115, 232, 0.06);
+      text-decoration: none;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .code-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .code-row .codebox {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      min-height: 40px;
+      min-width: 40px;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .icon-btn:hover {
+      background: rgba(32, 33, 36, 0.04);
+    }
+
+    .icon-btn.danger {
+      background: rgba(217, 48, 37, 0.06);
+      color: var(--danger);
+      border-color: rgba(217, 48, 37, 0.35);
+    }
+
+    .icon-btn.danger:hover {
+      background: rgba(217, 48, 37, 0.10);
+    }
+
+    .icon-btn.on {
+      color: var(--primary);
+      border-color: rgba(26, 115, 232, 0.35);
+      background: rgba(26, 115, 232, 0.06);
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .btn-icon {
+      width: 18px;
+      height: 18px;
+      display: block;
+      flex: 0 0 auto;
+    }
+
+    .icon-btn.small {
+      width: 32px;
+      height: 32px;
+      min-height: 32px;
+      min-width: 32px;
+    }
+
+    .icon-btn.small svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-plain {
+      width: 28px;
+      height: 28px;
+      min-height: 28px;
+      min-width: 28px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      color: var(--muted);
+    }
+
+    .icon-plain svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    .icon-plain:hover {
+      background: rgba(32, 33, 36, 0.06);
+    }
+
+    .icon-plain:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.22);
+    }
+
+    .icon-toggle .eye-on {
+      display: none;
+    }
+
+    .icon-toggle.on {
+      color: var(--primary);
+    }
+
+    .icon-toggle.on .eye-on {
+      display: block;
+    }
+
+    .icon-toggle.on .eye-off {
+      display: none;
+    }
+
     .codebox {
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.6);
-      border-radius: 14px;
-      padding: 0.7rem 0.75rem;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 12px;
       font-family: var(--code);
-      font-weight: 800;
+      font-weight: 600;
       word-break: break-all;
       line-height: 1.4;
     }
 
+    .ws-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ws-field #wsUrl {
+      flex: 1;
+      min-width: 0;
+      display: block;
+    }
+
+    #wsUrl {
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        "Liberation Mono",
+        "Courier New",
+        monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 420px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .storage-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .storage-hint {
+      margin-top: auto;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      background: rgba(32, 33, 36, 0.38);
+      backdrop-filter: blur(6px);
+    }
+
+    .modal.visible {
+      display: block;
+    }
+
+    .modal-card {
+      position: absolute;
+      inset: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (max-width: 520px) {
+      .modal-card {
+        inset: 8px;
+      }
+    }
+
+    .modal-head {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .modal-title-wrap {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .modal-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .modal-sub {
+      font-family: var(--code);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .modal-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .modal-section {
+      display: grid;
+      gap: 6px;
+    }
+
+    .item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .item-weight {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .item-copied-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 0;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ok);
+      font-family: var(--code);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      line-height: 1;
+      margin-right: 0;
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      transform: translateY(-2px);
+      transition:
+        opacity 140ms ease,
+        transform 140ms ease,
+        max-width 180ms ease,
+        padding 180ms ease,
+        margin-right 180ms ease,
+        border-color 180ms ease,
+        background 180ms ease;
+    }
+
+    .item.copied .item-copied-tag {
+      padding: 2px 8px;
+      max-width: 80px;
+      opacity: 1;
+      transform: translateY(0);
+      border-color: rgba(24, 128, 56, 0.35);
+      background: rgba(24, 128, 56, 0.10);
+      margin-right: 8px;
+    }
+
+    .confirm {
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(32, 33, 36, 0.38);
+      backdrop-filter: blur(6px);
+    }
+
+    .confirm.visible {
+      display: flex;
+    }
+
+    .confirm-card {
+      width: min(520px, calc(100vw - 32px));
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .confirm-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .confirm-body {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .jsonbox {
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-family: var(--code);
+      font-size: 12px;
+      line-height: 1.55;
+      overflow: auto;
+      flex: 1;
+      min-height: 240px;
+      max-height: none;
+      white-space: pre;
+      word-break: normal;
+      margin: 0;
+    }
+
+    .stat {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      min-height: 88px;
+    }
+
+    .stat-kicker {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .stat-sub {
+      font-family: var(--code);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
     .list {
       display: grid;
-      gap: 0.45rem;
+      gap: 10px;
       max-height: 520px;
       overflow: auto;
-      padding-right: 0.15rem;
+      padding-right: 2px;
     }
 
     .item {
       border: 1px solid var(--border);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.72);
-      padding: 0.65rem 0.75rem;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      padding: 12px;
       display: grid;
-      gap: 0.25rem;
+      gap: 4px;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    .item:hover {
+      background: rgba(26, 115, 232, 0.04);
+      border-color: rgba(26, 115, 232, 0.30);
+    }
+
+    .item.copied {
+      border-color: rgba(24, 128, 56, 0.30);
+      background: var(--surface);
+    }
+
+    .item.copied:hover {
+      border-color: rgba(24, 128, 56, 0.34);
+      background: var(--surface);
     }
 
     .item strong {
-      font-weight: 900;
+      font-weight: 700;
       word-break: break-word;
+    }
+
+    .item-title {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      min-width: 0;
+    }
+
+    .item-title strong {
+      min-width: 0;
+    }
+
+    .item-linkmark {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(26, 115, 232, 0.08);
+      border: 1px solid rgba(26, 115, 232, 0.22);
+      color: var(--primary);
+      flex: 0 0 auto;
+      position: relative;
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+      margin-right: 10px;
+    }
+
+    .item-linkmark svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    .item-linkmark svg.icon-check {
+      display: none;
+    }
+
+    .item.copied .item-linkmark {
+      background: rgba(24, 128, 56, 0.10);
+      border-color: rgba(24, 128, 56, 0.35);
+      color: var(--ok);
+    }
+
+    .item.copied .item-linkmark svg.icon-link {
+      display: none;
+    }
+
+    .item.copied .item-linkmark svg.icon-check {
+      display: block;
     }
 
     .item .meta {
       font-family: var(--code);
       color: var(--muted);
-      font-size: 0.82rem;
+      font-size: 12px;
     }
 
     .toast {
       position: fixed;
-      right: 1rem;
-      bottom: 1rem;
-      z-index: 999;
-      padding: 0.85rem 1rem;
-      background: rgba(255, 255, 255, 0.92);
+      right: 16px;
+      bottom: 16px;
+      z-index: 1300;
+      padding: 12px 14px;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 12px;
       box-shadow: var(--shadow);
-      transform: translateY(16px);
+      transform: translateY(14px);
       opacity: 0;
       transition: transform 160ms ease, opacity 160ms ease;
-      max-width: min(520px, calc(100vw - 2rem));
+      max-width: min(520px, calc(100vw - 32px));
       pointer-events: none;
-      color: var(--ink);
+      color: var(--text);
+      font-size: 14px;
     }
 
     .toast.visible {
@@ -368,24 +1067,61 @@
     }
 
     .toast.error {
-      border-color: rgba(185, 28, 28, 0.25);
-      background: rgba(254, 242, 242, 0.96);
+      border-color: rgba(217, 48, 37, 0.35);
+      background: rgba(217, 48, 37, 0.06);
     }
 
     footer {
-      padding: 0.5rem 1rem 1.25rem;
+      padding: 8px 16px 20px;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
       color: var(--muted);
       font-family: var(--code);
-      font-size: 0.82rem;
+      font-size: 12px;
+      text-align: center;
     }
 
-    footer a {
-      color: inherit;
-      text-decoration: underline;
-      text-decoration-thickness: 1px;
-      text-underline-offset: 2px;
+    .footer-links {
+      display: inline-flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .footer-brand {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 2px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.1px;
+    }
+
+    .footer-links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.65);
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      background: rgba(26, 115, 232, 0.06);
+      border-color: rgba(26, 115, 232, 0.30);
+      text-decoration: none;
+    }
+
+    .footer-links svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+      flex: 0 0 auto;
     }
 
     .step {
@@ -394,14 +1130,14 @@
 
     .step.active {
       display: grid;
-      gap: 1rem;
-      animation: step-in 180ms ease-out;
+      gap: 16px;
+      animation: step-in 160ms ease-out;
     }
 
     @keyframes step-in {
       from {
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(4px);
       }
 
       to {
@@ -416,52 +1152,40 @@
   <div class="app">
     <header>
       <div class="brand">
-        <h1>Focus Compass Server</h1>
-        <div class="sub" id="subline">Starting…</div>
+        <h1>
+          <span class="brand-mark">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-compass h-6 w-6 text-primary" aria-hidden="true"><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          </span>
+          Focus Compass Server
+        </h1>
+        <div class="top-actions">
+          <button class="ghost" id="topLogoutBtn" type="button" style="display: none;">Logout</button>
+        </div>
       </div>
     </header>
 
     <main>
-      <div class="card" role="main" aria-live="polite">
-        <div class="card-head">
-          <h2 class="card-title" id="title">Loading</h2>
-          <div class="pill" id="statusPill">…</div>
-        </div>
-
-        <div class="card-body">
-          <section class="step active" id="step-loading">
+      <div class="container" role="main" aria-live="polite">
+        <section class="step active" id="step-loading">
             <div class="hint">Checking server status…</div>
           </section>
 
           <section class="step" id="step-setup">
-            <div class="row">
-              <div class="panel">
+            <div class="row one-col">
+              <div class="panel setup-panel">
                 <div class="panel-head">
-                  <h2>First-time setup</h2>
-                  <div class="panel-sub">Locks your server</div>
+                  <h2 class="setup-banner">Congrats 🎉 Your sync server is running</h2>
                 </div>
-                <div class="panel-body">
-                  <div class="hint">
-                    This server needs a token for all WebSocket + REST access.
-                    Generate it once, then store it somewhere safe.
+                <div class="panel-body setup-body">
+                  <div class="setup-layout">
+                    <div class="setup-copy">
+                      <div class="hint">To get started, generate a master token for your server.</div>
+                      <div class="setup-actions">
+                        <button id="setupBtn">Generate master token</button>
+                      </div>
+                    </div>
                   </div>
-
-                  <div class="btn-row">
-                    <button id="setupBtn">Generate token</button>
-                    <button class="ghost" id="setupRefreshBtn">Re-check</button>
-                  </div>
-
                   <div class="hint" id="setupError" style="display: none;"></div>
-                </div>
-              </div>
-
-              <div class="panel">
-                <div class="panel-head">
-                  <h2>What you get</h2>
-                  <div class="panel-sub">ws(s)://host/&lt;token&gt;</div>
-                </div>
-                <div class="panel-body">
-                  <div class="hint">After generating, you can copy a ready-to-use WebSocket URL.</div>
                 </div>
               </div>
             </div>
@@ -472,16 +1196,15 @@
               <div class="panel">
                 <div class="panel-head">
                   <h2>Sign in</h2>
-                  <div class="panel-sub">Token required</div>
+                  <div class="panel-sub">Master token required</div>
                 </div>
                 <div class="panel-body">
                   <div class="field">
-                    <label for="tokenInput">Token</label>
-                    <input type="password" id="tokenInput" placeholder="Paste token" autocomplete="current-password" />
+                    <label for="tokenInput">Master token / connection link</label>
+                    <input type="text" id="tokenInput" placeholder="Paste master token or connection link" autocomplete="off" />
                   </div>
                   <div class="btn-row">
                     <button id="loginBtn">Continue</button>
-                    <button class="ghost" id="logoutBtn" style="display: none;">Forget saved token</button>
                   </div>
                   <div class="hint" id="loginError" style="display: none;"></div>
                 </div>
@@ -489,12 +1212,12 @@
 
               <div class="panel">
                 <div class="panel-head">
-                  <h2>Tip</h2>
-                  <div class="panel-sub">Open /&lt;token&gt;</div>
+                  <h2>What is this?</h2>
+                  <div class="panel-sub">Server dashboard</div>
                 </div>
                 <div class="panel-body">
                   <div class="hint">
-                    If you have a link like <code>http(s)://host/&lt;token&gt;</code>, just open it. This page will save the token.
+                    Welcome to your Focus Compass Sync Server. Here you can get connection links to your workspaces and manage your data.
                   </div>
                 </div>
               </div>
@@ -502,7 +1225,7 @@
           </section>
 
           <section class="step" id="step-dashboard">
-            <div class="row">
+            <div class="row dash-row">
               <div class="panel">
                 <div class="panel-head">
                   <h2>Connection</h2>
@@ -510,52 +1233,183 @@
                 </div>
                 <div class="panel-body">
                   <div>
-                    <label>WebSocket URL</label>
-                    <div class="codebox" id="wsUrl">-</div>
-                    <div class="btn-row" style="margin-top: 0.55rem;">
-                      <button id="copyWsBtn" class="ghost">Copy WS URL</button>
-                      <button id="copyTokenBtn" class="ghost">Copy token</button>
-                      <button id="hideTokenBtn" class="ghost">Hide token</button>
+                    <label>Connection URL</label>
+                    <div class="code-row">
+                      <div class="codebox ws-field">
+                        <span id="wsUrl">-</span>
+                        <button id="revealBtn" class="icon-plain icon-toggle" type="button" aria-label="Reveal master token" title="Reveal master token" aria-pressed="false">
+                          <svg class="eye eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a21.77 21.77 0 0 1 5.06-5.94" />
+                            <path d="M9.9 4.24A11.19 11.19 0 0 1 12 4c6.5 0 10 8 10 8a21.82 21.82 0 0 1-2.16 3.19" />
+                            <path d="M14.12 14.12a3 3 0 0 1-4.24-4.24" />
+                            <path d="M1 1l22 22" />
+                          </svg>
+                          <svg class="eye eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="btn-row" style="margin-top: 12px;">
+                      <button id="copyWsBtn" class="ghost" type="button">
+                        <svg class="btn-icon icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <rect x="9" y="9" width="13" height="13" rx="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        <svg class="btn-icon icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M20 6 9 17 4 12" />
+                        </svg>
+                        Copy Connection Link
+                      </button>
+
+                      <button id="changeTokenBtn" class="ghost" type="button">Change master token</button>
+                    </div>
+                    <div class="info-note">
+                      <strong>Important:</strong> Copy and use this connection link to connect your local workspace to the cloud. Don't share it with anyone - it contains your server master token.
                     </div>
                   </div>
 
                   <div class="hint" id="dashError" style="display: none;"></div>
-
-                  <div class="btn-row" style="margin-top: 0.35rem;">
-                    <a href="/admin" target="_blank" rel="noopener noreferrer">Open admin UI</a>
-                    <span class="panel-sub">|</span>
-                    <button class="danger" id="dashLogoutBtn">Logout</button>
-                  </div>
                 </div>
               </div>
 
               <div class="panel">
                 <div class="panel-head">
-                  <h2>Documents</h2>
-                  <div class="panel-sub" id="docsSub">-</div>
+                  <h2>Storage</h2>
+                  <div class="panel-sub" id="storageSub">-</div>
                 </div>
-                <div class="panel-body">
-                  <div class="list" id="docList"></div>
+                <div class="panel-body storage-body">
+                  <div class="stats">
+                    <div class="stat">
+                      <div class="stat-kicker">Database</div>
+                      <div class="stat-value" id="statDb">-</div>
+                      <div class="stat-sub" id="statDbSub">-</div>
+                    </div>
+                    <div class="stat">
+                      <div class="stat-kicker">Backups</div>
+                      <div class="stat-value" id="statBackups">-</div>
+                      <div class="stat-sub" id="statBackupsSub">-</div>
+                    </div>
+                    <div class="stat">
+                      <div class="stat-kicker">Images</div>
+                      <div class="stat-value" id="statImages">-</div>
+                      <div class="stat-sub" id="statImagesSub">-</div>
+                    </div>
+                    <div class="stat">
+                      <div class="stat-kicker">Total</div>
+                      <div class="stat-value" id="statTotal">-</div>
+                      <div class="stat-sub" id="statTotalSub">-</div>
+                    </div>
+                  </div>
+                  <div class="hint storage-hint" id="storageHint">-</div>
                 </div>
               </div>
             </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                  <h2>Workspaces</h2>
+                <div class="panel-sub" id="docsSub">-</div>
+              </div>
+              <div class="panel-body">
+                <div class="list" id="docList"></div>
+              </div>
+            </div>
           </section>
-        </div>
       </div>
     </main>
 
     <footer>
-      <span>Focus Compass Server · <a href="/healthz" target="_blank" rel="noopener noreferrer">healthz</a></span>
+      <div class="footer-links">
+        <span class="footer-brand">Focus Compass Server</span>
+        <a href="https://www.reddit.com/r/FocusCompass/" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path
+              fill="#ff4500"
+              d="M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485l-2.286 2.286C.775 23.225 1.097 24 1.738 24H12c6.627 0 12-5.373 12-12S18.627 0 12 0Zm4.388 3.199c1.104 0 1.999.895 1.999 1.999 0 1.105-.895 2-1.999 2-.946 0-1.739-.657-1.947-1.539v.002c-1.147.162-2.032 1.15-2.032 2.341v.007c1.776.067 3.4.567 4.686 1.363.473-.363 1.064-.58 1.707-.58 1.547 0 2.802 1.254 2.802 2.802 0 1.117-.655 2.081-1.601 2.531-.088 3.256-3.637 5.876-7.997 5.876-4.361 0-7.905-2.617-7.998-5.87-.954-.447-1.614-1.415-1.614-2.538 0-1.548 1.255-2.802 2.803-2.802.645 0 1.239.218 1.712.585 1.275-.79 2.881-1.291 4.64-1.365v-.01c0-1.663 1.263-3.034 2.88-3.207.188-.911.993-1.595 1.959-1.595Zm-8.085 8.376c-.784 0-1.459.78-1.506 1.797-.047 1.016.64 1.429 1.426 1.429.786 0 1.371-.369 1.418-1.385.047-1.017-.553-1.841-1.338-1.841Zm7.406 0c-.786 0-1.385.824-1.338 1.841.047 1.017.634 1.385 1.418 1.385.785 0 1.473-.413 1.426-1.429-.046-1.017-.721-1.797-1.506-1.797Zm-3.703 4.013c-.974 0-1.907.048-2.77.135-.147.015-.241.168-.183.305.483 1.154 1.622 1.964 2.953 1.964 1.33 0 2.47-.81 2.953-1.964.057-.137-.037-.29-.184-.305-.863-.087-1.795-.135-2.769-.135Z"
+            />
+          </svg>
+          Reddit
+        </a>
+
+        <a href="https://t.me/focus_compass" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path
+              fill="#229ED9"
+              d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"
+            />
+          </svg>
+          Telegram
+        </a>
+
+        <a href="https://github.com/focus-compass/focus-compass-sync-server" target="_blank" rel="noopener noreferrer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 640 640" aria-hidden="true">
+            <path d="M319.988 7.973C143.293 7.973 0 151.242 0 327.96c0 141.392 91.678 261.298 218.826 303.63 16.004 2.964 21.886-6.957 21.886-15.414 0-7.63-.319-32.835-.449-59.552-89.032 19.359-107.8-37.772-107.8-37.772-14.552-36.993-35.529-46.831-35.529-46.831-29.032-19.879 2.209-19.442 2.209-19.442 32.126 2.245 49.04 32.954 49.04 32.954 28.56 48.922 74.883 34.76 93.131 26.598 2.882-20.681 11.15-34.807 20.315-42.803-71.08-8.067-145.797-35.516-145.797-158.14 0-34.926 12.52-63.485 32.965-85.88-3.33-8.078-14.291-40.606 3.083-84.674 0 0 26.87-8.61 88.029 32.8 25.512-7.075 52.878-10.642 80.056-10.76 27.2.118 54.614 3.673 80.162 10.76 61.076-41.386 87.922-32.8 87.922-32.8 17.398 44.08 6.485 76.631 3.154 84.675 20.516 22.394 32.93 50.953 32.93 85.879 0 122.907-74.883 149.93-146.117 157.856 11.481 9.921 21.733 29.398 21.733 59.233 0 42.792-.366 77.28-.366 87.804 0 8.516 5.764 18.473 21.992 15.354 127.076-42.354 218.637-162.274 218.637-303.582 0-176.695-143.269-319.988-320-319.988l-.023.107z"/>
+          </svg>
+          GitHub
+        </a>
+      </div>
     </footer>
   </div>
 
   <div class="toast" id="toast"></div>
 
+  <div class="modal" id="docModal" role="dialog" aria-modal="true" aria-labelledby="docModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <button class="ghost" id="docCloseBtn" type="button">Back</button>
+        <div class="modal-title-wrap">
+          <div class="modal-title" id="docModalTitle">Workspace</div>
+          <div class="modal-sub" id="docModalMeta">-</div>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost" id="docCopyLinkBtn" type="button">Copy workspace link</button>
+          <button class="danger" id="docDeleteBtn" type="button">Delete</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <pre class="jsonbox" id="docJson" aria-label="Workspace JSON">-</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm" id="tokenModal" role="dialog" aria-modal="true" aria-labelledby="tokenTitle">
+    <div class="confirm-card">
+      <div class="confirm-title" id="tokenTitle">Change master token</div>
+      <div class="confirm-body">
+        Use a strong, random master token. Anyone with it can access your server.
+      </div>
+      <div class="field">
+        <label for="tokenNewInput">New master token</label>
+        <input type="text" id="tokenNewInput" placeholder="A-Z, a-z, 0-9, -, _" autocomplete="off" />
+      </div>
+      <div class="hint" id="tokenError" style="display: none;"></div>
+      <div class="confirm-actions">
+        <button class="ghost" id="tokenCancelBtn" type="button">Cancel</button>
+        <button class="ghost" id="tokenGenerateBtn" type="button">Generate</button>
+        <button id="tokenSaveBtn" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="confirm-card">
+      <div class="confirm-title" id="confirmTitle">Confirm</div>
+      <div class="confirm-body" id="confirmBody">-</div>
+      <div class="confirm-actions">
+        <button class="ghost" id="confirmCancelBtn" type="button">Cancel</button>
+        <button class="danger" id="confirmOkBtn" type="button">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const TOKEN_KEY = "focus-compass-token";
     const ADMIN_TOKEN_KEY = "admin-token";
 
-    const TOKEN_RE = /^[A-Za-z0-9_-]{16,256}$/;
+    const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
+    const NEW_TOKEN_RE = /^[A-Za-z0-9_-]+$/;
 
     const $ = (id) => document.getElementById(id);
 
@@ -564,7 +1418,17 @@
       envManaged: false,
       token: "",
       showToken: false,
+      signedIn: false,
       docs: [],
+      dbInfo: null,
+      backups: [],
+      backupsTotalBytes: null,
+      images: [],
+      lastRefreshIso: null,
+      storageError: "",
+      selectedDocName: "",
+      selectedDocData: null,
+      confirm: { open: false, title: "", body: "", onConfirm: null },
     };
 
     function toast(msg, type = "") {
@@ -580,6 +1444,89 @@
       document.querySelectorAll(".step").forEach((el) => el.classList.toggle("active", el.id === `step-${name}`));
     }
 
+    function setTopLogoutVisible(visible) {
+      const btn = $("topLogoutBtn");
+      if (!btn) return;
+      btn.style.display = visible ? "inline-flex" : "none";
+    }
+
+    function isDocModalOpen() {
+      return $("docModal").classList.contains("visible");
+    }
+
+    function setDocModalVisible(visible) {
+      $("docModal").classList.toggle("visible", Boolean(visible));
+      document.body.style.overflow = visible ? "hidden" : "";
+    }
+
+    function closeDocModal() {
+      state.selectedDocName = "";
+      state.selectedDocData = null;
+      $("docModalTitle").textContent = "Workspace";
+      $("docModalMeta").textContent = "-";
+      $("docJson").textContent = "-";
+      setDocModalVisible(false);
+    }
+
+    function isTokenModalOpen() {
+      return $("tokenModal")?.classList?.contains("visible") ?? false;
+    }
+
+    function setTokenModalVisible(visible) {
+      $("tokenModal").classList.toggle("visible", Boolean(visible));
+      document.body.style.overflow = visible ? "hidden" : "";
+    }
+
+    function closeTokenModal() {
+      const err = $("tokenError");
+      err.textContent = "";
+      err.style.display = "none";
+      $("tokenNewInput").value = "";
+      $("tokenNewInput").disabled = false;
+      $("tokenGenerateBtn").disabled = false;
+      $("tokenSaveBtn").disabled = false;
+      setTokenModalVisible(false);
+    }
+
+    function openTokenModal() {
+      const err = $("tokenError");
+      err.textContent = "";
+      err.style.display = "none";
+      $("tokenNewInput").value = state.token || "";
+
+      if (state.envManaged) {
+        err.textContent = "Master token is managed by environment (HOCUSPOCUS_TOKEN). Change it there and restart.";
+        err.style.display = "block";
+        $("tokenNewInput").disabled = true;
+        $("tokenGenerateBtn").disabled = true;
+        $("tokenSaveBtn").disabled = true;
+      } else {
+        $("tokenNewInput").disabled = false;
+        $("tokenGenerateBtn").disabled = false;
+        $("tokenSaveBtn").disabled = false;
+      }
+
+      setTokenModalVisible(true);
+      try {
+        $("tokenNewInput").focus();
+        $("tokenNewInput").select();
+      } catch {
+        // ignore
+      }
+    }
+
+    function openConfirm({ title, body, onConfirm }) {
+      state.confirm = { open: true, title, body, onConfirm };
+      $("confirmTitle").textContent = title;
+      $("confirmBody").textContent = body;
+      $("confirmModal").classList.add("visible");
+    }
+
+    function closeConfirm() {
+      state.confirm = { open: false, title: "", body: "", onConfirm: null };
+      $("confirmModal").classList.remove("visible");
+    }
+
     function formatBytes(bytes) {
       const n = Number(bytes) || 0;
       if (!n) return "0 B";
@@ -587,6 +1534,30 @@
       const sizes = ["B", "KB", "MB", "GB", "TB"];
       const i = Math.floor(Math.log(n) / Math.log(k));
       return `${parseFloat((n / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    }
+
+    function formatLocalDateTime(isoString) {
+      if (!isoString) return "";
+      try {
+        return new Date(isoString).toLocaleString();
+      } catch {
+        return String(isoString);
+      }
+    }
+
+    function calcImagesBytes(images) {
+      if (!Array.isArray(images)) return 0;
+      return images.reduce((sum, img) => sum + (Number(img?.size) || 0), 0);
+    }
+
+    function calcBackupsBytes(backups, fallbackTotal) {
+      const fallback = Number(fallbackTotal);
+      if (Number.isFinite(fallback) && fallback > 0) return fallback;
+      if (!Array.isArray(backups)) return 0;
+      return backups.reduce(
+        (sum, b) => sum + (Number(b?.totalSizeBytes) || Number(b?.sizeBytes) || 0),
+        0,
+      );
     }
 
     function loadStoredToken() {
@@ -600,7 +1571,6 @@
       if (!state.token) return;
       localStorage.setItem(TOKEN_KEY, state.token);
       localStorage.setItem(ADMIN_TOKEN_KEY, state.token);
-      $("logoutBtn").style.display = "inline-flex";
     }
 
     function clearToken() {
@@ -616,10 +1586,67 @@
       return raw;
     }
 
+    function tokenFromInput(raw) {
+      const val = String(raw || "").trim();
+      if (!val) return { token: "", error: "Master token required" };
+      if (TOKEN_RE.test(val)) return { token: val, error: "" };
+
+      const lower = val.toLowerCase();
+      const isUrl =
+        lower.startsWith("ws://") ||
+        lower.startsWith("wss://") ||
+        lower.startsWith("http://") ||
+        lower.startsWith("https://");
+
+      if (!isUrl) return { token: "", error: "Invalid master token" };
+
+      let url;
+      try {
+        url = new URL(val);
+      } catch {
+        return { token: "", error: "Invalid connection link" };
+      }
+
+      const parts = String(url.pathname || "").replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+      const token = parts[0] || "";
+
+      if (!token) return { token: "", error: "No master token found in link" };
+      if (token.includes("*")) {
+        return {
+          token: "",
+          error: "Link contains a masked master token (***). Please use the full link.",
+        };
+      }
+      if (!TOKEN_RE.test(token)) return { token: "", error: "Invalid master token in link" };
+      return { token, error: "" };
+    }
+
+    function generateNewToken() {
+      if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== "function") {
+        throw new Error("Secure random is not available");
+      }
+
+      // 24 bytes -> 32 base64 chars (no padding)
+      const bytes = new Uint8Array(24);
+
+      globalThis.crypto.getRandomValues(bytes);
+      let bin = "";
+      for (const b of bytes) bin += String.fromCharCode(b);
+      const b64 = btoa(bin);
+      const token = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      return token;
+    }
+
     function wsUrlForToken(token, revealToken) {
       const scheme = location.protocol === "https:" ? "wss" : "ws";
       const t = revealToken ? token : token.replace(/.(?=.{8})/g, "*");
       return `${scheme}://${location.host}/${t}`;
+    }
+
+    function docLinkForName(token, docName) {
+      const base = wsUrlForToken(token, true);
+      const id = encodeURIComponent(String(docName || ""));
+      return `${base}/${id}`;
     }
 
     async function apiJson(endpoint, { method = "GET", token = "", body = null } = {}) {
@@ -649,94 +1676,388 @@
     }
 
     function renderTop() {
+      const statusPill = $("statusPill");
+      const subline = $("subline");
+      if (!statusPill && !subline) return;
+
       const initialized = state.initialized;
       let pillText = "…";
       let pillClass = "pill";
 
       if (initialized === false) {
-        pillText = "Setup required";
+        pillText = "Setup mode";
         pillClass = "pill warn";
       } else if (initialized === true) {
-        pillText = "Locked";
-        pillClass = "pill ok";
+        if (state.signedIn) {
+          pillText = "Connected";
+          pillClass = "pill ok";
+        } else {
+          pillText = "Master token required";
+          pillClass = "pill warn";
+        }
       }
 
-      $("statusPill").className = pillClass;
-      $("statusPill").textContent = pillText;
+      if (statusPill) {
+        statusPill.className = pillClass;
+        statusPill.textContent = pillText;
+      }
 
-      const subParts = [location.host];
-      if (state.envManaged) subParts.push("env-managed token");
-      $("subline").textContent = subParts.join(" · ");
+      if (subline) {
+        subline.textContent = state.envManaged ? "env-managed master token" : "";
+      }
+    }
+
+    function renderDocsSub() {
+      const docs = Array.isArray(state.docs) ? state.docs : [];
+      $("docsSub").textContent = `${docs.length} workspaces`;
     }
 
     function renderDocs() {
+      const docs = Array.isArray(state.docs) ? state.docs : [];
+      renderDocsSub();
+
       const list = $("docList");
       list.innerHTML = "";
-      const docs = Array.isArray(state.docs) ? state.docs : [];
-      $("docsSub").textContent = `${docs.length} docs`;
 
       if (!docs.length) {
-        list.innerHTML = '<div class="hint">No documents yet.</div>';
+        list.innerHTML = '<div class="hint">No workspaces yet.</div>';
         return;
       }
 
       for (const d of docs) {
         const item = document.createElement("div");
         item.className = "item";
+        item.dataset.name = d.name;
+        item.setAttribute("role", "button");
+        item.setAttribute("aria-label", `Copy workspace link: ${d.name}`);
+        item.title = "Click/tap to copy workspace connection link";
+        item.tabIndex = 0;
 
-        const title = document.createElement("strong");
-        title.textContent = d.name;
+        const head = document.createElement("div");
+        head.className = "item-head";
 
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        meta.textContent = `${formatBytes(d.dataSize)} | ${d.sharedTypes} types`;
+        const title = document.createElement("div");
+        title.className = "item-title";
 
-        item.appendChild(title);
-        item.appendChild(meta);
+        const linkMark = document.createElement("span");
+        linkMark.className = "item-linkmark";
+        linkMark.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link-2 icon-link" aria-hidden="true">' +
+          '<path d="M9 17H7A5 5 0 0 1 7 7h2" />' +
+          '<path d="M15 7h2a5 5 0 1 1 0 10h-2" />' +
+          '<line x1="8" x2="16" y1="12" y2="12" />' +
+          "</svg>" +
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check icon-check" aria-hidden="true">' +
+          '<path d="M20 6 9 17 4 12" />' +
+          "</svg>";
+
+        const docId = document.createElement("strong");
+        docId.textContent = d.name;
+
+        const copiedTag = document.createElement("span");
+        copiedTag.className = "item-copied-tag";
+        copiedTag.textContent = "Copied";
+        copiedTag.setAttribute("aria-hidden", "true");
+
+        title.appendChild(linkMark);
+        title.appendChild(copiedTag);
+        title.appendChild(docId);
+
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+
+        const weight = document.createElement("span");
+        weight.className = "item-weight";
+        weight.textContent = formatBytes(d.dataSize);
+
+        const openBtn = document.createElement("button");
+        openBtn.className = "icon-btn small";
+        openBtn.type = "button";
+        openBtn.dataset.action = "open-workspace";
+        openBtn.dataset.name = d.name;
+        openBtn.title = "View JSON";
+        openBtn.setAttribute("aria-label", `View workspace JSON: ${d.name}`);
+        openBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text" aria-hidden="true">' +
+          '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />' +
+          '<path d="M14 2v5a1 1 0 0 0 1 1h5" />' +
+          '<path d="M10 9H8" />' +
+          '<path d="M16 13H8" />' +
+          '<path d="M16 17H8" />' +
+          "</svg>";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "icon-btn small danger";
+        deleteBtn.type = "button";
+        deleteBtn.dataset.action = "delete-workspace";
+        deleteBtn.dataset.name = d.name;
+        deleteBtn.title = "Delete workspace";
+        deleteBtn.setAttribute("aria-label", `Delete workspace: ${d.name}`);
+        deleteBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2" aria-hidden="true">' +
+          '<path d="M10 11v6" />' +
+          '<path d="M14 11v6" />' +
+          '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />' +
+          '<path d="M3 6h18" />' +
+          '<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />' +
+          "</svg>";
+
+        actions.appendChild(weight);
+        actions.appendChild(openBtn);
+        actions.appendChild(deleteBtn);
+
+        head.appendChild(title);
+        head.appendChild(actions);
+
+        item.appendChild(head);
         list.appendChild(item);
       }
     }
 
+    function renderStorage() {
+      const db = state.dbInfo;
+      const dbBytes = db ? Number(db.dbTotalSize ?? db.dbSize) || 0 : 0;
+      const backupsBytes = calcBackupsBytes(state.backups, state.backupsTotalBytes);
+      const imagesBytes = calcImagesBytes(state.images);
+      const totalBytes = dbBytes + backupsBytes + imagesBytes;
+
+      const sub = state.lastRefreshIso ? `Updated ${formatLocalDateTime(state.lastRefreshIso)}` : "-";
+      const storageSub = $("storageSub");
+      if (storageSub) storageSub.textContent = sub;
+
+      const hint = $("storageHint");
+      if (hint) {
+        const msg = state.storageError ? `Storage info incomplete: ${state.storageError}.` : "";
+        hint.textContent = msg;
+        hint.style.display = msg ? "block" : "none";
+      }
+
+      $("statDb").textContent = formatBytes(dbBytes);
+      $("statDbSub").textContent = db
+        ? `data ${formatBytes(Number(db.totalDataSize) || 0)}`
+        : "-";
+
+      $("statBackups").textContent = formatBytes(backupsBytes);
+      $("statBackupsSub").textContent = `${Array.isArray(state.backups) ? state.backups.length : 0} snapshots`;
+
+      $("statImages").textContent = formatBytes(imagesBytes);
+      $("statImagesSub").textContent = `${Array.isArray(state.images) ? state.images.length : 0} files`;
+
+      $("statTotal").textContent = formatBytes(totalBytes);
+      $("statTotalSub").textContent = "Approx. total";
+    }
+
+    function renderRevealButtons() {
+      const btn = $("revealBtn");
+      if (!btn) return;
+      btn.classList.toggle("on", state.showToken);
+      btn.setAttribute("aria-pressed", state.showToken ? "true" : "false");
+      btn.title = state.showToken ? "Hide master token" : "Reveal master token";
+      btn.setAttribute("aria-label", state.showToken ? "Hide master token" : "Reveal master token");
+    }
+
     function renderDashboard() {
-      $("title").textContent = "Ready";
-      $("connSub").textContent = `Host ${location.host}`;
+      $("connSub").textContent = location.host;
 
       const wsUrl = wsUrlForToken(state.token, state.showToken);
       $("wsUrl").textContent = wsUrl;
-      $("hideTokenBtn").textContent = state.showToken ? "Hide token" : "Reveal token";
+      renderRevealButtons();
+
+      const changeBtn = $("changeTokenBtn");
+      if (changeBtn) {
+        const disabled = state.envManaged || !state.token;
+        changeBtn.disabled = disabled;
+        changeBtn.title = state.envManaged
+          ? "Master token is managed by environment"
+          : "Replace the server master token";
+      }
     }
 
-    async function tryLoadDocs(token) {
+    async function refreshDbInfo(token) {
       const dbInfo = await apiJson("/api/admin/db-info", { token });
+      state.dbInfo = dbInfo;
       state.docs = Array.isArray(dbInfo.documents) ? dbInfo.documents : [];
+      state.lastRefreshIso = new Date().toISOString();
+      renderStorage();
+      renderDocs();
+    }
+
+    function summarizeWorkspaceContent(content) {
+      const obj = content && typeof content === "object" ? content : {};
+      let root = obj.root;
+      if (!root || typeof root !== "object") {
+        const keys = Object.keys(obj);
+        if (keys.length === 1) root = obj[keys[0]];
+      }
+      if (!root || typeof root !== "object") return { title: "", projectCount: 0, lastUpdatedAt: "" };
+
+      const ws = root.workspace && typeof root.workspace === "object" ? root.workspace : null;
+      const title = ws ? String(ws.name || ws.title || "").trim() : "";
+      const projectCount = Array.isArray(root.projects) ? root.projects.length : 0;
+
+      let bestMs = null;
+      const normalizeEpochMs = (n) => (n > 0 && n < 1e12 ? n * 1000 : n);
+      const readDateMs = (val) => {
+        if (val == null) return null;
+        if (typeof val === "number" && Number.isFinite(val)) return normalizeEpochMs(val);
+        if (typeof val === "string") {
+          const s = val.trim();
+          if (/^\d{10,}$/.test(s)) {
+            const n = Number(s);
+            if (Number.isFinite(n)) return normalizeEpochMs(n);
+          }
+          const ms = Date.parse(s);
+          return Number.isFinite(ms) ? ms : null;
+        }
+        return null;
+      };
+      const add = (v) => {
+        const ms = readDateMs(v);
+        if (ms == null) return;
+        if (bestMs == null || ms > bestMs) bestMs = ms;
+      };
+
+      add(root.exportedAt);
+      add(root.lastUpdatedAt);
+      add(root.updatedAt);
+      add(root.lastModifiedAt);
+      add(root.modifiedAt);
+
+      if (ws) {
+        add(ws.lastUpdatedAt);
+        add(ws.updatedAt);
+        add(ws.lastModifiedAt);
+        add(ws.modifiedAt);
+      }
+
+      if (Array.isArray(root.projects)) {
+        for (const p of root.projects) {
+          if (!p || typeof p !== "object") continue;
+          add(p.tasksLastModifiedAt);
+          add(p.lastUpdatedAt);
+          add(p.updatedAt);
+          add(p.lastModifiedAt);
+          add(p.modifiedAt);
+        }
+      }
+
+      const lastUpdatedAt = bestMs != null ? new Date(bestMs).toISOString() : "";
+      return { title, projectCount, lastUpdatedAt };
+    }
+
+    async function openDoc(name) {
+      const docName = String(name || "");
+      if (!docName) return;
+      if (!state.token) return;
+
+      state.selectedDocName = docName;
+      state.selectedDocData = null;
+
+      $("docModalTitle").textContent = docName;
+      $("docModalMeta").textContent = "Loading…";
+      $("docJson").textContent = "Loading…";
+      renderRevealButtons();
+      setDocModalVisible(true);
+
+      try {
+        const data = await apiJson(`/api/admin/documents/${encodeURIComponent(docName)}`, { token: state.token });
+        state.selectedDocData = data;
+        const exists = data && data.exists !== false;
+        const content = exists && data && data.content ? data.content : {};
+        const summary = exists ? summarizeWorkspaceContent(content) : { title: "", projectCount: 0, lastUpdatedAt: "" };
+
+        $("docModalTitle").textContent = summary.title || docName;
+
+        const metaParts = [];
+        if ((summary.title || "").trim() && summary.title.trim() !== docName) metaParts.push(docName);
+        metaParts.push(`${summary.projectCount} project${summary.projectCount === 1 ? "" : "s"}`);
+        metaParts.push(
+          summary.lastUpdatedAt ? `updated ${formatLocalDateTime(summary.lastUpdatedAt)}` : "updated -"
+        );
+        $("docModalMeta").textContent = exists ? metaParts.join(" · ") : "Not found";
+
+        const jsonText = exists ? JSON.stringify(content || {}, null, 2) : "";
+        $("docJson").textContent = exists ? jsonText : "";
+      } catch (err) {
+        $("docModalMeta").textContent = "Error";
+        $("docJson").textContent = `Failed to load workspace: ${String(err?.message || err)}`;
+      }
+    }
+
+    async function tryLoadDashboardData(token) {
+      state.signedIn = false;
+      state.storageError = "";
+      state.lastRefreshIso = null;
+      state.selectedDocName = "";
+      closeConfirm();
+      closeDocModal();
+      if (isTokenModalOpen()) closeTokenModal();
+
+      const dbInfo = await apiJson("/api/admin/db-info", { token });
+      state.dbInfo = dbInfo;
+      state.docs = Array.isArray(dbInfo.documents) ? dbInfo.documents : [];
+
+      const [backupsRes, imagesRes] = await Promise.allSettled([
+        apiJson("/api/admin/backups", { token }),
+        apiJson("/api/images", { token }),
+      ]);
+
+      if (backupsRes.status === "fulfilled") {
+        state.backups = Array.isArray(backupsRes.value.backups) ? backupsRes.value.backups : [];
+        const totalSizeBytes = Number(backupsRes.value.totalSizeBytes);
+        state.backupsTotalBytes = Number.isFinite(totalSizeBytes) ? totalSizeBytes : null;
+      } else {
+        state.backups = [];
+        state.backupsTotalBytes = null;
+        state.storageError = "Backups unavailable";
+      }
+
+      if (imagesRes.status === "fulfilled") {
+        state.images = Array.isArray(imagesRes.value.images) ? imagesRes.value.images : [];
+      } else {
+        state.images = [];
+        state.storageError = state.storageError ? `${state.storageError}; images unavailable` : "Images unavailable";
+      }
+
+      state.lastRefreshIso = new Date().toISOString();
+      state.signedIn = true;
+      renderStorage();
       renderDocs();
     }
 
     async function goDashboard(errorMessage = "") {
+      setTopLogoutVisible(Boolean(state.token));
+      closeConfirm();
+      closeDocModal();
+      if (isTokenModalOpen()) closeTokenModal();
       $("dashError").style.display = errorMessage ? "block" : "none";
       if (errorMessage) $("dashError").textContent = errorMessage;
       setStep("dashboard");
       renderTop();
       renderDashboard();
+      renderStorage();
       renderDocs();
     }
 
     async function goLogin(message = "") {
-      $("title").textContent = "Sign in";
+      state.signedIn = false;
+      setTopLogoutVisible(false);
+      closeConfirm();
+      closeDocModal();
+      if (isTokenModalOpen()) closeTokenModal();
       setStep("login");
       renderTop();
-
-      const stored = loadStoredToken();
-      if (stored) {
-        $("logoutBtn").style.display = "inline-flex";
-      }
 
       $("loginError").style.display = message ? "block" : "none";
       if (message) $("loginError").textContent = message;
     }
 
     async function goSetup(message = "") {
-      $("title").textContent = "Setup";
+      state.signedIn = false;
+      setTopLogoutVisible(false);
+      closeConfirm();
+      closeDocModal();
+      if (isTokenModalOpen()) closeTokenModal();
       setStep("setup");
       renderTop();
       $("setupError").style.display = message ? "block" : "none";
@@ -744,6 +2065,9 @@
     }
 
     async function bootstrap() {
+      setTopLogoutVisible(false);
+      closeConfirm();
+      closeDocModal();
       setStep("loading");
 
       const pathToken = readTokenFromPath();
@@ -757,17 +2081,16 @@
       }
 
       state.token = loadStoredToken();
-      if (state.token) {
-        $("logoutBtn").style.display = "inline-flex";
-      }
 
       let status;
       try {
         status = await refreshStatus();
       } catch (err) {
-        $("title").textContent = "Offline";
-        $("statusPill").className = "pill bad";
-        $("statusPill").textContent = "Error";
+        const statusPill = $("statusPill");
+        if (statusPill) {
+          statusPill.className = "pill bad";
+          statusPill.textContent = "Offline";
+        }
         setStep("loading");
         const holder = $("step-loading");
         holder.innerHTML = "";
@@ -794,24 +2117,66 @@
       }
 
       try {
-        await tryLoadDocs(state.token);
+        await tryLoadDashboardData(state.token);
         await goDashboard();
       } catch (err) {
         const msg = String(err?.message || "");
         const isAuth = msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("not authorized");
         if (isAuth) {
-          await goLogin("Saved token was rejected. Paste the correct token or open /<token>.");
+          await goLogin("Saved master token was rejected. Paste the correct master token or open /<master-token>.");
         } else {
           state.docs = [];
-          await goDashboard(`Failed to load documents: ${msg}`);
+          await goDashboard(`Failed to load data: ${msg}`);
         }
       }
     }
 
-    async function copyText(txt) {
+    async function copyText(txt, okMsg = "Copied") {
       try {
         await navigator.clipboard.writeText(txt);
-        toast("Copied");
+        toast(okMsg);
+      } catch (err) {
+        toast(`Copy failed: ${err.message}`, "error");
+      }
+    }
+
+    function flashItemCopied(item) {
+      if (!item || !item.classList) return;
+      clearTimeout(item._copiedT);
+
+      if (item.classList.contains("copied")) {
+        item.classList.remove("copied");
+        // Force a reflow so the animation can replay.
+        void item.offsetWidth;
+      }
+
+      item.classList.add("copied");
+
+      item._copiedT = setTimeout(() => {
+        item.classList.remove("copied");
+      }, 1100);
+    }
+
+    function flashButtonCopied(btn) {
+      if (!btn || !btn.classList) return;
+      clearTimeout(btn._copiedT);
+
+      if (btn.classList.contains("copied")) {
+        btn.classList.remove("copied");
+        // Force a reflow so the animation can replay.
+        void btn.offsetWidth;
+      }
+
+      btn.classList.add("copied");
+      btn._copiedT = setTimeout(() => {
+        btn.classList.remove("copied");
+      }, 1100);
+    }
+
+    async function copyWorkspaceLink(item, txt) {
+      try {
+        await navigator.clipboard.writeText(txt);
+        flashItemCopied(item);
       } catch (err) {
         toast(`Copy failed: ${err.message}`, "error");
       }
@@ -823,15 +2188,15 @@
         try {
           const res = await apiJson("/api/auth/setup", { method: "POST" });
           saveToken(res.token);
-          state.showToken = true;
-          toast("Token generated");
+          state.showToken = false;
+          toast("Master token generated");
           await refreshStatus();
           try {
-            await tryLoadDocs(res.token);
+            await tryLoadDashboardData(res.token);
             await goDashboard();
           } catch (err) {
             state.docs = [];
-            await goDashboard(`Failed to load documents: ${err.message}`);
+            await goDashboard(`Failed to load data: ${err.message}`);
           }
         } catch (err) {
           if (String(err.message).toLowerCase().includes("already")) {
@@ -844,18 +2209,19 @@
         }
       });
 
-      $("setupRefreshBtn").addEventListener("click", bootstrap);
-
       $("loginBtn").addEventListener("click", async () => {
-        const token = $("tokenInput").value.trim();
+        const parsed = tokenFromInput($("tokenInput").value);
+        const token = parsed.token;
         if (!token) {
-          $("loginError").textContent = "Token required";
+          $("loginError").textContent = parsed.error || "Master token required";
           $("loginError").style.display = "block";
           return;
         }
+
+        $("tokenInput").value = token;
         $("loginBtn").disabled = true;
         try {
-          await tryLoadDocs(token);
+          await tryLoadDashboardData(token);
           saveToken(token);
           state.showToken = false;
           toast("Signed in");
@@ -872,30 +2238,234 @@
         if (e.key === "Enter") $("loginBtn").click();
       });
 
-      $("logoutBtn").addEventListener("click", () => {
+      $("topLogoutBtn").addEventListener("click", () => {
         clearToken();
-        $("tokenInput").value = "";
-        toast("Token cleared");
-        bootstrap();
-      });
-
-      $("dashLogoutBtn").addEventListener("click", () => {
-        clearToken();
+        state.signedIn = false;
+        setTopLogoutVisible(false);
         toast("Logged out");
         bootstrap();
       });
 
+      $("docCloseBtn").addEventListener("click", () => {
+        closeDocModal();
+      });
+
+      $("docCopyLinkBtn").addEventListener("click", () => {
+        if (!state.token || !state.selectedDocName) return;
+        copyText(docLinkForName(state.token, state.selectedDocName), "Workspace link copied");
+      });
+
+      $("docDeleteBtn").addEventListener("click", () => {
+        const name = state.selectedDocName;
+        if (!state.token || !name) return;
+        openConfirm({
+          title: "Delete workspace",
+          body: `Delete "${name}" from the database? This can't be undone.`,
+          onConfirm: async () => {
+            const okBtn = $("confirmOkBtn");
+            okBtn.disabled = true;
+            try {
+              await apiJson(`/api/admin/documents/${encodeURIComponent(name)}`, {
+                method: "DELETE",
+                token: state.token,
+              });
+              toast("Workspace deleted");
+              closeConfirm();
+              closeDocModal();
+              await refreshDbInfo(state.token);
+            } catch (err) {
+              toast(`Delete failed: ${err.message}`, "error");
+            } finally {
+              okBtn.disabled = false;
+            }
+          },
+        });
+      });
+
+      $("confirmCancelBtn").addEventListener("click", closeConfirm);
+      $("confirmModal").addEventListener("click", (e) => {
+        if (e.target === $("confirmModal")) closeConfirm();
+      });
+      $("confirmOkBtn").addEventListener("click", async () => {
+        if (!state.confirm.open || typeof state.confirm.onConfirm !== "function") return;
+        await state.confirm.onConfirm();
+      });
+
+      $("tokenCancelBtn").addEventListener("click", closeTokenModal);
+      $("tokenModal").addEventListener("click", (e) => {
+        if (e.target === $("tokenModal")) closeTokenModal();
+      });
+
+      $("tokenGenerateBtn").addEventListener("click", () => {
+        const err = $("tokenError");
+        err.textContent = "";
+        err.style.display = "none";
+
+        try {
+          $("tokenNewInput").value = generateNewToken();
+          $("tokenNewInput").focus();
+          $("tokenNewInput").select();
+        } catch (e) {
+          err.textContent = e.message;
+          err.style.display = "block";
+        }
+      });
+
+      $("tokenNewInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          $("tokenSaveBtn").click();
+        }
+      });
+
+      $("tokenSaveBtn").addEventListener("click", async () => {
+        const err = $("tokenError");
+        err.textContent = "";
+        err.style.display = "none";
+
+        if (!state.token) {
+          err.textContent = "Not signed in";
+          err.style.display = "block";
+          return;
+        }
+        if (state.envManaged) {
+          err.textContent = "Master token is managed by environment";
+          err.style.display = "block";
+          return;
+        }
+
+        const parsed = tokenFromInput($("tokenNewInput").value);
+        const next = parsed.token;
+
+        if (!next) {
+          err.textContent = parsed.error || "Master token required";
+          err.style.display = "block";
+          return;
+        }
+
+        if (!NEW_TOKEN_RE.test(next)) {
+          err.textContent = "Master token can only use A-Z, a-z, 0-9, '-', and '_'";
+          err.style.display = "block";
+          return;
+        }
+
+        const saveBtn = $("tokenSaveBtn");
+        saveBtn.disabled = true;
+
+        try {
+          const res = await apiJson("/api/auth/rotate", {
+            method: "POST",
+            token: state.token,
+            body: { token: next },
+          });
+
+          const saved = res && typeof res.token === "string" ? res.token.trim() : next;
+          saveToken(saved);
+          state.showToken = false;
+          closeTokenModal();
+          toast("Master token updated");
+          await tryLoadDashboardData(saved);
+          await goDashboard();
+        } catch (e) {
+          err.textContent = e.message;
+          err.style.display = "block";
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        if (isTokenModalOpen()) {
+          closeTokenModal();
+          return;
+        }
+        if ($("confirmModal").classList.contains("visible")) {
+          closeConfirm();
+          return;
+        }
+        if (isDocModalOpen()) {
+          closeDocModal();
+        }
+      });
+
+      $("docList").addEventListener("click", (e) => {
+        const openBtn = e.target.closest("button[data-action='open-workspace']");
+        if (openBtn) {
+          const name = openBtn.dataset.name;
+          if (!name) return;
+          openDoc(name);
+          return;
+        }
+
+        const deleteBtn = e.target.closest("button[data-action='delete-workspace']");
+        if (deleteBtn) {
+          const name = deleteBtn.dataset.name;
+          if (!state.token || !name) return;
+          openConfirm({
+            title: "Delete workspace",
+            body: `Delete "${name}" from the database? This can't be undone.`,
+            onConfirm: async () => {
+              const okBtn = $("confirmOkBtn");
+              okBtn.disabled = true;
+              try {
+                await apiJson(`/api/admin/documents/${encodeURIComponent(name)}`, {
+                  method: "DELETE",
+                  token: state.token,
+                });
+                toast("Workspace deleted");
+                closeConfirm();
+                if (state.selectedDocName === name) closeDocModal();
+                await refreshDbInfo(state.token);
+              } catch (err) {
+                toast(`Delete failed: ${err.message}`, "error");
+              } finally {
+                okBtn.disabled = false;
+              }
+            },
+          });
+          return;
+        }
+
+        const item = e.target.closest(".item");
+        if (!item) return;
+        const name = item.dataset.name;
+        if (!name) return;
+        if (!state.token) return;
+        copyWorkspaceLink(item, docLinkForName(state.token, name));
+      });
+
+      $("docList").addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        if (e.target && e.target.closest && e.target.closest("button")) return;
+        const item = e.target.closest(".item");
+        if (!item) return;
+        const name = item.dataset.name;
+        if (!name) return;
+        e.preventDefault();
+        if (!state.token) return;
+        copyWorkspaceLink(item, docLinkForName(state.token, name));
+      });
+
       $("copyWsBtn").addEventListener("click", () => {
         if (!state.token) return;
-        copyText(wsUrlForToken(state.token, true));
+        const btn = $("copyWsBtn");
+        const url = wsUrlForToken(state.token, true);
+        (async () => {
+          try {
+            await navigator.clipboard.writeText(url);
+            flashButtonCopied(btn);
+          } catch (err) {
+            toast(`Copy failed: ${String(err?.message || err)}`, "error");
+          }
+        })();
       });
 
-      $("copyTokenBtn").addEventListener("click", () => {
-        if (!state.token) return;
-        copyText(state.token);
+      $("changeTokenBtn").addEventListener("click", () => {
+        openTokenModal();
       });
 
-      $("hideTokenBtn").addEventListener("click", () => {
+      $("revealBtn").addEventListener("click", () => {
         state.showToken = !state.showToken;
         renderDashboard();
       });

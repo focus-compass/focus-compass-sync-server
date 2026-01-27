@@ -148,7 +148,7 @@ Docker Compose is configured with an automatic healthcheck:
 - **Timeout**: 10s
 - **Retries**: 3
 
-The server also exposes `GET /healthz` which returns `{ ok: true }`.
+The server also exposes `GET /health` (health-check) which returns `{ ok: true }`.
 
 ### Logs
 

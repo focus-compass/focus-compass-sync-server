@@ -6,6 +6,7 @@ WORKDIR /app
 # Build deps for native modules (e.g. sqlite3)
 RUN apk add --no-cache python3 make g++
 
+
 # Install production dependencies
 COPY package*.json ./
 RUN npm ci --omit=dev
@@ -20,10 +21,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY src ./src
 
-# Writable data dir (db/images/backups) lives on a volume
-RUN mkdir -p /app/data && chown -R node:node /app
-
-USER node
+# Create data directory
+RUN mkdir -p /app/data
 
 EXPOSE 8080
 

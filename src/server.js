@@ -25,6 +25,16 @@ const port = readNumberEnv("PORT", 8080);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const indexFilePath = join(__dirname, "index.html");
 
+const packageJsonPath = join(__dirname, "..", "package.json");
+const packageJson = await readJsonOrNull(packageJsonPath);
+const packageVersion =
+  packageJson && typeof packageJson.version === "string" ? packageJson.version.trim() : "";
+const appVersion = (String(process.env.APP_VERSION ?? "").trim() || packageVersion).trim();
+
+const updateRepo =
+  String(process.env.UPDATE_REPO ?? process.env.GITHUB_UPDATE_REPO ?? "").trim() ||
+  "focus-compass/focus-compass-sync-server";
+
 const DB_PATH = process.env.DB_PATH ?? "./data/db.sqlite";
 const IMAGES_DIR = process.env.IMAGES_DIR ?? "./data/images";
 const UPLOAD_TMP_DIR = join(IMAGES_DIR, ".tmp");
@@ -150,6 +160,8 @@ const server = new Server({
         setToken: setAuthToken,
         checkAuth: isAuthed,
         envManaged,
+        appVersion,
+        updateRepo,
       });
 
       await handleImagesRequest({

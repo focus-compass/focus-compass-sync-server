@@ -55,11 +55,15 @@ export const handleAuthRequest = async ({
   setToken,
   checkAuth,
   envManaged,
+  appVersion = "",
+  updateRepo = "",
 }) => {
   if (request.method === "GET" && pathname === "/api/auth/status") {
     json(response, 200, {
       initialized: Boolean(getToken()),
       envManaged: Boolean(envManaged),
+      version: String(appVersion || "").trim(),
+      updateRepo: String(updateRepo || "").trim(),
     });
   }
 

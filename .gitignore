@@ -42,3 +42,4 @@ temp/
 # Backups
 backups/
 test_backups/
+/.claude/settings.local.json

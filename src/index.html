@@ -66,7 +66,7 @@
         "Noto Sans",
         "Liberation Sans",
         sans-serif;
-      --code: var(--ui);
+      --code: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, "DejaVu Sans Mono", monospace;
     }
 
     * {
@@ -97,10 +97,6 @@
     a:hover {
       text-decoration: underline;
       text-underline-offset: 2px;
-    }
-
-    a.pill:hover {
-      text-decoration: none;
     }
 
     .app {
@@ -288,6 +284,25 @@
       font-weight: 600;
       color: var(--text);
       white-space: nowrap;
+      min-height: 0;
+    }
+
+    button.pill:hover {
+      background: var(--neutral-a06);
+    }
+
+    button.pill.ok:hover {
+      background: var(--ok-a12);
+    }
+
+    button.pill.warn:hover {
+      background: var(--warn-a10);
+      filter: brightness(0.96);
+    }
+
+    button.pill.bad:hover {
+      background: var(--danger-a10);
+      filter: brightness(0.96);
     }
 
     .pill.ok {
@@ -559,6 +574,12 @@
       background: var(--primary-a06);
     }
 
+    button.ghost.small {
+      padding: 6px 12px;
+      min-height: 32px;
+      font-size: 13px;
+    }
+
     #copyWsBtn .icon-check {
       display: none;
     }
@@ -776,22 +797,72 @@
       gap: 16px;
     }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    @media (max-width: 420px) {
-      .stats {
-        grid-template-columns: 1fr;
-      }
-    }
-
     .storage-body {
       display: flex;
       flex-direction: column;
       gap: 12px;
+    }
+
+    .storage-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .storage-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+
+    .storage-card-icon {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--primary-a06);
+      color: var(--primary);
+    }
+
+    .storage-card-icon svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .storage-card-info {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .storage-card-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .storage-card-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .storage-card-size {
+      font-family: var(--ui);
+      font-size: 14px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      white-space: nowrap;
+      letter-spacing: -0.01em;
     }
 
     .storage-hint {
@@ -813,7 +884,10 @@
 
     .modal-card {
       position: absolute;
-      inset: 12px;
+      inset: 48px auto auto 50%;
+      transform: translateX(-50%);
+      width: min(720px, calc(100vw - 32px));
+      max-height: calc(100vh - 96px);
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -825,7 +899,9 @@
 
     @media (max-width: 520px) {
       .modal-card {
-        inset: 8px;
+        inset: 8px auto auto 50%;
+        width: calc(100vw - 16px);
+        max-height: calc(100vh - 16px);
       }
     }
 
@@ -875,6 +951,123 @@
       flex: 1;
       min-height: 0;
       overflow: hidden;
+    }
+
+    .api-block {
+      flex-shrink: 0;
+    }
+
+    .api-hint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      overflow-x: auto;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    .api-block.open .api-hint {
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      border-bottom-color: var(--border-soft);
+    }
+
+    .api-hint:hover {
+      background: var(--primary-a06);
+      border-color: var(--primary-a25);
+    }
+
+    .api-method {
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 5px;
+      background: var(--ok-a10);
+      color: var(--ok);
+      border: 1px solid var(--ok-a30);
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .api-path {
+      font-family: var(--code);
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .api-chevron {
+      flex-shrink: 0;
+      font-size: 18px;
+      color: var(--muted);
+      line-height: 1;
+      transition: transform 150ms ease;
+    }
+
+    .api-block.open .api-chevron {
+      transform: rotate(90deg);
+    }
+
+    .api-curl {
+      padding: 12px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .curl-code {
+      font-family: var(--code);
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 0;
+      user-select: all;
+    }
+
+    .curl-copy {
+      align-self: flex-end;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      cursor: pointer;
+      transition: background 120ms ease;
+      line-height: 1;
+    }
+
+    .curl-copy:hover {
+      background: var(--primary-a06);
+    }
+
+    .curl-copy svg {
+      width: 14px;
+      height: 14px;
+      display: block;
     }
 
     .modal-section {
@@ -1014,45 +1207,17 @@
       border: 1px solid var(--border);
       background: var(--surface-2);
       border-radius: var(--radius-sm);
-      padding: 12px;
+      padding: 14px;
       font-family: var(--code);
-      font-size: 12px;
-      line-height: 1.55;
+      font-size: 12.5px;
+      line-height: 1.5;
       overflow: auto;
       flex: 1;
-      min-height: 240px;
-      max-height: none;
+      min-height: 80px;
+      max-height: 260px;
       white-space: pre;
       word-break: normal;
       margin: 0;
-    }
-
-    .stat {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      padding: 12px;
-      display: grid;
-      gap: 6px;
-      min-height: 88px;
-    }
-
-    .stat-kicker {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .stat-value {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-    }
-
-    .stat-sub {
-      font-family: var(--code);
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.3;
     }
 
     .list {
@@ -1289,7 +1454,7 @@
           <span class="brand-text">Focus Compass Server</span>
         </h1>
         <div class="top-actions">
-          <a class="pill" id="versionPill" href="https://github.com/focus-compass/focus-compass-sync-server/releases" target="_blank" rel="noopener noreferrer" title="Click to check for updates">v-</a>
+          <button class="pill" id="versionPill" type="button" title="Click to check for updates">v-</button>
           <button class="icon-btn small" id="topLogoutBtn" type="button" title="Logout" aria-label="Logout" style="display: none;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1419,26 +1584,48 @@
                   <div class="panel-sub" id="storageSub">-</div>
                 </div>
                 <div class="panel-body storage-body">
-                  <div class="stats">
-                    <div class="stat">
-                      <div class="stat-kicker">Database</div>
-                      <div class="stat-value" id="statDb">-</div>
-                      <div class="stat-sub" id="statDbSub">-</div>
+                  <div class="storage-cards">
+                    <div class="storage-card">
+                      <div class="storage-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                          <path d="M3 5v14a9 3 0 0 0 18 0V5"/>
+                          <path d="M3 12a9 3 0 0 0 18 0"/>
+                        </svg>
+                      </div>
+                      <div class="storage-card-info">
+                        <div class="storage-card-label">Database</div>
+                        <div class="storage-card-meta"><span id="statDbCount">-</span> workspaces</div>
+                      </div>
+                      <div class="storage-card-size" id="statDb">-</div>
                     </div>
-                    <div class="stat">
-                      <div class="stat-kicker">Backups</div>
-                      <div class="stat-value" id="statBackups">-</div>
-                      <div class="stat-sub" id="statBackupsSub">-</div>
+                    <div class="storage-card">
+                      <div class="storage-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                          <path d="M3 3v5h5"/>
+                          <path d="M12 7v5l4 2"/>
+                        </svg>
+                      </div>
+                      <div class="storage-card-info">
+                        <div class="storage-card-label">Backups</div>
+                        <div class="storage-card-meta"><span id="statBackupsCount">-</span> snapshots</div>
+                      </div>
+                      <div class="storage-card-size" id="statBackupsSize">-</div>
                     </div>
-                    <div class="stat">
-                      <div class="stat-kicker">Images</div>
-                      <div class="stat-value" id="statImages">-</div>
-                      <div class="stat-sub" id="statImagesSub">-</div>
-                    </div>
-                    <div class="stat">
-                      <div class="stat-kicker">Total</div>
-                      <div class="stat-value" id="statTotal">-</div>
-                      <div class="stat-sub" id="statTotalSub">-</div>
+                    <div class="storage-card">
+                      <div class="storage-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                          <circle cx="9" cy="9" r="2"/>
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                        </svg>
+                      </div>
+                      <div class="storage-card-info">
+                        <div class="storage-card-label">Images</div>
+                        <div class="storage-card-meta"><span id="statImagesCount">-</span> files</div>
+                      </div>
+                      <div class="storage-card-size" id="statImagesSize">-</div>
                     </div>
                   </div>
                   <div class="alert warn storage-hint" id="storageHint">-</div>
@@ -1508,6 +1695,23 @@
         </div>
       </div>
       <div class="modal-body">
+        <div class="api-block" id="docApiBlock" style="display:none;">
+          <div class="api-hint" id="docApiHint" title="Click to expand curl command">
+            <span class="api-method">GET</span>
+            <code class="api-path" id="docApiPath"></code>
+            <span class="api-chevron" id="docApiChevron">▸</span>
+          </div>
+          <div class="api-curl" id="docApiCurl" style="display:none;">
+            <pre class="curl-code" id="curlCode"></pre>
+            <button class="curl-copy" id="curlCopyBtn" type="button" title="Copy curl command" aria-label="Copy curl command">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              Copy
+            </button>
+          </div>
+        </div>
         <pre class="jsonbox" id="docJson" aria-label="Workspace JSON">-</pre>
       </div>
     </div>
@@ -1615,6 +1819,8 @@
       $("docModalTitle").textContent = "Workspace";
       $("docModalMeta").textContent = "-";
       $("docJson").textContent = "-";
+      collapseCurl();
+      $("docApiBlock").style.display = "none";
       setDocModalVisible(false);
     }
 
@@ -1677,13 +1883,51 @@
       $("confirmModal").classList.remove("visible");
     }
 
+    function buildCurlCommand(docName, token) {
+      const base = `${location.origin}/api/workspace/${encodeURIComponent(docName)}`;
+      const params = [
+        "project_info=true",
+        "current_focus=true",
+        "next_tasks=true",
+        "completed_tasks=false",
+        "notes=false",
+      ];
+      const url = `${base}?${params.join("&")}`;
+      return `curl "${url}" -H "Authorization: Bearer ${token}"`;
+    }
+
+    function toggleCurlExpand() {
+      const block = $("docApiBlock");
+      const curl = $("docApiCurl");
+      const isOpen = block.classList.contains("open");
+      if (isOpen) {
+        block.classList.remove("open");
+        curl.style.display = "none";
+      } else {
+        const docName = state.selectedDocName;
+        const token = state.token;
+        if (docName && token) {
+          $("curlCode").textContent = buildCurlCommand(docName, token);
+        }
+        block.classList.add("open");
+        curl.style.display = "flex";
+      }
+    }
+
+    function collapseCurl() {
+      $("docApiBlock").classList.remove("open");
+      $("docApiCurl").style.display = "none";
+    }
+
     function formatBytes(bytes) {
       const n = Number(bytes) || 0;
       if (!n) return "0 B";
       const k = 1024;
       const sizes = ["B", "KB", "MB", "GB", "TB"];
       const i = Math.floor(Math.log(n) / Math.log(k));
-      return `${parseFloat((n / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+      const val = n / Math.pow(k, i);
+      const decimals = i <= 1 ? 0 : 2;
+      return `${parseFloat(val.toFixed(decimals))} ${sizes[i]}`;
     }
 
     function formatLocalDateTime(isoString) {
@@ -1982,36 +2226,27 @@
       const v = normalizeVersion(state.appVersion);
       const versionText = v ? `v${v}` : "v-";
 
-      const repo = normalizeUpdateRepo(state.updateRepo);
-      const releasesUrl = releasesUrlForRepo(repo);
-
       const u = state.update || {};
 
-      // Reset to default state
-      versionPill.href = releasesUrl;
-      versionPill.style.pointerEvents = "";
-      versionPill.style.cursor = "";
+      versionPill.disabled = u.status === "checking";
 
       if (u.status === "checking") {
         versionPill.className = "pill";
         versionPill.textContent = `${versionText} · Checking...`;
         versionPill.title = "Checking for updates...";
-        versionPill.style.pointerEvents = "none";
-        versionPill.style.cursor = "default";
       } else if (u.status === "outdated") {
         const latestTag = u.latestTag || (u.latestVersion ? `v${u.latestVersion}` : "");
         versionPill.className = "pill warn";
         versionPill.textContent = latestTag ? `${versionText} → ${latestTag}` : `${versionText} · Update available`;
-        versionPill.title = "Click to download update";
-        versionPill.href = u.url || releasesUrl;
+        versionPill.title = "Update available · Click to re-check";
       } else if (u.status === "upToDate") {
         versionPill.className = "pill ok";
         versionPill.textContent = versionText;
-        versionPill.title = "Up to date · Click to view releases";
+        versionPill.title = "Up to date · Click to re-check";
       } else if (u.status === "error") {
         versionPill.className = "pill bad";
         versionPill.textContent = `${versionText} · Check failed`;
-        versionPill.title = u.error || "Update check failed · Click to view releases";
+        versionPill.title = u.error || "Update check failed · Click to retry";
       } else {
         // idle state - not yet checked
         versionPill.className = "pill";
@@ -2080,20 +2315,21 @@
         weight.textContent = formatBytes(d.dataSize);
 
         const openBtn = document.createElement("button");
-        openBtn.className = "icon-btn small";
+        openBtn.className = "ghost small";
         openBtn.type = "button";
         openBtn.dataset.action = "open-workspace";
         openBtn.dataset.name = d.name;
         openBtn.title = "View JSON";
         openBtn.setAttribute("aria-label", `View workspace JSON: ${d.name}`);
         openBtn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text" aria-hidden="true">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" aria-hidden="true">' +
           '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />' +
           '<path d="M14 2v5a1 1 0 0 0 1 1h5" />' +
           '<path d="M10 9H8" />' +
           '<path d="M16 13H8" />' +
           '<path d="M16 17H8" />' +
-          "</svg>";
+          "</svg>" +
+          "Open";
 
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "icon-btn small danger";
@@ -2130,9 +2366,8 @@
       const imagesBytes = calcImagesBytes(state.images);
       const totalBytes = dbBytes + backupsBytes + imagesBytes;
 
-      const sub = state.lastRefreshIso ? `Updated ${formatLocalDateTime(state.lastRefreshIso)}` : "-";
       const storageSub = $("storageSub");
-      if (storageSub) storageSub.textContent = sub;
+      if (storageSub) storageSub.textContent = totalBytes ? `${formatBytes(totalBytes)} total` : "-";
 
       const hint = $("storageHint");
       if (hint) {
@@ -2141,19 +2376,17 @@
         hint.style.display = msg ? "block" : "none";
       }
 
+      const docsCount = Array.isArray(state.docs) ? state.docs.length : 0;
       $("statDb").textContent = formatBytes(dbBytes);
-      $("statDbSub").textContent = db
-        ? `data ${formatBytes(Number(db.totalDataSize) || 0)}`
-        : "-";
+      $("statDbCount").textContent = docsCount;
 
-      $("statBackups").textContent = formatBytes(backupsBytes);
-      $("statBackupsSub").textContent = `${Array.isArray(state.backups) ? state.backups.length : 0} snapshots`;
+      const backupCount = Array.isArray(state.backups) ? state.backups.length : 0;
+      $("statBackupsSize").textContent = formatBytes(backupsBytes);
+      $("statBackupsCount").textContent = backupCount;
 
-      $("statImages").textContent = formatBytes(imagesBytes);
-      $("statImagesSub").textContent = `${Array.isArray(state.images) ? state.images.length : 0} files`;
-
-      $("statTotal").textContent = formatBytes(totalBytes);
-      $("statTotalSub").textContent = "Approx. total";
+      const imageCount = Array.isArray(state.images) ? state.images.length : 0;
+      $("statImagesSize").textContent = formatBytes(imagesBytes);
+      $("statImagesCount").textContent = imageCount;
     }
 
     function renderRevealButtons() {
@@ -2265,6 +2498,9 @@
       $("docModalTitle").textContent = docName;
       $("docModalMeta").textContent = "Loading…";
       $("docJson").textContent = "Loading…";
+      collapseCurl();
+      $("docApiBlock").style.display = "block";
+      $("docApiPath").textContent = `/api/workspace/${encodeURIComponent(docName)}`;
       renderRevealButtons();
       setDocModalVisible(true);
 
@@ -2280,9 +2516,6 @@
         const metaParts = [];
         if ((summary.title || "").trim() && summary.title.trim() !== docName) metaParts.push(docName);
         metaParts.push(`${summary.projectCount} project${summary.projectCount === 1 ? "" : "s"}`);
-        metaParts.push(
-          summary.lastUpdatedAt ? `updated ${formatLocalDateTime(summary.lastUpdatedAt)}` : "updated -"
-        );
         $("docModalMeta").textContent = exists ? metaParts.join(" · ") : "Not found";
 
         const jsonText = exists ? JSON.stringify(content || {}, null, 2) : "";
@@ -2497,14 +2730,8 @@
     }
 
     function wire() {
-      $("versionPill")?.addEventListener("click", (e) => {
-        const u = state.update || {};
-        // If not yet checked or error, trigger check instead of navigation
-        if (!u.status || u.status === "idle" || u.status === "error") {
-          e.preventDefault();
-          void checkUpdates("manual");
-        }
-        // For "upToDate" and "outdated" states, allow normal link behavior
+      $("versionPill")?.addEventListener("click", () => {
+        void checkUpdates("manual");
       });
 
       $("setupBtn").addEventListener("click", async () => {
@@ -2574,6 +2801,10 @@
         closeDocModal();
       });
 
+      $("docModal").addEventListener("click", (e) => {
+        if (e.target === $("docModal")) closeDocModal();
+      });
+
       $("docCopyLinkBtn").addEventListener("click", () => {
         if (!state.token || !state.selectedDocName) return;
         copyText(docLinkForName(state.token, state.selectedDocName), "Workspace link copied");
@@ -2613,6 +2844,19 @@
       $("confirmOkBtn").addEventListener("click", async () => {
         if (!state.confirm.open || typeof state.confirm.onConfirm !== "function") return;
         await state.confirm.onConfirm();
+      });
+
+      $("docApiHint").addEventListener("click", () => {
+        toggleCurlExpand();
+      });
+
+      $("curlCopyBtn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText($("curlCode").textContent);
+          toast("Copied to clipboard");
+        } catch (err) {
+          toast(`Copy failed: ${err.message}`, "error");
+        }
       });
 
       $("tokenCancelBtn").addEventListener("click", closeTokenModal);

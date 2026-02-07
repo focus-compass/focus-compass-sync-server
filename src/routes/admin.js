@@ -1,50 +1,16 @@
-import { DatabaseSync } from "node:sqlite";
 import { readdir } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
   badRequest,
   internalServerError,
   notFound,
-  unauthorized,
 } from "../lib/api.js";
+import { decodeDocName, ensureDbExistsOr404, requireAuth, withDb } from "../lib/db.js";
 import { statOrNull } from "../lib/fs.js";
-import { safeDecodeURIComponent } from "../lib/http.js";
 import { json } from "../lib/responses.js";
 import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
-const MAX_DOC_NAME_LENGTH = 512;
-
 const BACKUP_FILE_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
-
-const requireAuth = (request, response, checkAuth) => {
-  if (!checkAuth(request)) {
-    unauthorized(response);
-  }
-};
-
-const decodeDocName = (encodedName, response) => {
-  const docName = safeDecodeURIComponent(encodedName);
-  if (docName == null || docName.length > MAX_DOC_NAME_LENGTH) {
-    badRequest(response, "Invalid document name");
-  }
-  return docName;
-};
-
-const ensureDbExistsOr404 = async (dbPath, response) => {
-  const stats = await statOrNull(dbPath);
-  if (!stats) {
-    notFound(response, "Database not found");
-  }
-};
-
-const withDb = (dbPath, options, fn) => {
-  const db = new DatabaseSync(dbPath, options);
-  try {
-    return fn(db);
-  } finally {
-    db.close();
-  }
-};
 
 const listBackups = async (backupDir) => {
   const names = await readdir(backupDir).catch((error) => {

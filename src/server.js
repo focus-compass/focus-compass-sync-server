@@ -19,6 +19,7 @@ import { handleAdminRequest } from "./routes/admin.js";
 import { handleAuthRequest } from "./routes/auth.js";
 import { handleImagesRequest } from "./routes/images.js";
 import { handleStaticRequest } from "./routes/static.js";
+import { handleWorkspaceRequest } from "./routes/workspace.js";
 import { BackupService } from "./services/backup.js";
 
 const port = readNumberEnv("PORT", 8080);
@@ -181,6 +182,15 @@ const server = new Server({
         pathname,
         dbPath: DB_PATH,
         backupDir: BACKUP_DIR,
+        checkAuth: isAuthed,
+      });
+
+      await handleWorkspaceRequest({
+        request,
+        response,
+        url,
+        pathname,
+        dbPath: DB_PATH,
         checkAuth: isAuthed,
       });
 

@@ -9,20 +9,14 @@ import {
   internalServerError,
   notFound,
   payloadTooLarge,
-  unauthorized,
   unsupportedMediaType,
 } from "../lib/api.js";
+import { requireAuth } from "../lib/db.js";
 import { cleanupFormidableFiles } from "../lib/formidable.js";
 import { readJsonOrNull, statOrNull } from "../lib/fs.js";
 import { json } from "../lib/responses.js";
 
 export const IMAGE_ID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
-
-const requireAuth = (request, response, checkAuth) => {
-  if (!checkAuth(request)) {
-    unauthorized(response);
-  }
-};
 
 const handleUploadImage = async ({
   request,

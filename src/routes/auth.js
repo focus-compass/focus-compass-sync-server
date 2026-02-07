@@ -15,7 +15,7 @@ const NEW_TOKEN_RE = /^[A-Za-z0-9_-]+$/;
 const readJsonBody = async (request, response, maxBytes = 8192) => {
   const contentType = String(request.headers["content-type"] ?? "").toLowerCase();
   if (contentType && !contentType.includes("application/json")) {
-    unsupportedMediaType(response, "Expected application/json");
+    return unsupportedMediaType(response, "Expected application/json");
   }
 
   let total = 0;
@@ -26,12 +26,12 @@ const readJsonBody = async (request, response, maxBytes = 8192) => {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       total += buf.length;
       if (total > maxBytes) {
-        badRequest(response, "Request body too large");
+        return badRequest(response, "Request body too large");
       }
       chunks.push(buf);
     }
   } catch {
-    badRequest(response, "Failed to read request body");
+    return badRequest(response, "Failed to read request body");
   }
 
   if (!chunks.length) return {};
@@ -42,7 +42,7 @@ const readJsonBody = async (request, response, maxBytes = 8192) => {
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
-    badRequest(response, "Invalid JSON");
+    return badRequest(response, "Invalid JSON");
   }
 };
 
@@ -59,7 +59,7 @@ export const handleAuthRequest = async ({
   updateRepo = "",
 }) => {
   if (request.method === "GET" && pathname === "/api/auth/status") {
-    json(response, 200, {
+    return json(response, 200, {
       initialized: Boolean(getToken()),
       envManaged: Boolean(envManaged),
       version: String(appVersion || "").trim(),
@@ -69,29 +69,29 @@ export const handleAuthRequest = async ({
 
   if (pathname === "/api/auth/rotate") {
     if (request.method !== "POST") {
-      json(response, 405, { error: "Method Not Allowed" });
+      return json(response, 405, { error: "Method Not Allowed" });
     }
 
     if (envManaged) {
-      json(response, 409, { error: "Token is managed by environment" });
+      return json(response, 409, { error: "Token is managed by environment" });
     }
 
     if (!getToken()) {
-      json(response, 409, { error: "Not initialized" });
+      return json(response, 409, { error: "Not initialized" });
     }
 
     if (!checkAuth || !checkAuth(request)) {
-      unauthorized(response);
+      return unauthorized(response);
     }
 
     const body = await readJsonBody(request, response);
     const next = typeof body?.token === "string" ? body.token.trim() : "";
     if (!next) {
-      badRequest(response, "Token required");
+      return badRequest(response, "Token required");
     }
 
     if (!NEW_TOKEN_RE.test(next)) {
-      badRequest(response, "Invalid token");
+      return badRequest(response, "Invalid token");
     }
 
     const nowIso = new Date().toISOString();
@@ -110,25 +110,25 @@ export const handleAuthRequest = async ({
       });
     } catch (err) {
       console.error("Auth rotate error:", err);
-      internalServerError(response, "Failed to update token");
+      return internalServerError(response, "Failed to update token");
     }
 
     setToken(next);
-    json(response, 200, { token: next });
+    return json(response, 200, { token: next });
   }
 
   if (pathname !== "/api/auth/setup") return;
 
   if (request.method !== "POST") {
-    json(response, 405, { error: "Method Not Allowed" });
+    return json(response, 405, { error: "Method Not Allowed" });
   }
 
   if (envManaged) {
-    json(response, 409, { error: "Token is managed by environment" });
+    return json(response, 409, { error: "Token is managed by environment" });
   }
 
   if (getToken()) {
-    json(response, 409, { error: "Already initialized" });
+    return json(response, 409, { error: "Already initialized" });
   }
 
   const token = createToken();
@@ -149,13 +149,13 @@ export const handleAuthRequest = async ({
       if (existing && typeof existing.token === "string" && existing.token.trim()) {
         setToken(existing.token.trim());
       }
-      json(response, 409, { error: "Already initialized" });
+      return json(response, 409, { error: "Already initialized" });
     }
 
     console.error("Auth setup error:", err);
-    json(response, 500, { error: "Failed to initialize" });
+    return json(response, 500, { error: "Failed to initialize" });
   }
 
   setToken(token);
-  json(response, 200, { token });
+  return json(response, 200, { token });
 };

@@ -30,6 +30,7 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+nul
 
 # Docker
 # (dockerignore is handled by Docker itself)

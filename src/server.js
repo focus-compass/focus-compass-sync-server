@@ -18,6 +18,8 @@ import { json, noContent } from "./lib/responses.js";
 import { handleAdminRequest } from "./routes/admin.js";
 import { handleAuthRequest } from "./routes/auth.js";
 import { handleImagesRequest } from "./routes/images.js";
+import { handleMcpRequest } from "./routes/mcp.js";
+import { handleMcpAdminRequest } from "./routes/mcpAdmin.js";
 import { handleStaticRequest } from "./routes/static.js";
 import { handleWorkspaceRequest } from "./routes/workspace.js";
 import { BackupService } from "./services/backup.js";
@@ -25,6 +27,8 @@ import { BackupService } from "./services/backup.js";
 const port = readNumberEnv("PORT", 8080);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const indexFilePath = join(__dirname, "index.html");
+const mcpFilePath = join(__dirname, "mcp.html");
+const mcpSkillFilePath = join(__dirname, "focus-compass-skill.md");
 
 const packageJsonPath = join(__dirname, "..", "package.json");
 const packageJson = await readJsonOrNull(packageJsonPath);
@@ -43,6 +47,9 @@ const UPLOAD_TMP_DIR = join(IMAGES_DIR, ".tmp");
 const AUTH_FILE_PATH =
   process.env.AUTH_FILE_PATH ?? join(dirname(DB_PATH), "auth.json");
 
+const MCP_AUTH_FILE_PATH =
+  process.env.MCP_AUTH_FILE_PATH ?? join(dirname(DB_PATH), "mcp-auth.json");
+
 const envTokenRaw = normalizeAuthToken(process.env.HOCUSPOCUS_TOKEN);
 const envToken = envTokenRaw && envTokenRaw.trim() ? envTokenRaw.trim() : "";
 const envManaged = Boolean(envToken);
@@ -52,6 +59,19 @@ const persistedToken =
   persistedAuth && typeof persistedAuth.token === "string" ? persistedAuth.token.trim() : "";
 
 let authToken = envToken || persistedToken || "";
+
+
+const envMcpTokenRaw = normalizeAuthToken(process.env.MCP_TOKEN);
+const envMcpToken = envMcpTokenRaw && envMcpTokenRaw.trim() ? envMcpTokenRaw.trim() : "";
+const mcpEnvManaged = Boolean(envMcpToken);
+
+const persistedMcpAuth = await readJsonOrNull(MCP_AUTH_FILE_PATH);
+const persistedMcpToken =
+  persistedMcpAuth && typeof persistedMcpAuth.token === "string"
+    ? persistedMcpAuth.token.trim()
+    : "";
+
+let mcpToken = envMcpToken || persistedMcpToken || "";
 
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
@@ -67,8 +87,19 @@ const setAuthToken = (token) => {
   authToken = typeof token === "string" ? token.trim() : "";
 };
 
+const getMcpToken = () => mcpToken;
+const setMcpToken = (token) => {
+  mcpToken = typeof token === "string" ? token.trim() : "";
+};
+
 const isAuthed = (req) => {
   const expected = getAuthToken();
+  if (!expected) return false;
+  return checkAuth(req, expected);
+};
+
+const isMcpAuthed = (req) => {
+  const expected = getMcpToken();
   if (!expected) return false;
   return checkAuth(req, expected);
 };
@@ -165,6 +196,18 @@ const server = new Server({
         updateRepo,
       });
 
+      await handleMcpAdminRequest({
+        request,
+        response,
+        pathname,
+        mcpAuthFilePath: MCP_AUTH_FILE_PATH,
+        getMcpToken,
+        setMcpToken,
+        getMasterToken: getAuthToken,
+        checkMasterAuth: isAuthed,
+        envManaged: mcpEnvManaged,
+      });
+
       await handleImagesRequest({
         request,
         response,
@@ -194,11 +237,23 @@ const server = new Server({
         checkAuth: isAuthed,
       });
 
+      await handleMcpRequest({
+        request,
+        response,
+        pathname,
+        dbPath: DB_PATH,
+        appVersion,
+        getToken: getMcpToken,
+        checkAuth: isMcpAuthed,
+      });
+
       await handleStaticRequest({
         request,
         response,
         pathname,
         indexFilePath,
+        mcpFilePath,
+        mcpSkillFilePath,
       });
     } catch (err) {
       if (err === null) throw null;

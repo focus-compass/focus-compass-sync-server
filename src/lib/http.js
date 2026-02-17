@@ -25,7 +25,7 @@ export const setCorsHeaders = (req, res, corsPolicy) => {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Authorization, Content-Type, If-None-Match"
+    "Authorization, Content-Type, If-None-Match, Accept, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID"
   );
   res.setHeader("Access-Control-Max-Age", "86400");
 };

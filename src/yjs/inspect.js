@@ -6,6 +6,14 @@ const toUint8Array = (data) => {
   return data instanceof Uint8Array ? data : new Uint8Array(data);
 };
 
+const getRootSharedType = (ydoc) => {
+  let root = ydoc.share.get("root");
+  if (!root && ydoc.share.size === 1) {
+    root = Array.from(ydoc.share.values())[0];
+  }
+  return root ?? null;
+};
+
 export const countSharedTypes = (data) => {
   const update = toUint8Array(data);
   if (update.byteLength === 0) return 0;
@@ -39,6 +47,101 @@ export const getContent = (data) => {
     }
 
     return { sharedTypeNames, content };
+  } finally {
+    ydoc.destroy();
+  }
+};
+
+const readIdString = (val) => {
+  const str = readString(val);
+  if (str) return str;
+  const num = readNumber(val);
+  if (num != null) return String(num);
+  return null;
+};
+
+const iterContainerValues = (container) => {
+  if (!container) return [];
+  if (Array.isArray(container)) return container;
+  if (typeof container.toArray === "function") return container.toArray();
+  if (typeof container.values === "function") return Array.from(container.values());
+  return [];
+};
+
+export const listProjectsIndex = (data, { includeProjectInfo = false } = {}) => {
+  const update = toUint8Array(data);
+  const ydoc = new Y.Doc();
+
+  try {
+    if (update.byteLength > 0) {
+      Y.applyUpdate(ydoc, update);
+    }
+
+    const root = getRootSharedType(ydoc);
+    const projects = iterContainerValues(getProp(root, "projects"));
+
+    const result = [];
+    for (const project of projects) {
+      const id = readIdString(getProp(project, "id")) ?? null;
+      const title = readString(getProp(project, "title")) ?? null;
+      const item = { id, title };
+
+      if (includeProjectInfo) {
+        const info = getProp(project, "info");
+        item.info = {
+          description: readString(getProp(info, "description")) ?? null,
+          image: readString(getProp(info, "image")) ?? null,
+          imageFit: readString(getProp(info, "imageFit")) ?? null,
+          imageCrop: readString(getProp(info, "imageCrop")) ?? null,
+        };
+        item.fields = safeToJson(getProp(project, "fields")) ?? {};
+      }
+
+      result.push(item);
+    }
+    return result;
+  } catch {
+    return [];
+  } finally {
+    ydoc.destroy();
+  }
+};
+
+export const getProjectContentById = (data, projectId) => {
+  const update = toUint8Array(data);
+  const ydoc = new Y.Doc();
+
+  try {
+    if (update.byteLength > 0) {
+      Y.applyUpdate(ydoc, update);
+    }
+
+    const root = getRootSharedType(ydoc);
+    const projects = iterContainerValues(getProp(root, "projects"));
+
+    const availableProjects = [];
+    let match = null;
+    let found = false;
+
+    for (const project of projects) {
+      const id = readIdString(getProp(project, "id")) ?? null;
+      const title = readString(getProp(project, "title")) ?? null;
+      availableProjects.push({ id, title });
+
+      if (id && id === projectId) {
+        match = project;
+        found = true;
+      }
+    }
+
+    if (!match) {
+      return { found: false, project: null, availableProjects };
+    }
+
+    const extracted = extractYjsContent(match);
+    return { found, project: extracted, availableProjects };
+  } catch {
+    return { found: false, project: null, availableProjects: [] };
   } finally {
     ydoc.destroy();
   }
@@ -182,10 +285,7 @@ export const getWorkspaceSummary = (data) => {
       Y.applyUpdate(ydoc, update);
     }
 
-    let root = ydoc.share.get("root");
-    if (!root && ydoc.share.size === 1) {
-      root = Array.from(ydoc.share.values())[0];
-    }
+    const root = getRootSharedType(ydoc);
     const workspace = extractWorkspaceFromRoot(root);
     const projectCount = extractProjectCountFromRoot(root);
     const lastUpdatedAt = extractLastUpdatedAtFromRoot(root);

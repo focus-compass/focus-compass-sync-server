@@ -23,6 +23,8 @@ services:
       PORT: 8080
       # Optional (see .env.example). If omitted, the server starts in setup mode.
       HOCUSPOCUS_TOKEN: ${HOCUSPOCUS_TOKEN}
+      # Optional. If omitted, MCP is disabled until enabled from the admin UI.
+      MCP_TOKEN: ${MCP_TOKEN}
       DB_PATH: ${DB_PATH:-./data/db.sqlite}
       IMAGES_DIR: ${IMAGES_DIR:-./data/images}
       BACKUP_DIR: ${BACKUP_DIR:-./data/backups}

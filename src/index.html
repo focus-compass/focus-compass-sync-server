@@ -287,6 +287,11 @@
       min-height: 0;
     }
 
+    a.pill:hover {
+      background: var(--neutral-a06);
+      text-decoration: none;
+    }
+
     button.pill:hover {
       background: var(--neutral-a06);
     }
@@ -1454,6 +1459,7 @@
           <span class="brand-text">Focus Compass Server</span>
         </h1>
         <div class="top-actions">
+          <a class="pill" href="/mcp.html" title="MCP integration">MCP</a>
           <button class="pill" id="versionPill" type="button" title="Click to check for updates">v-</button>
           <button class="icon-btn small" id="topLogoutBtn" type="button" title="Logout" aria-label="Logout" style="display: none;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1635,6 +1641,65 @@
 
             <div class="panel">
               <div class="panel-head">
+                <h2>MCP Access</h2>
+                <div class="panel-sub" id="mcpSub">-</div>
+              </div>
+              <div class="panel-body">
+                <div class="hint">
+                  MCP uses a separate token (not the master token). Enable it to generate a read-only key for Claude Code and other MCP clients.
+                </div>
+
+                <div class="btn-row" style="margin-top: 12px;">
+                  <button id="mcpEnableBtn" type="button">Enable MCP</button>
+                  <button id="mcpRotateBtn" class="ghost" type="button">Rotate MCP token</button>
+                  <button id="mcpDisableBtn" class="danger" type="button">Disable MCP</button>
+                  <button id="mcpHelpBtn" class="ghost" type="button">Open MCP help</button>
+                </div>
+
+                <div class="alert info" id="mcpTokenBox" style="display: none;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                    <div>
+                      <div style="font-weight:700; margin-bottom:4px;">New MCP token</div>
+                      <div class="hint" style="margin:0;">Copy it now. If you lose it, rotate the token.</div>
+                    </div>
+                    <button id="mcpCopyTokenBtn" class="ghost" type="button">Copy token</button>
+                  </div>
+                  <div class="code-row" style="margin-top:10px;">
+                    <div class="codebox ws-field">
+                      <span id="mcpTokenValue">-</span>
+                    </div>
+                  </div>
+                  <div class="hint" style="margin-top:10px;">Claude Code command:</div>
+                  <div class="code-row">
+                    <div class="codebox ws-field">
+                      <span id="mcpClaudeCmd">-</span>
+                    </div>
+                  </div>
+                  <div class="btn-row" style="margin-top:10px;">
+                    <button id="mcpCopyCmdBtn" class="ghost" type="button">Copy command</button>
+                  </div>
+                  <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--c-border,rgba(255,255,255,.08));">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                      <div>
+                        <div style="font-weight:700; margin-bottom:4px;">One-liner install (MCP + Skill)</div>
+                        <div class="hint" style="margin:0;">Run in your terminal to add the MCP server and install the /focus-compass skill in one step.</div>
+                      </div>
+                      <button id="mcpCopyPromptBtn" class="ghost" type="button">Copy install prompt</button>
+                    </div>
+                    <div class="code-row" style="margin-top:10px;">
+                      <div class="codebox ws-field" style="white-space:pre-wrap; font-size:12px;">
+                        <span id="mcpInstallPrompt">-</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="alert error" id="mcpError" style="display: none;"></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
                   <h2>Workspaces</h2>
                 <div class="panel-sub" id="docsSub">-</div>
               </div>
@@ -1782,6 +1847,8 @@
       storageError: "",
       selectedDocName: "",
       selectedDocData: null,
+      mcp: { enabled: false, envManaged: false },
+      mcpLastToken: "",
       confirm: { open: false, title: "", body: "", onConfirm: null },
     };
 
@@ -1871,10 +1938,11 @@
       }
     }
 
-    function openConfirm({ title, body, onConfirm }) {
+    function openConfirm({ title, body, onConfirm, okText = "Delete" }) {
       state.confirm = { open: true, title, body, onConfirm };
       $("confirmTitle").textContent = title;
       $("confirmBody").textContent = body;
+      $("confirmOkBtn").textContent = okText;
       $("confirmModal").classList.add("visible");
     }
 
@@ -1971,6 +2039,8 @@
       state.token = "";
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(ADMIN_TOKEN_KEY);
+      clearMcpTokenBox();
+      setMcpError("");
     }
 
     function readTokenFromHash() {
@@ -2415,6 +2485,124 @@
       }
     }
 
+    function setMcpError(message) {
+      const el = $("mcpError");
+      if (!el) return;
+      const msg = String(message || "").trim();
+      el.textContent = msg;
+      el.style.display = msg ? "block" : "none";
+    }
+
+    function clearMcpTokenBox() {
+      state.mcpLastToken = "";
+      const box = $("mcpTokenBox");
+      if (box) box.style.display = "none";
+      const tokenEl = $("mcpTokenValue");
+      if (tokenEl) tokenEl.textContent = "-";
+      const cmdEl = $("mcpClaudeCmd");
+      if (cmdEl) cmdEl.textContent = "-";
+      const promptEl = $("mcpInstallPrompt");
+      if (promptEl) promptEl.textContent = "-";
+    }
+
+    function buildMcpClaudeCommand(token) {
+      const url = `${location.origin}/mcp`;
+      return `claude mcp add --transport http focus-compass ${url} --header "Authorization: Bearer ${token}"`;
+    }
+
+    function buildInstallPrompt(token) {
+      const mcpUrl = `${location.origin}/mcp`;
+      const skillUrl = `${location.origin}/focus-compass-skill.md`;
+      const bash = `claude mcp add --transport http focus-compass ${mcpUrl} --header "Authorization: Bearer ${token}" && mkdir -p ~/.claude/skills/focus-compass && curl -fsSL ${skillUrl} -o ~/.claude/skills/focus-compass/SKILL.md`;
+      const ps = `claude mcp add --transport http focus-compass ${mcpUrl} --header "Authorization: Bearer ${token}"; New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.claude\\skills\\focus-compass" | Out-Null; Invoke-WebRequest "${skillUrl}" -OutFile "$env:USERPROFILE\\.claude\\skills\\focus-compass\\SKILL.md"`;
+      return [
+        "macOS / Linux:",
+        bash,
+        "",
+        "Windows (PowerShell):",
+        ps,
+      ].join("\n");
+    }
+
+    function showMcpTokenBox(token) {
+      const t = String(token || "").trim();
+      if (!t) return;
+      state.mcpLastToken = t;
+
+      const tokenEl = $("mcpTokenValue");
+      if (tokenEl) tokenEl.textContent = t;
+
+      const cmdEl = $("mcpClaudeCmd");
+      if (cmdEl) cmdEl.textContent = buildMcpClaudeCommand(t);
+
+      const promptEl = $("mcpInstallPrompt");
+      if (promptEl) promptEl.textContent = buildInstallPrompt(t);
+
+      const box = $("mcpTokenBox");
+      if (box) box.style.display = "block";
+    }
+
+    function renderMcpPanel() {
+      const enabled = Boolean(state.mcp?.enabled);
+      const envManaged = Boolean(state.mcp?.envManaged);
+
+      const sub = $("mcpSub");
+      if (sub) {
+        sub.textContent = envManaged
+          ? "Enabled (env managed)"
+          : enabled
+            ? "Enabled"
+            : "Disabled";
+      }
+
+      const enableBtn = $("mcpEnableBtn");
+      const rotateBtn = $("mcpRotateBtn");
+      const disableBtn = $("mcpDisableBtn");
+
+      if (enableBtn) {
+        enableBtn.style.display = enabled ? "none" : "inline-flex";
+        enableBtn.disabled = envManaged || !state.token;
+        enableBtn.title = envManaged
+          ? "MCP token is managed by environment"
+          : !state.token
+            ? "Sign in with the master token to enable MCP"
+            : "Generate an MCP token";
+      }
+
+      if (rotateBtn) {
+        rotateBtn.disabled = !enabled || envManaged || !state.token;
+        rotateBtn.title = envManaged
+          ? "MCP token is managed by environment"
+          : !enabled
+            ? "Enable MCP first"
+            : "Rotate MCP token";
+      }
+
+      if (disableBtn) {
+        disableBtn.disabled = !enabled || envManaged || !state.token;
+        disableBtn.title = envManaged
+          ? "MCP token is managed by environment"
+          : !enabled
+            ? "MCP is not enabled"
+            : "Disable MCP";
+      }
+    }
+
+    async function refreshMcpStatus() {
+      try {
+        const status = await apiJson("/api/mcp/status");
+        state.mcp = {
+          enabled: Boolean(status?.enabled),
+          envManaged: Boolean(status?.envManaged),
+        };
+        setMcpError("");
+      } catch (err) {
+        state.mcp = { enabled: false, envManaged: false };
+        setMcpError(`Failed to load MCP status: ${String(err?.message || err)}`);
+      }
+      renderMcpPanel();
+    }
+
     async function refreshDbInfo(token) {
       const dbInfo = await apiJson("/api/admin/db-info", { token });
       state.dbInfo = dbInfo;
@@ -2565,6 +2753,7 @@
       state.signedIn = true;
       renderStorage();
       renderDocs();
+      await refreshMcpStatus();
     }
 
     async function goDashboard(errorMessage = "") {
@@ -2577,6 +2766,7 @@
       setStep("dashboard");
       renderTop();
       renderDashboard();
+      renderMcpPanel();
       renderStorage();
       renderDocs();
     }
@@ -2795,6 +2985,114 @@
         setTopLogoutVisible(false);
         toast("Logged out");
         bootstrap();
+      });
+
+      $("mcpHelpBtn").addEventListener("click", () => {
+        try {
+          window.open("/mcp.html", "_blank", "noopener,noreferrer");
+        } catch {
+          location.href = "/mcp.html";
+        }
+      });
+
+      $("mcpEnableBtn").addEventListener("click", async () => {
+        if (!state.token) return;
+        setMcpError("");
+        clearMcpTokenBox();
+
+        const btn = $("mcpEnableBtn");
+        btn.disabled = true;
+        try {
+          const res = await apiJson("/api/mcp/enable", {
+            method: "POST",
+            token: state.token,
+          });
+
+          const token = res && typeof res.token === "string" ? res.token.trim() : "";
+          showMcpTokenBox(token);
+          toast("MCP enabled");
+          await refreshMcpStatus();
+        } catch (err) {
+          setMcpError(String(err?.message || err));
+          toast(`Enable MCP failed: ${String(err?.message || err)}`, "error");
+        } finally {
+          btn.disabled = false;
+          renderMcpPanel();
+        }
+      });
+
+      $("mcpRotateBtn").addEventListener("click", async () => {
+        if (!state.token) return;
+        setMcpError("");
+        clearMcpTokenBox();
+
+        const btn = $("mcpRotateBtn");
+        btn.disabled = true;
+        try {
+          const res = await apiJson("/api/mcp/rotate", {
+            method: "POST",
+            token: state.token,
+          });
+
+          const token = res && typeof res.token === "string" ? res.token.trim() : "";
+          showMcpTokenBox(token);
+          toast("MCP token rotated");
+          await refreshMcpStatus();
+        } catch (err) {
+          setMcpError(String(err?.message || err));
+          toast(`Rotate MCP token failed: ${String(err?.message || err)}`, "error");
+        } finally {
+          btn.disabled = false;
+          renderMcpPanel();
+        }
+      });
+
+      $("mcpDisableBtn").addEventListener("click", () => {
+        if (!state.token) return;
+        setMcpError("");
+
+        openConfirm({
+          title: "Disable MCP",
+          body: "Disable MCP and revoke the MCP token? MCP clients will lose access until you enable MCP again.",
+          okText: "Disable",
+          onConfirm: async () => {
+            const okBtn = $("confirmOkBtn");
+            okBtn.disabled = true;
+            try {
+              await apiJson("/api/mcp/disable", {
+                method: "POST",
+                token: state.token,
+              });
+              toast("MCP disabled");
+              closeConfirm();
+              clearMcpTokenBox();
+              await refreshMcpStatus();
+            } catch (err) {
+              setMcpError(String(err?.message || err));
+              toast(`Disable MCP failed: ${String(err?.message || err)}`, "error");
+            } finally {
+              okBtn.disabled = false;
+              renderMcpPanel();
+            }
+          },
+        });
+      });
+
+      $("mcpCopyTokenBtn").addEventListener("click", () => {
+        if (!state.mcpLastToken) return;
+        copyText(state.mcpLastToken, "MCP token copied");
+      });
+
+      $("mcpCopyCmdBtn").addEventListener("click", () => {
+        const cmd = String($("mcpClaudeCmd")?.textContent || "").trim();
+        if (!cmd || cmd === "-") return;
+        copyText(cmd, "Command copied");
+      });
+
+      $("mcpCopyPromptBtn").addEventListener("click", () => {
+        const prompt = String($("mcpInstallPrompt")?.textContent || "").trim();
+        if (!prompt || prompt === "-") return;
+        copyText(prompt, "Install prompt copied");
       });
 
       $("docCloseBtn").addEventListener("click", () => {

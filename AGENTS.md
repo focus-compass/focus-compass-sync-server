@@ -47,6 +47,12 @@ Smoke checks:
 - `src/server.js`: Hocuspocus server; REST routes; static `/` serving
 - `src/services/backup.js`: `BackupService` used by `onStoreDocument`
 - `src/index.html`: static admin UI served by the server
+- `src/mcp/server.js`: MCP server factory (`createMcpServer`)
+- `src/mcp/tools.js`: MCP tool definitions (read-only)
+- `src/routes/mcp.js`: MCP HTTP handler (`POST /mcp`, stateless Streamable HTTP)
+- `src/routes/mcpAdmin.js`: MCP admin API (`/api/mcp/*`)
+- `src/mcp.html`: MCP help/setup page
+- `src/focus-compass-skill.md`: Claude Code skill template (served as static)
 - `eslint.config.js`: ESLint v9 flat config
 - `docker-compose.yml`, `Dockerfile`: production containerization
 - `CLAUDE.md`: repository-specific operational notes (keep consistent)
@@ -58,7 +64,6 @@ Smoke checks:
 - Auth constraints (enforced in `src/server.js`):
   - If `HOCUSPOCUS_TOKEN` is not set, the server starts in setup mode and the first
     visit to `/` can generate a token that is persisted to `AUTH_FILE_PATH` (default `./data/auth.json`).
-  - Demo token is refused in production unless `ALLOW_INSECURE_DEMO_TOKEN=true`.
 
 ## Code Style Guidelines
 These guidelines reflect existing patterns and are designed to keep changes

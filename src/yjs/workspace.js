@@ -15,7 +15,7 @@ const getChecklistGroups = (project) => {
   return filtered.length > 0 ? filtered : allGroups;
 };
 
-const transformProject = (project, sections) => {
+export const transformProject = (project, sections) => {
   const result = {
     id: project.id ?? null,
     title: project.title ?? null,
@@ -31,10 +31,14 @@ const transformProject = (project, sections) => {
     result.fields = project.fields ?? {};
   }
 
-  const allTasks = Array.isArray(project.tasks) ? project.tasks : [];
-  const checklistGroups = getChecklistGroups(project);
+  const needsTasks =
+    sections.currentFocus || sections.nextTasks || sections.completedTasks;
 
-  const currentFocusGroup = checklistGroups.find((g) => !g.done) ?? null;
+  const allTasks = needsTasks && Array.isArray(project.tasks) ? project.tasks : [];
+  const checklistGroups = needsTasks ? getChecklistGroups(project) : [];
+  const currentFocusGroup = needsTasks
+    ? checklistGroups.find((g) => !g.done) ?? null
+    : null;
 
   if (sections.currentFocus) {
     if (currentFocusGroup) {

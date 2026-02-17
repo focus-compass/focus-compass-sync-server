@@ -107,7 +107,7 @@ CORS_ALLOW_ORIGINS=*
 YJS_GC=false
 ```
 
-Note: when `NODE_ENV=production`, the server requires `HOCUSPOCUS_TOKEN` (and refuses to start with the demo token unless `ALLOW_INSECURE_DEMO_TOKEN=true`).
+`HOCUSPOCUS_TOKEN` is optional. If it is not set, the server starts in setup mode and the first visit to `/` can generate and persist a token to `./data/auth.json`.
 
 ### Persistence
 
@@ -164,6 +164,120 @@ Server outputs logs like:
 2. **Add Redis** - For scaling to multiple instances.
 3. **Configure Auth** - Protect access to documents.
 4. **Backup** - Regularly backup the SQLite database.
+
+## MCP (Model Context Protocol)
+
+This server exposes a read-only MCP endpoint so that MCP clients (Claude Code, Claude Desktop, etc.) can query Focus Compass workspaces/projects directly from the SQLite database.
+
+- **Endpoint:** `POST /mcp` (Streamable HTTP, stateless)
+- **Auth:** `Authorization: Bearer <mcp-token>` (separate from the master token)
+- **Help page:** `GET /mcp.html`
+- **Persistence:** generated tokens are stored at `./data/mcp-auth.json` by default
+- **Response mode:** JSON responses (no SSE), but clients must still send `Accept: application/json, text/event-stream` per MCP Streamable HTTP rules.
+- **Request limit:** MCP request body is limited to 1 MiB.
+
+MCP is disabled by default unless you set `MCP_TOKEN`. To enable it from the dashboard:
+
+1) Open `http://localhost:8080/` and sign in with the master token
+2) Go to the **MCP Access** section and click **Enable MCP**
+3) Copy the generated MCP token
+
+You can also manage MCP via API (master token required for write actions):
+
+- `GET /api/mcp/status` - MCP enabled/env-managed flags
+- `POST /api/mcp/enable` - generate and enable an MCP token
+- `POST /api/mcp/rotate` - rotate MCP token (returns the new token)
+- `POST /api/mcp/disable` - disable MCP and revoke the token
+
+### Available MCP tools (read-only)
+
+- `list_documents` - list all documents (workspaces) with basic summary
+- `get_workspace` - workspace overview with configurable sections (`project_info`, `current_focus`, `next_tasks`, `completed_tasks`, `notes`)
+- `list_projects` - list projects in a document (IDs/titles; optional `project_info`)
+- `get_project` - get a single project by ID (includes tasks/notes)
+
+### Connect from Claude Code
+
+```bash
+claude mcp add --transport http focus-compass http://localhost:8080/mcp \
+  --header "Authorization: Bearer YOUR_MCP_TOKEN"
+```
+
+### Optional: /focus-compass skill
+
+Claude Code can load a custom **skill** that adds a `/focus-compass` command.
+
+- Skills docs: <https://code.claude.com/docs/en/skills>
+- Skill template (served by this server): <http://localhost:8080/focus-compass-skill.md>
+
+Install (macOS/Linux):
+
+```bash
+mkdir -p ~/.claude/skills/focus-compass
+curl -fsSL http://localhost:8080/focus-compass-skill.md -o ~/.claude/skills/focus-compass/SKILL.md
+```
+
+Install (Windows PowerShell):
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\focus-compass" | Out-Null
+Invoke-WebRequest "http://localhost:8080/focus-compass-skill.md" -OutFile "$env:USERPROFILE\.claude\skills\focus-compass\SKILL.md"
+```
+
+### Claude Code install prompt (optional)
+
+Paste this into Claude Code (replace `YOUR_MCP_TOKEN`):
+
+```text
+Install Focus Compass integration:
+
+1. Add MCP server:
+   claude mcp add --transport http focus-compass http://localhost:8080/mcp --header "Authorization: Bearer YOUR_MCP_TOKEN"
+
+2. Install skill (download template and save as personal skill):
+   - Template URL: http://localhost:8080/focus-compass-skill.md
+   - Save to: ~/.claude/skills/focus-compass/SKILL.md (macOS/Linux) or %USERPROFILE%\.claude\skills\focus-compass\SKILL.md (Windows)
+
+After setup, show me a quick overview of my projects using /focus-compass.
+```
+
+Project-wide config (optional): create `.mcp.json` and use an env var so you don't commit tokens:
+
+```json
+{
+  "mcpServers": {
+    "focus-compass": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer ${FOCUS_COMPASS_MCP_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+### Smoke test with curl
+
+Initialize:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Authorization: Bearer YOUR_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
+```
+
+List documents:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Authorization: Bearer YOUR_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_documents","arguments":{}}}'
+```
 
 ## License
 

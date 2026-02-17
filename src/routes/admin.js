@@ -12,6 +12,14 @@ import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
 const BACKUP_FILE_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
 
+const parseBool = (value, defaultValue) => {
+  if (value === null || value === undefined) return defaultValue;
+  const lower = String(value).trim().toLowerCase();
+  if (lower === "false" || lower === "0" || lower === "no") return false;
+  if (lower === "true" || lower === "1" || lower === "yes") return true;
+  return defaultValue;
+};
+
 const listBackups = async (backupDir) => {
   const names = await readdir(backupDir).catch((error) => {
     if (error?.code === "ENOENT") return [];
@@ -95,8 +103,12 @@ const getDocumentRowOr404 = (db, docName, response) => {
 const getDocumentRowOrNull = (db, docName) =>
   db.prepare("SELECT name, data FROM documents WHERE name = ?").get(docName) ?? null;
 
-const handleDbInfo = async ({ request, response, dbPath, checkAuth }) => {
+const handleDbInfo = async ({ request, response, url, dbPath, checkAuth }) => {
   requireAuth(request, response, checkAuth);
+
+  // Computing summaries requires loading & decoding every Yjs document, which can be
+  // expensive and may OOM on small containers. Default to a light listing.
+  const includeSummaries = parseBool(url?.searchParams?.get("include_summaries"), false);
 
   try {
     const dbStats = await statOrNull(dbPath);
@@ -105,6 +117,7 @@ const handleDbInfo = async ({ request, response, dbPath, checkAuth }) => {
         dbSize: 0,
         dbSidecarsSize: 0,
         dbTotalSize: 0,
+        dbSidecars: [],
         documentCount: 0,
         totalDataSize: 0,
         documents: [],
@@ -154,25 +167,47 @@ const handleDbInfo = async ({ request, response, dbPath, checkAuth }) => {
         });
       }
 
-      const rows = db.prepare("SELECT name, data FROM documents").all();
-
       let totalDataSize = 0;
-      const documents = rows.map((row) => {
-        const data = row.data;
+      const documents = [];
+
+      if (!includeSummaries) {
+        const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
+        for (const row of stmt.iterate()) {
+          const rawSize = row?.dataSize;
+          const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
+          const dataSize = Number.isFinite(n) && n > 0 ? n : 0;
+          totalDataSize += dataSize;
+          documents.push({ name: row.name, dataSize });
+        }
+
+        json(response, 200, {
+          dbSize,
+          dbSidecarsSize,
+          dbTotalSize,
+          dbSidecars: sidecars,
+          documentCount: documents.length,
+          totalDataSize,
+          documents,
+        });
+      }
+
+      const stmt = db.prepare("SELECT name, data FROM documents");
+      for (const row of stmt.iterate()) {
+        const data = row?.data;
         const dataSize = data ? data.byteLength : 0;
         totalDataSize += dataSize;
 
         const summary = getWorkspaceSummary(data);
 
-        return {
+        documents.push({
           name: row.name,
           dataSize,
           sharedTypes: summary.sharedTypes,
           workspace: summary.workspace,
           projectCount: summary.projectCount,
           lastUpdatedAt: summary.lastUpdatedAt,
-        };
-      });
+        });
+      }
 
       json(response, 200, {
         dbSize,
@@ -312,7 +347,7 @@ export const handleAdminRequest = async ({
   checkAuth,
 }) => {
   if (request.method === "GET" && pathname === "/api/admin/db-info") {
-    await handleDbInfo({ request, response, dbPath, checkAuth });
+    await handleDbInfo({ request, response, url, dbPath, checkAuth });
     return;
   }
 

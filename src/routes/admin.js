@@ -4,6 +4,7 @@ import {
   badRequest,
   internalServerError,
   notFound,
+  payloadTooLarge,
 } from "../lib/api.js";
 import { decodeDocName, ensureDbExistsOr404, requireAuth, withDb } from "../lib/db.js";
 import { statOrNull } from "../lib/fs.js";
@@ -11,6 +12,7 @@ import { json } from "../lib/responses.js";
 import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
 const BACKUP_FILE_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
+const DEFAULT_MAX_DOC_DECODE_BYTES = 8 * 1024 * 1024;
 
 const parseBool = (value, defaultValue) => {
   if (value === null || value === undefined) return defaultValue;
@@ -19,6 +21,17 @@ const parseBool = (value, defaultValue) => {
   if (lower === "true" || lower === "1" || lower === "yes") return true;
   return defaultValue;
 };
+
+const toByteLength = (rawSize) => {
+  const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+const isDocTooLargeToDecode = (binarySize, maxDocDecodeBytes) =>
+  Number.isFinite(maxDocDecodeBytes) && maxDocDecodeBytes > 0 && binarySize > maxDocDecodeBytes;
+
+const createDocTooLargeMessage = (docName, binarySize, maxDocDecodeBytes) =>
+  `Document "${docName}" is ${binarySize} bytes and exceeds MAX_DOC_DECODE_BYTES (${maxDocDecodeBytes}).`;
 
 const listBackups = async (backupDir) => {
   const names = await readdir(backupDir).catch((error) => {
@@ -90,9 +103,9 @@ const sanitizeBackupFile = (rawValue, response) => {
   return file;
 };
 
-const getDocumentRowOr404 = (db, docName, response) => {
+const getDocumentMetaOr404 = (db, docName, response) => {
   const row = db
-    .prepare("SELECT name, data FROM documents WHERE name = ?")
+    .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
     .get(docName);
   if (!row) {
     notFound(response, "Document not found");
@@ -100,10 +113,22 @@ const getDocumentRowOr404 = (db, docName, response) => {
   return row;
 };
 
-const getDocumentRowOrNull = (db, docName) =>
-  db.prepare("SELECT name, data FROM documents WHERE name = ?").get(docName) ?? null;
+const getDocumentMetaOrNull = (db, docName) =>
+  db
+    .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
+    .get(docName) ?? null;
 
-const handleDbInfo = async ({ request, response, url, dbPath, checkAuth }) => {
+const getDocumentDataOrNull = (db, docName) =>
+  db.prepare("SELECT data FROM documents WHERE name = ?").get(docName) ?? null;
+
+const handleDbInfo = async ({
+  request,
+  response,
+  url,
+  dbPath,
+  checkAuth,
+  maxDocDecodeBytes = DEFAULT_MAX_DOC_DECODE_BYTES,
+}) => {
   requireAuth(request, response, checkAuth);
 
   // Computing summaries requires loading & decoding every Yjs document, which can be
@@ -173,9 +198,7 @@ const handleDbInfo = async ({ request, response, url, dbPath, checkAuth }) => {
       if (!includeSummaries) {
         const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
         for (const row of stmt.iterate()) {
-          const rawSize = row?.dataSize;
-          const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
-          const dataSize = Number.isFinite(n) && n > 0 ? n : 0;
+          const dataSize = toByteLength(row?.dataSize);
           totalDataSize += dataSize;
           documents.push({ name: row.name, dataSize });
         }
@@ -191,13 +214,29 @@ const handleDbInfo = async ({ request, response, url, dbPath, checkAuth }) => {
         });
       }
 
-      const stmt = db.prepare("SELECT name, data FROM documents");
+      const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
+      const dataStmt = db.prepare("SELECT data FROM documents WHERE name = ?");
+
       for (const row of stmt.iterate()) {
-        const data = row?.data;
-        const dataSize = data ? data.byteLength : 0;
+        const dataSize = toByteLength(row?.dataSize);
         totalDataSize += dataSize;
 
-        const summary = getWorkspaceSummary(data);
+        if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
+          documents.push({
+            name: row.name,
+            dataSize,
+            sharedTypes: null,
+            workspace: null,
+            projectCount: null,
+            lastUpdatedAt: null,
+            summarySkipped: true,
+            summaryReason: "document_too_large",
+          });
+          continue;
+        }
+
+        const dataRow = dataStmt.get(row.name);
+        const summary = getWorkspaceSummary(dataRow?.data);
 
         documents.push({
           name: row.name,
@@ -250,6 +289,7 @@ const handleDocGet = async ({
   dbPath,
   backupDir,
   checkAuth,
+  maxDocDecodeBytes = DEFAULT_MAX_DOC_DECODE_BYTES,
   encodedName,
 }) => {
   requireAuth(request, response, checkAuth);
@@ -270,11 +310,11 @@ const handleDocGet = async ({
     }
 
     withDb(effectiveDbPath, { readOnly: true }, (db) => {
-      const row = isBackup
-        ? getDocumentRowOrNull(db, docName)
-        : getDocumentRowOr404(db, docName, response);
+      const meta = isBackup
+        ? getDocumentMetaOrNull(db, docName)
+        : getDocumentMetaOr404(db, docName, response);
 
-      if (!row) {
+      if (!meta) {
         json(response, 200, {
           name: docName,
           source: "backup",
@@ -286,8 +326,32 @@ const handleDocGet = async ({
         });
       }
 
-      const binarySize = row.data ? row.data.byteLength : 0;
-      const { sharedTypeNames, content } = getContent(row.data);
+      const binarySize = toByteLength(meta.dataSize);
+      if (isDocTooLargeToDecode(binarySize, maxDocDecodeBytes)) {
+        payloadTooLarge(
+          response,
+          createDocTooLargeMessage(docName, binarySize, maxDocDecodeBytes),
+        );
+      }
+
+      const dataRow = getDocumentDataOrNull(db, docName);
+      if (!dataRow) {
+        if (!isBackup) {
+          notFound(response, "Document not found");
+        }
+
+        json(response, 200, {
+          name: docName,
+          source: isBackup ? "backup" : "current",
+          backup: isBackup ? backupFile : null,
+          exists: false,
+          binarySize: 0,
+          sharedTypeNames: [],
+          content: {},
+        });
+      }
+
+      const { sharedTypeNames, content } = getContent(dataRow.data);
 
       json(response, 200, {
         name: docName,
@@ -345,9 +409,17 @@ export const handleAdminRequest = async ({
   dbPath,
   backupDir,
   checkAuth,
+  maxDocDecodeBytes,
 }) => {
   if (request.method === "GET" && pathname === "/api/admin/db-info") {
-    await handleDbInfo({ request, response, url, dbPath, checkAuth });
+    await handleDbInfo({
+      request,
+      response,
+      url,
+      dbPath,
+      checkAuth,
+      maxDocDecodeBytes,
+    });
     return;
   }
 
@@ -369,6 +441,7 @@ export const handleAdminRequest = async ({
       dbPath,
       backupDir,
       checkAuth,
+      maxDocDecodeBytes,
       encodedName,
     });
     return;

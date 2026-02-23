@@ -78,6 +78,7 @@ const BACKUP_INTERVAL_MINUTES = readNumberEnv("BACKUP_INTERVAL_MINUTES", 60);
 const BACKUP_RETENTION_DAYS = readNumberEnv("BACKUP_RETENTION_DAYS", 7);
 
 const MAX_UPLOAD_BYTES = readNumberEnv("MAX_UPLOAD_BYTES", 10 * 1024 * 1024);
+const MAX_DOC_DECODE_BYTES = readNumberEnv("MAX_DOC_DECODE_BYTES", 8 * 1024 * 1024);
 
 const YJS_GC = readBoolEnv("YJS_GC", false);
 
@@ -225,6 +226,7 @@ const server = new Server({
         dbPath: DB_PATH,
         backupDir: BACKUP_DIR,
         checkAuth: isAuthed,
+        maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
       });
 
       await handleWorkspaceRequest({
@@ -234,6 +236,7 @@ const server = new Server({
         pathname,
         dbPath: DB_PATH,
         checkAuth: isAuthed,
+        maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
       });
 
       await handleMcpRequest({
@@ -242,6 +245,7 @@ const server = new Server({
         pathname,
         dbPath: DB_PATH,
         appVersion,
+        maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
         getToken: getMcpToken,
         checkAuth: isMcpAuthed,
       });
@@ -250,6 +254,7 @@ const server = new Server({
         request,
         response,
         pathname,
+        url,
         indexFilePath,
         mcpSkillFilePath,
       });

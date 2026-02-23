@@ -10,6 +10,22 @@ import { transformProject, transformWorkspace } from "../yjs/workspace.js";
 
 const MAX_DOC_NAME_LENGTH = 512;
 const MAX_PROJECT_ID_LENGTH = 256;
+const DEFAULT_MAX_DOC_DECODE_BYTES = 8 * 1024 * 1024;
+
+const toByteLength = (rawSize) => {
+  const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+const isDocTooLargeToDecode = (binarySize, maxDocDecodeBytes) =>
+  Number.isFinite(maxDocDecodeBytes) && maxDocDecodeBytes > 0 && binarySize > maxDocDecodeBytes;
+
+const createDocTooLargeError = (docName, binarySize, maxDocDecodeBytes) => ({
+  error: `Document "${docName}" is ${binarySize} bytes and exceeds MAX_DOC_DECODE_BYTES (${maxDocDecodeBytes}).`,
+  code: "DOC_TOO_LARGE",
+  dataSize: binarySize,
+  maxDocDecodeBytes,
+});
 
 const toNonEmptyTrimmedStringOrNull = (value) => {
   if (typeof value !== "string") return null;
@@ -110,25 +126,64 @@ const documentsTableExists = (db) =>
       .get(),
   );
 
-export const registerTools = (server, { dbPath }) => {
+export const registerTools = (
+  server,
+  { dbPath, maxDocDecodeBytes = DEFAULT_MAX_DOC_DECODE_BYTES },
+) => {
   // ── list_documents ─────────────────────────────────────────────
   server.tool(
     "list_documents",
-    "List all documents (workspaces) in the Focus Compass database. Returns workspace name, project count, and last update time for each. Call this first to discover available document names.",
-    {},
-    async () => {
+    "List all documents (workspaces) in the Focus Compass database. By default returns lightweight metadata only; set include_summaries=true to decode workspace/project summary fields.",
+    {
+      include_summaries: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Decode workspace/project summary fields (heavier for large datasets)"),
+    },
+    async ({ include_summaries: includeSummaries = false }) => {
       const result = safeReadDb(dbPath, (db) => {
         if (!documentsTableExists(db)) return [];
 
         const docs = [];
-        const stmt = db.prepare("SELECT name, data FROM documents");
+        const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
+
+        if (!includeSummaries) {
+          for (const row of stmt.iterate()) {
+            docs.push({
+              name: row.name,
+              dataSize: toByteLength(row?.dataSize),
+            });
+          }
+          return docs;
+        }
+
+        const dataStmt = db.prepare("SELECT data FROM documents WHERE name = ?");
+
         for (const row of stmt.iterate()) {
-          const summary = getWorkspaceSummary(row.data);
+          const dataSize = toByteLength(row?.dataSize);
+
+          if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
+            docs.push({
+              name: row.name,
+              workspace: null,
+              projectCount: null,
+              lastUpdatedAt: null,
+              dataSize,
+              summarySkipped: true,
+              summaryReason: "document_too_large",
+            });
+            continue;
+          }
+
+          const dataRow = dataStmt.get(row.name);
+          const summary = getWorkspaceSummary(dataRow?.data);
           docs.push({
             name: row.name,
             workspace: summary.workspace,
             projectCount: summary.projectCount,
             lastUpdatedAt: summary.lastUpdatedAt,
+            dataSize,
           });
         }
         return docs;
@@ -180,8 +235,19 @@ export const registerTools = (server, { dbPath }) => {
           return { error: "Database is empty or incompatible (missing 'documents' table)." };
         }
 
+        const meta = db
+          .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
+          .get(docName);
+
+        if (!meta) return { error: `Document "${docName}" not found` };
+
+        const dataSize = toByteLength(meta.dataSize);
+        if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
+          return createDocTooLargeError(docName, dataSize, maxDocDecodeBytes);
+        }
+
         const row = db
-          .prepare("SELECT name, data FROM documents WHERE name = ?")
+          .prepare("SELECT data FROM documents WHERE name = ?")
           .get(docName);
 
         if (!row) return { error: `Document "${docName}" not found` };
@@ -200,7 +266,7 @@ export const registerTools = (server, { dbPath }) => {
           retryable: Boolean(result.error.retryable),
         });
       }
-      if (result.value?.error) return errorResult(result.value.error);
+      if (result.value?.error) return errorResult(result.value.error, result.value);
       return textResult(result.value);
     },
   );
@@ -228,8 +294,19 @@ export const registerTools = (server, { dbPath }) => {
           return { error: "Database is empty or incompatible (missing 'documents' table)." };
         }
 
+        const meta = db
+          .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
+          .get(docName);
+
+        if (!meta) return { error: `Document "${docName}" not found` };
+
+        const dataSize = toByteLength(meta.dataSize);
+        if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
+          return createDocTooLargeError(docName, dataSize, maxDocDecodeBytes);
+        }
+
         const row = db
-          .prepare("SELECT name, data FROM documents WHERE name = ?")
+          .prepare("SELECT data FROM documents WHERE name = ?")
           .get(docName);
 
         if (!row) return { error: `Document "${docName}" not found` };
@@ -249,7 +326,7 @@ export const registerTools = (server, { dbPath }) => {
           retryable: Boolean(result.error.retryable),
         });
       }
-      if (result.value?.error) return errorResult(result.value.error);
+      if (result.value?.error) return errorResult(result.value.error, result.value);
       return textResult(result.value);
     },
   );
@@ -285,8 +362,19 @@ export const registerTools = (server, { dbPath }) => {
           return { error: "Database is empty or incompatible (missing 'documents' table)." };
         }
 
+        const meta = db
+          .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
+          .get(docName);
+
+        if (!meta) return { error: `Document "${docName}" not found` };
+
+        const dataSize = toByteLength(meta.dataSize);
+        if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
+          return createDocTooLargeError(docName, dataSize, maxDocDecodeBytes);
+        }
+
         const row = db
-          .prepare("SELECT name, data FROM documents WHERE name = ?")
+          .prepare("SELECT data FROM documents WHERE name = ?")
           .get(docName);
 
         if (!row) return { error: `Document "${docName}" not found` };

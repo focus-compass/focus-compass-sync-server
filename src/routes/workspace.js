@@ -1,11 +1,14 @@
 import {
   internalServerError,
   notFound,
+  payloadTooLarge,
 } from "../lib/api.js";
 import { decodeDocName, ensureDbExistsOr404, requireAuth, withDb } from "../lib/db.js";
 import { json } from "../lib/responses.js";
 import { getContent } from "../yjs/inspect.js";
 import { transformWorkspace } from "../yjs/workspace.js";
+
+const DEFAULT_MAX_DOC_DECODE_BYTES = 8 * 1024 * 1024;
 
 const parseBool = (value, defaultValue) => {
   if (value === null || value === undefined) return defaultValue;
@@ -14,6 +17,17 @@ const parseBool = (value, defaultValue) => {
   if (lower === "true" || lower === "1" || lower === "yes") return true;
   return defaultValue;
 };
+
+const toByteLength = (rawSize) => {
+  const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+const isDocTooLargeToDecode = (binarySize, maxDocDecodeBytes) =>
+  Number.isFinite(maxDocDecodeBytes) && maxDocDecodeBytes > 0 && binarySize > maxDocDecodeBytes;
+
+const createDocTooLargeMessage = (docName, binarySize, maxDocDecodeBytes) =>
+  `Document "${docName}" is ${binarySize} bytes and exceeds MAX_DOC_DECODE_BYTES (${maxDocDecodeBytes}).`;
 
 const parseSectionFlags = (url) => ({
   projectInfo: parseBool(url.searchParams.get("project_info"), true),
@@ -30,6 +44,7 @@ export const handleWorkspaceRequest = async ({
   pathname,
   dbPath,
   checkAuth,
+  maxDocDecodeBytes = DEFAULT_MAX_DOC_DECODE_BYTES,
 }) => {
   const match = pathname.match(/^\/api\/workspace\/([^/]+)$/);
   if (!match) return;
@@ -44,8 +59,24 @@ export const handleWorkspaceRequest = async ({
     await ensureDbExistsOr404(dbPath, response);
 
     withDb(dbPath, { readOnly: true }, (db) => {
+      const meta = db
+        .prepare("SELECT length(data) AS dataSize FROM documents WHERE name = ?")
+        .get(docName);
+
+      if (!meta) {
+        notFound(response, "Document not found");
+      }
+
+      const binarySize = toByteLength(meta.dataSize);
+      if (isDocTooLargeToDecode(binarySize, maxDocDecodeBytes)) {
+        payloadTooLarge(
+          response,
+          createDocTooLargeMessage(docName, binarySize, maxDocDecodeBytes),
+        );
+      }
+
       const row = db
-        .prepare("SELECT name, data FROM documents WHERE name = ?")
+        .prepare("SELECT data FROM documents WHERE name = ?")
         .get(docName);
 
       if (!row) {

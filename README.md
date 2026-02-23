@@ -100,6 +100,10 @@ BACKUP_RETENTION_DAYS=7
 # Upload limits
 MAX_UPLOAD_BYTES=10485760
 
+# Max Yjs document size decoded by REST/MCP read endpoints (bytes)
+# Increase only if you need to inspect very large documents.
+MAX_DOC_DECODE_BYTES=8388608
+
 # CORS (comma-separated allowlist or '*')
 CORS_ALLOW_ORIGINS=*
 
@@ -108,6 +112,8 @@ YJS_GC=false
 ```
 
 `HOCUSPOCUS_TOKEN` is optional. If it is not set, the server starts in setup mode and the first visit to `/` can generate and persist a token to `./data/auth.json`.
+
+`MAX_DOC_DECODE_BYTES` protects admin/workspace/MCP read endpoints from decoding extremely large Yjs documents in one request. This helps prevent out-of-memory crashes on small hosts.
 
 ### Persistence
 

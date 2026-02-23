@@ -1228,9 +1228,6 @@
     .list {
       display: grid;
       gap: 10px;
-      max-height: 520px;
-      overflow: auto;
-      padding-right: 2px;
     }
 
     .item {
@@ -1424,6 +1421,260 @@
       }
     }
 
+    /* Toggle switch */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex: 0 0 auto;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .toggle-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      background: var(--border);
+      transition: background 200ms ease;
+    }
+
+    .toggle-switch input:checked + .toggle-track {
+      background: var(--ok);
+    }
+
+    .toggle-switch.busy .toggle-track {
+      opacity: 0.55;
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 200ms ease;
+    }
+
+    .toggle-switch input:checked ~ .toggle-thumb {
+      transform: translateX(20px);
+    }
+
+    .toggle-switch input:focus-visible ~ .toggle-track {
+      box-shadow: var(--focus-ring);
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .toggle-label.on {
+      color: var(--ok);
+    }
+
+    /* MCP guide */
+    .mcp-guide {
+      display: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .mcp-guide.visible {
+      display: block;
+    }
+
+    .mcp-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      overflow-x: auto;
+    }
+
+    .mcp-tab {
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      cursor: pointer;
+      white-space: nowrap;
+      min-height: 0;
+      transition: color 120ms ease, border-color 120ms ease;
+    }
+
+    .mcp-tab:hover {
+      color: var(--text);
+      background: var(--neutral-a04);
+    }
+
+    .mcp-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .mcp-panel {
+      display: none;
+      padding: 16px;
+    }
+
+    .mcp-panel.active {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mcp-step {
+      display: grid;
+      gap: 6px;
+    }
+
+    .mcp-step-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .mcp-cmd {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .mcp-cmd .codebox {
+      flex: 1;
+      min-width: 0;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .mcp-cmd .copy-btn {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      min-height: 32px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .mcp-manual {
+      border-top: 1px solid var(--border-soft);
+      margin-top: 4px;
+    }
+
+    .mcp-manual summary {
+      padding: 10px 0 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mcp-manual summary:hover {
+      color: var(--primary);
+    }
+
+    .mcp-manual > .mcp-step {
+      margin-bottom: 10px;
+    }
+
+    .mcp-manual > .mcp-step:last-child {
+      margin-bottom: 4px;
+    }
+
+    .mcp-token-missing {
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--warn-a35);
+      background: var(--warn-a10);
+      color: var(--warn-ink);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mcp-token-missing button {
+      padding: 6px 12px;
+      min-height: 28px;
+      font-size: 12px;
+    }
+
+    .mcp-detail-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 12px;
+      font-size: 13px;
+    }
+
+    .mcp-detail-key {
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .mcp-detail-val {
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .mcp-detail-val code {
+      font-size: 12px;
+    }
+
+    .mcp-prompt-hint {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .mcp-prompt-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .mcp-prompt-row .codebox {
+      flex: 1;
+      min-width: 0;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .mcp-prompt-row .copy-btn {
+      flex: 0 0 auto;
+    }
+
     .step {
       display: none;
     }
@@ -1459,7 +1710,6 @@
           <span class="brand-text">Focus Compass Server</span>
         </h1>
         <div class="top-actions">
-          <a class="pill" href="/mcp.html" title="MCP integration">MCP</a>
           <button class="pill" id="versionPill" type="button" title="Click to check for updates">v-</button>
           <button class="icon-btn small" id="topLogoutBtn" type="button" title="Logout" aria-label="Logout" style="display: none;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1645,50 +1895,126 @@
                 <div class="panel-sub" id="mcpSub">-</div>
               </div>
               <div class="panel-body">
+                <div class="toggle-row">
+                  <label class="toggle-switch" id="mcpToggle" title="Enable or disable MCP">
+                    <input type="checkbox" id="mcpToggleInput" />
+                    <span class="toggle-track"></span>
+                    <span class="toggle-thumb"></span>
+                  </label>
+                  <span class="toggle-label" id="mcpToggleLabel">Disabled</span>
+                  <span style="flex:1;"></span>
+                  <button id="mcpRotateBtn" class="ghost small" type="button" style="display:none;">Rotate token</button>
+                </div>
+
                 <div class="hint">
-                  MCP uses a separate token (not the master token). Enable it to generate a read-only key for Claude Code and other MCP clients.
+                  Read-only access for Claude Code and other MCP clients. Uses a separate token (not master).
                 </div>
 
-                <div class="btn-row" style="margin-top: 12px;">
-                  <button id="mcpEnableBtn" type="button">Enable MCP</button>
-                  <button id="mcpRotateBtn" class="ghost" type="button">Rotate MCP token</button>
-                  <button id="mcpDisableBtn" class="danger" type="button">Disable MCP</button>
-                  <button id="mcpHelpBtn" class="ghost" type="button">Open MCP help</button>
-                </div>
-
-                <div class="alert info" id="mcpTokenBox" style="display: none;">
+                <!-- Token revealed after enable / rotate -->
+                <div class="alert info" id="mcpTokenAlert" style="display:none;">
                   <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
                     <div>
-                      <div style="font-weight:700; margin-bottom:4px;">New MCP token</div>
-                      <div class="hint" style="margin:0;">Copy it now. If you lose it, rotate the token.</div>
+                      <div style="font-weight:700; margin-bottom:2px;">MCP Token</div>
+                      <div class="hint" style="margin:0; font-size:12px;">Copy it now. If you lose it, rotate the token.</div>
                     </div>
-                    <button id="mcpCopyTokenBtn" class="ghost" type="button">Copy token</button>
+                    <button id="mcpCopyTokenBtn" class="ghost small" type="button">Copy token</button>
                   </div>
-                  <div class="code-row" style="margin-top:10px;">
-                    <div class="codebox ws-field">
+                  <div class="code-row" style="margin-top:8px;">
+                    <div class="codebox ws-field" style="font-size:12px;">
                       <span id="mcpTokenValue">-</span>
                     </div>
                   </div>
-                  <div class="hint" style="margin-top:10px;">Claude Code command:</div>
-                  <div class="code-row">
-                    <div class="codebox ws-field">
-                      <span id="mcpClaudeCmd">-</span>
+                </div>
+
+                <!-- Inline setup guide -->
+                <div class="mcp-guide" id="mcpGuide">
+                  <div class="mcp-token-missing" id="guideTokenMissing" style="display:none;">
+                    Token hidden after page reload.
+                    <button id="guideRotateBtn" class="ghost" type="button">Rotate to reveal</button>
+                  </div>
+
+                  <div class="mcp-tabs" id="mcpTabs">
+                    <button class="mcp-tab active" data-tab="claude-code">Claude Code</button>
+                    <button class="mcp-tab" data-tab="codex">Codex</button>
+                    <button class="mcp-tab" data-tab="other">Other Clients</button>
+                  </div>
+
+                  <!-- Claude Code -->
+                  <div class="mcp-panel active" id="tab-claude-code">
+                    <div class="mcp-prompt-hint">Paste into Claude Code &mdash; it will set up MCP and install the <code>/focus-compass</code> skill.</div>
+                    <div class="mcp-prompt-row">
+                      <div class="codebox" id="promptClaude">-</div>
+                      <button class="ghost copy-btn" type="button" data-copy="promptClaude">Copy</button>
                     </div>
-                  </div>
-                  <div class="btn-row" style="margin-top:10px;">
-                    <button id="mcpCopyCmdBtn" class="ghost" type="button">Copy command</button>
-                  </div>
-                  <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--c-border,rgba(255,255,255,.08));">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                      <div>
-                        <div style="font-weight:700; margin-bottom:4px;">One-liner install (MCP + Skill)</div>
-                        <div class="hint" style="margin:0;">Run in your terminal to add the MCP server and install the /focus-compass skill in one step.</div>
+                    <details class="mcp-manual">
+                      <summary>Manual steps</summary>
+                      <div class="mcp-step">
+                        <div class="mcp-step-label">1. Add MCP server</div>
+                        <div class="mcp-cmd">
+                          <div class="codebox" id="guideClaudeCmd">-</div>
+                          <button class="ghost copy-btn" type="button" data-copy="guideClaudeCmd">Copy</button>
+                        </div>
                       </div>
-                      <button id="mcpCopyPromptBtn" class="ghost" type="button">Copy install prompt</button>
+                      <div class="mcp-step">
+                        <div class="mcp-step-label">2. Install skill</div>
+                        <div class="mcp-cmd">
+                          <div class="codebox" id="guideSkillCmd" style="font-size:11px; white-space:pre-wrap;">-</div>
+                          <button class="ghost copy-btn" type="button" data-copy="guideSkillCmd">Copy</button>
+                        </div>
+                      </div>
+                      <div class="mcp-step">
+                        <div class="mcp-step-label">3. Verify</div>
+                        <div class="mcp-cmd">
+                          <div class="codebox">claude mcp list</div>
+                          <button class="ghost copy-btn" type="button" data-copy-text="claude mcp list">Copy</button>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+
+                  <!-- Codex -->
+                  <div class="mcp-panel" id="tab-codex">
+                    <div class="mcp-prompt-hint">Paste into Codex &mdash; it will configure the MCP connection.</div>
+                    <div class="mcp-prompt-row">
+                      <div class="codebox" id="promptCodex">-</div>
+                      <button class="ghost copy-btn" type="button" data-copy="promptCodex">Copy</button>
                     </div>
-                    <div class="code-row" style="margin-top:10px;">
-                      <div class="codebox ws-field" style="white-space:pre-wrap; font-size:12px;">
-                        <span id="mcpInstallPrompt">-</span>
+                    <details class="mcp-manual">
+                      <summary>Manual config</summary>
+                      <div class="mcp-step">
+                        <div class="mcp-step-label">JSON config</div>
+                        <div class="hint" style="font-size:12px;">Add to your Codex MCP settings (<code>.codex/</code> directory):</div>
+                        <div class="mcp-cmd">
+                          <div class="codebox" id="guideCodexJson" style="white-space:pre-wrap;">-</div>
+                          <button class="ghost copy-btn" type="button" data-copy="guideCodexJson">Copy</button>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+
+                  <!-- Other Clients -->
+                  <div class="mcp-panel" id="tab-other">
+                    <div class="mcp-step">
+                      <div class="mcp-step-label">JSON config</div>
+                      <div class="hint" style="font-size:12px;">Universal format &mdash; works with Claude Desktop, Cursor, Windsurf, and other MCP clients.</div>
+                      <div class="mcp-cmd">
+                        <div class="codebox" id="guideDesktopJson" style="white-space:pre-wrap;">-</div>
+                        <button class="ghost copy-btn" type="button" data-copy="guideDesktopJson">Copy</button>
+                      </div>
+                    </div>
+                    <div class="mcp-step">
+                      <div class="mcp-step-label">Connection details</div>
+                      <div class="mcp-detail-row">
+                        <span class="mcp-detail-key">Endpoint</span>
+                        <span class="mcp-detail-val"><code id="guideEndpoint">-</code></span>
+                        <span class="mcp-detail-key">Auth</span>
+                        <span class="mcp-detail-val"><code id="guideAuthHeader">-</code></span>
+                        <span class="mcp-detail-key">Transport</span>
+                        <span class="mcp-detail-val">Streamable HTTP (stateless)</span>
+                        <span class="mcp-detail-key">Content-Type</span>
+                        <span class="mcp-detail-val">application/json</span>
+                        <span class="mcp-detail-key">Accept</span>
+                        <span class="mcp-detail-val">application/json, text/event-stream</span>
                       </div>
                     </div>
                   </div>
@@ -2495,32 +2821,66 @@
 
     function clearMcpTokenBox() {
       state.mcpLastToken = "";
-      const box = $("mcpTokenBox");
-      if (box) box.style.display = "none";
+      const alert = $("mcpTokenAlert");
+      if (alert) alert.style.display = "none";
       const tokenEl = $("mcpTokenValue");
       if (tokenEl) tokenEl.textContent = "-";
-      const cmdEl = $("mcpClaudeCmd");
-      if (cmdEl) cmdEl.textContent = "-";
-      const promptEl = $("mcpInstallPrompt");
-      if (promptEl) promptEl.textContent = "-";
     }
 
-    function buildMcpClaudeCommand(token) {
-      const url = `${location.origin}/mcp`;
-      return `claude mcp add --transport http focus-compass ${url} --header "Authorization: Bearer ${token}"`;
+    function isWindows() {
+      return /Win/i.test(navigator.platform || navigator.userAgent);
     }
 
-    function buildInstallPrompt(token) {
-      const mcpUrl = `${location.origin}/mcp`;
-      const skillUrl = `${location.origin}/focus-compass-skill.md`;
-      const bash = `claude mcp add --transport http focus-compass ${mcpUrl} --header "Authorization: Bearer ${token}" && mkdir -p ~/.claude/skills/focus-compass && curl -fsSL ${skillUrl} -o ~/.claude/skills/focus-compass/SKILL.md`;
-      const ps = `claude mcp add --transport http focus-compass ${mcpUrl} --header "Authorization: Bearer ${token}"; New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.claude\\skills\\focus-compass" | Out-Null; Invoke-WebRequest "${skillUrl}" -OutFile "$env:USERPROFILE\\.claude\\skills\\focus-compass\\SKILL.md"`;
+    function mcpUrl() { return `${location.origin}/mcp`; }
+    function skillUrl() { return `${location.origin}/focus-compass-skill.md`; }
+
+    function buildMcpAddCmd(token) {
+      return `claude mcp add --transport http focus-compass ${mcpUrl()} --header "Authorization: Bearer ${token}"`;
+    }
+
+    function buildMcpJson(token) {
+      return JSON.stringify({
+        mcpServers: {
+          "focus-compass": {
+            type: "http",
+            url: mcpUrl(),
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        },
+      }, null, 2);
+    }
+
+    function buildSkillCmd() {
+      if (isWindows()) {
+        return `New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.claude\\skills\\focus-compass" | Out-Null; Invoke-WebRequest "${skillUrl()}" -OutFile "$env:USERPROFILE\\.claude\\skills\\focus-compass\\SKILL.md"`;
+      }
+      return `mkdir -p ~/.claude/skills/focus-compass && curl -fsSL ${skillUrl()} -o ~/.claude/skills/focus-compass/SKILL.md`;
+    }
+
+    function buildPromptClaude(token) {
       return [
-        "macOS / Linux:",
-        bash,
-        "",
-        "Windows (PowerShell):",
-        ps,
+        `Connect to my Focus Compass server via MCP and install the /focus-compass skill.`,
+        ``,
+        `1. Add MCP server:`,
+        `   ${buildMcpAddCmd(token)}`,
+        ``,
+        `2. Install skill — download ${skillUrl()} and save to ~/.claude/skills/focus-compass/SKILL.md (create the directory if needed).`,
+        ``,
+        `3. Verify: claude mcp list`,
+      ].join("\n");
+    }
+
+    function buildPromptCodex(token) {
+      return [
+        `Add my Focus Compass MCP server to your configuration.`,
+        ``,
+        `  Endpoint: ${mcpUrl()}`,
+        `  Transport: Streamable HTTP (stateless)`,
+        `  Authorization: Bearer ${token}`,
+        `  Content-Type: application/json`,
+        `  Accept: application/json, text/event-stream`,
+        ``,
+        `Read-only tools: list_documents, get_workspace, list_projects, get_project.`,
       ].join("\n");
     }
 
@@ -2532,14 +2892,52 @@
       const tokenEl = $("mcpTokenValue");
       if (tokenEl) tokenEl.textContent = t;
 
-      const cmdEl = $("mcpClaudeCmd");
-      if (cmdEl) cmdEl.textContent = buildMcpClaudeCommand(t);
+      const alert = $("mcpTokenAlert");
+      if (alert) alert.style.display = "block";
 
-      const promptEl = $("mcpInstallPrompt");
-      if (promptEl) promptEl.textContent = buildInstallPrompt(t);
+      renderMcpGuide();
+    }
 
-      const box = $("mcpTokenBox");
-      if (box) box.style.display = "block";
+    function renderMcpGuide() {
+      const enabled = Boolean(state.mcp?.enabled);
+      const hasToken = Boolean(state.mcpLastToken);
+      const guide = $("mcpGuide");
+      if (!guide) return;
+
+      guide.classList.toggle("visible", enabled);
+
+      // Single token-missing warning above tabs
+      const tw = $("guideTokenMissing");
+      if (tw) tw.style.display = enabled && !hasToken ? "flex" : "none";
+
+      const token = hasToken ? state.mcpLastToken : "YOUR_MCP_TOKEN";
+
+      // Claude Code
+      const cmdEl = $("guideClaudeCmd");
+      if (cmdEl) cmdEl.textContent = buildMcpAddCmd(token);
+
+      const skillCmdEl = $("guideSkillCmd");
+      if (skillCmdEl) skillCmdEl.textContent = buildSkillCmd();
+
+      const pClaude = $("promptClaude");
+      if (pClaude) pClaude.textContent = buildPromptClaude(token);
+
+      // Codex
+      const codexEl = $("guideCodexJson");
+      if (codexEl) codexEl.textContent = buildMcpJson(token);
+
+      const pCodex = $("promptCodex");
+      if (pCodex) pCodex.textContent = buildPromptCodex(token);
+
+      // Other Clients
+      const jsonEl = $("guideDesktopJson");
+      if (jsonEl) jsonEl.textContent = buildMcpJson(token);
+
+      const endpointEl = $("guideEndpoint");
+      if (endpointEl) endpointEl.textContent = `POST ${mcpUrl()}`;
+
+      const authEl = $("guideAuthHeader");
+      if (authEl) authEl.textContent = `Authorization: Bearer ${token}`;
     }
 
     function renderMcpPanel() {
@@ -2555,37 +2953,39 @@
             : "Disabled";
       }
 
-      const enableBtn = $("mcpEnableBtn");
-      const rotateBtn = $("mcpRotateBtn");
-      const disableBtn = $("mcpDisableBtn");
+      // Toggle switch
+      const toggle = $("mcpToggle");
+      const input = $("mcpToggleInput");
+      const label = $("mcpToggleLabel");
 
-      if (enableBtn) {
-        enableBtn.style.display = enabled ? "none" : "inline-flex";
-        enableBtn.disabled = envManaged || !state.token;
-        enableBtn.title = envManaged
-          ? "MCP token is managed by environment"
+      if (input) {
+        input.checked = enabled;
+        input.disabled = envManaged || !state.token;
+      }
+      if (toggle) {
+        toggle.classList.toggle("busy", false);
+        toggle.title = envManaged
+          ? "MCP is managed by environment"
           : !state.token
-            ? "Sign in with the master token to enable MCP"
-            : "Generate an MCP token";
+            ? "Sign in first"
+            : enabled
+              ? "Click to disable MCP"
+              : "Click to enable MCP";
+      }
+      if (label) {
+        label.textContent = enabled ? "Enabled" : "Disabled";
+        label.classList.toggle("on", enabled);
       }
 
+      // Rotate button
+      const rotateBtn = $("mcpRotateBtn");
       if (rotateBtn) {
+        rotateBtn.style.display = enabled ? "inline-flex" : "none";
         rotateBtn.disabled = !enabled || envManaged || !state.token;
-        rotateBtn.title = envManaged
-          ? "MCP token is managed by environment"
-          : !enabled
-            ? "Enable MCP first"
-            : "Rotate MCP token";
       }
 
-      if (disableBtn) {
-        disableBtn.disabled = !enabled || envManaged || !state.token;
-        disableBtn.title = envManaged
-          ? "MCP token is managed by environment"
-          : !enabled
-            ? "MCP is not enabled"
-            : "Disable MCP";
-      }
+      // Guide
+      renderMcpGuide();
     }
 
     async function refreshMcpStatus() {
@@ -2987,40 +3387,73 @@
         bootstrap();
       });
 
-      $("mcpHelpBtn").addEventListener("click", () => {
-        try {
-          window.open("/mcp.html", "_blank", "noopener,noreferrer");
-        } catch {
-          location.href = "/mcp.html";
-        }
-      });
+      // MCP toggle switch
+      $("mcpToggleInput").addEventListener("change", async () => {
+        const input = $("mcpToggleInput");
+        const wantEnabled = input.checked;
+        const toggle = $("mcpToggle");
 
-      $("mcpEnableBtn").addEventListener("click", async () => {
-        if (!state.token) return;
+        if (!state.token) {
+          input.checked = !wantEnabled;
+          return;
+        }
+
         setMcpError("");
-        clearMcpTokenBox();
 
-        const btn = $("mcpEnableBtn");
-        btn.disabled = true;
-        try {
-          const res = await apiJson("/api/mcp/enable", {
-            method: "POST",
-            token: state.token,
+        if (wantEnabled) {
+          // Enable MCP
+          toggle.classList.add("busy");
+          input.disabled = true;
+          try {
+            const res = await apiJson("/api/mcp/enable", {
+              method: "POST",
+              token: state.token,
+            });
+            const token = res && typeof res.token === "string" ? res.token.trim() : "";
+            showMcpTokenBox(token);
+            toast("MCP enabled");
+            await refreshMcpStatus();
+          } catch (err) {
+            input.checked = false;
+            setMcpError(String(err?.message || err));
+            toast(`Enable MCP failed: ${String(err?.message || err)}`, "error");
+          } finally {
+            input.disabled = false;
+            toggle.classList.remove("busy");
+            renderMcpPanel();
+          }
+        } else {
+          // Disable MCP — revert toggle until confirmed
+          input.checked = true;
+          openConfirm({
+            title: "Disable MCP",
+            body: "Disable MCP and revoke the token? All MCP clients will lose access.",
+            okText: "Disable",
+            onConfirm: async () => {
+              const okBtn = $("confirmOkBtn");
+              okBtn.disabled = true;
+              try {
+                await apiJson("/api/mcp/disable", {
+                  method: "POST",
+                  token: state.token,
+                });
+                toast("MCP disabled");
+                closeConfirm();
+                clearMcpTokenBox();
+                await refreshMcpStatus();
+              } catch (err) {
+                setMcpError(String(err?.message || err));
+                toast(`Disable MCP failed: ${String(err?.message || err)}`, "error");
+              } finally {
+                okBtn.disabled = false;
+                renderMcpPanel();
+              }
+            },
           });
-
-          const token = res && typeof res.token === "string" ? res.token.trim() : "";
-          showMcpTokenBox(token);
-          toast("MCP enabled");
-          await refreshMcpStatus();
-        } catch (err) {
-          setMcpError(String(err?.message || err));
-          toast(`Enable MCP failed: ${String(err?.message || err)}`, "error");
-        } finally {
-          btn.disabled = false;
-          renderMcpPanel();
         }
       });
 
+      // MCP rotate
       $("mcpRotateBtn").addEventListener("click", async () => {
         if (!state.token) return;
         setMcpError("");
@@ -3033,7 +3466,6 @@
             method: "POST",
             token: state.token,
           });
-
           const token = res && typeof res.token === "string" ? res.token.trim() : "";
           showMcpTokenBox(token);
           toast("MCP token rotated");
@@ -3047,52 +3479,36 @@
         }
       });
 
-      $("mcpDisableBtn").addEventListener("click", () => {
-        if (!state.token) return;
-        setMcpError("");
-
-        openConfirm({
-          title: "Disable MCP",
-          body: "Disable MCP and revoke the MCP token? MCP clients will lose access until you enable MCP again.",
-          okText: "Disable",
-          onConfirm: async () => {
-            const okBtn = $("confirmOkBtn");
-            okBtn.disabled = true;
-            try {
-              await apiJson("/api/mcp/disable", {
-                method: "POST",
-                token: state.token,
-              });
-              toast("MCP disabled");
-              closeConfirm();
-              clearMcpTokenBox();
-              await refreshMcpStatus();
-            } catch (err) {
-              setMcpError(String(err?.message || err));
-              toast(`Disable MCP failed: ${String(err?.message || err)}`, "error");
-            } finally {
-              okBtn.disabled = false;
-              renderMcpPanel();
-            }
-          },
-        });
-      });
-
+      // MCP copy token
       $("mcpCopyTokenBtn").addEventListener("click", () => {
         if (!state.mcpLastToken) return;
         copyText(state.mcpLastToken, "MCP token copied");
       });
 
-      $("mcpCopyCmdBtn").addEventListener("click", () => {
-        const cmd = String($("mcpClaudeCmd")?.textContent || "").trim();
-        if (!cmd || cmd === "-") return;
-        copyText(cmd, "Command copied");
+      // MCP guide tabs
+      $("mcpTabs").addEventListener("click", (e) => {
+        const tab = e.target.closest(".mcp-tab");
+        if (!tab) return;
+        const tabId = tab.dataset.tab;
+        if (!tabId) return;
+        $("mcpTabs").querySelectorAll(".mcp-tab").forEach((t) => t.classList.toggle("active", t === tab));
+        $("mcpGuide").querySelectorAll(".mcp-panel").forEach((p) => p.classList.toggle("active", p.id === `tab-${tabId}`));
       });
 
-      $("mcpCopyPromptBtn").addEventListener("click", () => {
-        const prompt = String($("mcpInstallPrompt")?.textContent || "").trim();
-        if (!prompt || prompt === "-") return;
-        copyText(prompt, "Install prompt copied");
+      // Copy buttons in guide
+      document.querySelectorAll(".mcp-guide .copy-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.dataset.copy;
+          const directText = btn.dataset.copyText;
+          const text = directText || String($(targetId)?.textContent || "").trim();
+          if (!text || text === "-") return;
+          copyText(text, "Copied");
+        });
+      });
+
+      // Guide rotate button (in token-missing warning)
+      $("guideRotateBtn")?.addEventListener("click", () => {
+        $("mcpRotateBtn").click();
       });
 
       $("docCloseBtn").addEventListener("click", () => {

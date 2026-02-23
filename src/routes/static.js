@@ -26,7 +26,6 @@ export const handleStaticRequest = async ({
   response,
   pathname,
   indexFilePath,
-  mcpFilePath,
   mcpSkillFilePath,
 }) => {
   // --- Static pages ---
@@ -37,10 +36,6 @@ export const handleStaticRequest = async ({
   try {
     if (pathname === "/" || pathname === "/index.html") {
       await serveHtml(response, indexFilePath);
-    }
-
-    if (pathname === "/mcp.html") {
-      await serveHtml(response, mcpFilePath);
     }
 
     if (pathname === "/focus-compass-skill.md") {

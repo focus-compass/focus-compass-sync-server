@@ -37,7 +37,6 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 
 **Static Routes**:
 - `/` or `/index.html` - Admin UI (see `src/index.html`)
-- `/mcp.html` - MCP help/setup page
 - `/focus-compass-skill.md` - Claude Code skill template
 
 **Healthcheck**:
@@ -84,7 +83,7 @@ Notes:
 - Request body is limited to 1 MiB.
 - MCP uses a separate token (`MCP_TOKEN`) and is disabled by default unless configured.
 - Enable/rotate/disable MCP from the admin UI (`/`) or via `/api/mcp/*` endpoints (master token required).
-- A small help page is available at `/mcp.html`.
+- MCP setup guide is integrated into the admin UI (`/`).
 
 **MCP Tools** (read-only):
 - `list_documents` - List all documents/workspaces with summary info
@@ -99,6 +98,10 @@ Notes:
 claude mcp add --transport http focus-compass http://localhost:8080/mcp \
   --header "Authorization: Bearer YOUR_MCP_TOKEN"
 ```
+
+## Verification
+
+Do NOT start the dev server or take screenshots to verify UI changes. Run `npm run lint` for code quality checks — that is sufficient. The project has no typecheck or test suite.
 
 ## Client Connection Example
 

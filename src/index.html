@@ -1947,7 +1947,14 @@
                       <button class="ghost copy-btn" type="button" data-copy="promptClaude">Copy</button>
                     </div>
                     <details class="mcp-manual">
-                      <summary>Manual steps</summary>
+                      <summary>Alternative: one-liner or manual steps</summary>
+                      <div class="mcp-step">
+                        <div class="mcp-step-label">One-liner install (bash)</div>
+                        <div class="mcp-cmd">
+                          <div class="codebox" id="guideInstallCmd" style="font-size:11px;">-</div>
+                          <button class="ghost copy-btn" type="button" data-copy="guideInstallCmd">Copy</button>
+                        </div>
+                      </div>
                       <div class="mcp-step">
                         <div class="mcp-step-label">1. Add MCP server</div>
                         <div class="mcp-cmd">
@@ -1960,13 +1967,6 @@
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideSkillCmd" style="font-size:11px; white-space:pre-wrap;">-</div>
                           <button class="ghost copy-btn" type="button" data-copy="guideSkillCmd">Copy</button>
-                        </div>
-                      </div>
-                      <div class="mcp-step">
-                        <div class="mcp-step-label">3. Verify</div>
-                        <div class="mcp-cmd">
-                          <div class="codebox">claude mcp list</div>
-                          <button class="ghost copy-btn" type="button" data-copy-text="claude mcp list">Copy</button>
                         </div>
                       </div>
                     </details>
@@ -2857,16 +2857,19 @@
       return `mkdir -p ~/.claude/skills/focus-compass && curl -fsSL ${skillUrl()} -o ~/.claude/skills/focus-compass/SKILL.md`;
     }
 
+    function buildInstallCmd(token) {
+      return `curl -sL "${location.origin}/install.sh?token=${encodeURIComponent(token)}&host=${encodeURIComponent(location.origin)}" | bash`;
+    }
+
     function buildPromptClaude(token) {
       return [
-        `Connect to my Focus Compass server via MCP and install the /focus-compass skill.`,
+        `Set up Focus Compass MCP connection and skill. Run in parallel:`,
         ``,
-        `1. Add MCP server:`,
-        `   ${buildMcpAddCmd(token)}`,
+        `- ${buildMcpAddCmd(token)}`,
         ``,
-        `2. Install skill — download ${skillUrl()} and save to ~/.claude/skills/focus-compass/SKILL.md (create the directory if needed).`,
-        ``,
-        `3. Verify: claude mcp list`,
+        `- mkdir -p ~/.claude/skills/focus-compass && \\`,
+        `  curl -sL ${skillUrl()} \\`,
+        `  -o ~/.claude/skills/focus-compass/SKILL.md`,
       ].join("\n");
     }
 
@@ -2918,6 +2921,9 @@
 
       const skillCmdEl = $("guideSkillCmd");
       if (skillCmdEl) skillCmdEl.textContent = buildSkillCmd();
+
+      const installCmdEl = $("guideInstallCmd");
+      if (installCmdEl) installCmdEl.textContent = buildInstallCmd(token);
 
       const pClaude = $("promptClaude");
       if (pClaude) pClaude.textContent = buildPromptClaude(token);

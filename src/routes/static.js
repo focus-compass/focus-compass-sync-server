@@ -21,10 +21,46 @@ const serveTextFile = async (response, filePath, contentType = "text/plain") => 
   throw null;
 };
 
+const serveInstallScript = (request, response, url) => {
+  const { searchParams } = url;
+  const token = searchParams.get("token") || "YOUR_MCP_TOKEN";
+  const reqHost = request.headers.host || "localhost:8080";
+  const proto = request.headers["x-forwarded-proto"] || "http";
+  const host = searchParams.get("host") || `${proto}://${reqHost}`;
+
+  const script = [
+    "#!/usr/bin/env bash",
+    "set -euo pipefail",
+    "",
+    `HOST="${host}"`,
+    `TOKEN="${token}"`,
+    "",
+    "# Add MCP server",
+    'claude mcp add --transport http focus-compass "$HOST/mcp" \\',
+    '  --header "Authorization: Bearer $TOKEN"',
+    "",
+    "# Install /focus-compass skill",
+    "mkdir -p ~/.claude/skills/focus-compass",
+    'curl -sL "$HOST/focus-compass-skill.md" \\',
+    "  -o ~/.claude/skills/focus-compass/SKILL.md",
+    "",
+    'echo "Done. Try: /focus-compass"',
+    "",
+  ].join("\n");
+
+  response.writeHead(200, {
+    "Content-Type": "text/x-shellscript; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  response.end(script);
+  throw null;
+};
+
 export const handleStaticRequest = async ({
   request,
   response,
   pathname,
+  url,
   indexFilePath,
   mcpSkillFilePath,
 }) => {
@@ -40,6 +76,10 @@ export const handleStaticRequest = async ({
 
     if (pathname === "/focus-compass-skill.md") {
       await serveTextFile(response, mcpSkillFilePath, "text/markdown");
+    }
+
+    if (pathname === "/install.sh") {
+      serveInstallScript(request, response, url);
     }
 
     text(response, 404, "Not Found");

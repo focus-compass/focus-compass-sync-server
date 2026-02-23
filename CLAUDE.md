@@ -38,6 +38,7 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 **Static Routes**:
 - `/` or `/index.html` - Admin UI (see `src/index.html`)
 - `/focus-compass-skill.md` - Claude Code skill template
+- `/install.sh?token=TOKEN&host=ORIGIN` - One-liner setup script (bash)
 
 **Healthcheck**:
 - `GET /health` (health-check) - Returns `{ ok: true }`

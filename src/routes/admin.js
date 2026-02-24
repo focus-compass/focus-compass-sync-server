@@ -12,7 +12,7 @@ import { json } from "../lib/responses.js";
 import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
 const BACKUP_FILE_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
-const DEFAULT_MAX_DOC_DECODE_BYTES = 8 * 1024 * 1024;
+const DEFAULT_MAX_DOC_DECODE_BYTES = 128 * 1024 * 1024;
 
 const parseBool = (value, defaultValue) => {
   if (value === null || value === undefined) return defaultValue;

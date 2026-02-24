@@ -102,7 +102,7 @@ MAX_UPLOAD_BYTES=10485760
 
 # Max Yjs document size decoded by REST/MCP read endpoints (bytes)
 # Increase only if you need to inspect very large documents.
-MAX_DOC_DECODE_BYTES=8388608
+MAX_DOC_DECODE_BYTES=134217728
 
 # CORS (comma-separated allowlist or '*')
 CORS_ALLOW_ORIGINS=*

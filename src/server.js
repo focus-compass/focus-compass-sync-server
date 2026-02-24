@@ -78,7 +78,7 @@ const BACKUP_INTERVAL_MINUTES = readNumberEnv("BACKUP_INTERVAL_MINUTES", 60);
 const BACKUP_RETENTION_DAYS = readNumberEnv("BACKUP_RETENTION_DAYS", 7);
 
 const MAX_UPLOAD_BYTES = readNumberEnv("MAX_UPLOAD_BYTES", 10 * 1024 * 1024);
-const MAX_DOC_DECODE_BYTES = readNumberEnv("MAX_DOC_DECODE_BYTES", 8 * 1024 * 1024);
+const MAX_DOC_DECODE_BYTES = readNumberEnv("MAX_DOC_DECODE_BYTES", 128 * 1024 * 1024);
 
 const YJS_GC = readBoolEnv("YJS_GC", false);
 

@@ -9,6 +9,28 @@ context: fork
 
 Use the `focus-compass` MCP server to answer the user's request about their Focus Compass workspaces and projects.
 
+## Critical: error handling
+
+**After EVERY MCP tool call, check the response for errors before doing anything else.**
+
+MCP errors appear in two ways:
+1. The tool call itself fails (connection refused, timeout, etc.)
+2. The tool returns JSON containing an `"error"` field or `"code"` field
+
+**If you see ANY error, you MUST immediately tell the user what went wrong.** Do NOT silently skip the error or continue as if nothing happened. Always show the error clearly.
+
+Known error codes and what to tell the user:
+
+| Error | User-facing message |
+|-------|-------------------|
+| Connection refused / timeout | "Focus Compass server is not running. Start it and try again." |
+| "MCP is disabled" | "MCP is disabled on the server. Enable it in the admin UI." |
+| "Unauthorized" or 401 | "MCP token is invalid. Rotate it in the admin UI and update your Claude MCP config." |
+| `SQLITE_CANTOPEN` or "Database not found" | "Database not found. Sync data from the Focus Compass app first." |
+| `SQLITE_BUSY` / `retryable: true` | Retry the call once. If it fails again, tell the user: "Database is busy. Try again in a few seconds." |
+| `DOC_TOO_LARGE` | "Workspace is too large to decode (**SIZE** bytes, limit is **LIMIT** bytes). Increase `MAX_DOC_DECODE_BYTES` on the server and restart." Then try the fallback: call `list_projects` to get project IDs, and use `get_project` for each one individually. |
+| Any other error | Show the raw error message to the user so they can debug it. |
+
 ## Workflow
 
 1. Call `list_documents` to discover available workspaces.
@@ -24,15 +46,6 @@ Use the `focus-compass` MCP server to answer the user's request about their Focu
 - Keep output concise and human-readable. Do not paste raw JSON unless the user asks.
 - Use short bullet lists or tables for multiple projects.
 - Highlight the current focus task for each project.
-
-## Error handling
-
-If any MCP call returns an error:
-- "MCP is disabled" — tell the user to enable MCP in the admin UI at the server address.
-- "Unauthorized" — tell the user to check their MCP token (rotate from the admin UI if needed).
-- "Database not found" or "SQLITE_CANTOPEN" — tell the user to sync data from the Focus Compass app first.
-- Connection refused / timeout — tell the user to check that the Focus Compass server is running.
-- "Database is busy" with `retryable: true` — retry the call once after a short pause.
 
 ## First run
 

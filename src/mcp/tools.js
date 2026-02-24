@@ -10,7 +10,7 @@ import { transformProject, transformWorkspace } from "../yjs/workspace.js";
 
 const MAX_DOC_NAME_LENGTH = 512;
 const MAX_PROJECT_ID_LENGTH = 256;
-const DEFAULT_MAX_DOC_DECODE_BYTES = 8 * 1024 * 1024;
+const DEFAULT_MAX_DOC_DECODE_BYTES = 128 * 1024 * 1024;
 
 const toByteLength = (rawSize) => {
   const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);

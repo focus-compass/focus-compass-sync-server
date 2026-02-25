@@ -276,6 +276,20 @@ const extractLastUpdatedAtFromRoot = (root) => {
   return bestMs != null ? new Date(bestMs).toISOString() : null;
 };
 
+export const getDocMetaFromYDoc = (ydoc) => {
+  try {
+    const root = getRootSharedType(ydoc);
+    const workspace = extractWorkspaceFromRoot(root);
+    const projectCount = extractProjectCountFromRoot(root);
+    return {
+      workspaceName: workspace?.name ?? null,
+      projectCount: projectCount ?? 0,
+    };
+  } catch {
+    return { workspaceName: null, projectCount: 0 };
+  }
+};
+
 export const getWorkspaceSummary = (data) => {
   const update = toUint8Array(data);
   const ydoc = new Y.Doc();

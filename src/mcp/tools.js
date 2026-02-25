@@ -128,7 +128,7 @@ const documentsTableExists = (db) =>
 
 export const registerTools = (
   server,
-  { dbPath, maxDocDecodeBytes = DEFAULT_MAX_DOC_DECODE_BYTES },
+  { dbPath, maxDocDecodeBytes = DEFAULT_MAX_DOC_DECODE_BYTES, docMetaCache },
 ) => {
   // ── list_documents ─────────────────────────────────────────────
   server.tool(
@@ -146,17 +146,22 @@ export const registerTools = (
         if (!documentsTableExists(db)) return [];
 
         const docs = [];
-        const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
 
         if (!includeSummaries) {
+          const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
           for (const row of stmt.iterate()) {
+            const cached = docMetaCache?.get(row.name);
             docs.push({
               name: row.name,
+              workspaceName: cached?.workspaceName ?? null,
+              projectCount: cached?.projectCount ?? 0,
               dataSize: toByteLength(row?.dataSize),
             });
           }
           return docs;
         }
+
+        const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
 
         const dataStmt = db.prepare("SELECT data FROM documents WHERE name = ?");
 

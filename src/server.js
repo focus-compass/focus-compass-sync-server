@@ -23,6 +23,8 @@ import { handleMcpAdminRequest } from "./routes/mcpAdmin.js";
 import { handleStaticRequest } from "./routes/static.js";
 import { handleWorkspaceRequest } from "./routes/workspace.js";
 import { BackupService } from "./services/backup.js";
+import { DocMetaCache } from "./services/docMeta.js";
+import { getDocMetaFromYDoc } from "./yjs/inspect.js";
 
 const port = readNumberEnv("PORT", 8080);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -111,6 +113,10 @@ await mkdir(dirname(DB_PATH), { recursive: true });
 await mkdir(IMAGES_DIR, { recursive: true });
 await mkdir(UPLOAD_TMP_DIR, { recursive: true });
 
+const DOC_META_PATH = join(dirname(DB_PATH), "doc-meta.json");
+const docMetaCache = new DocMetaCache({ filePath: DOC_META_PATH });
+await docMetaCache.load();
+
 const backupService = new BackupService({
   dbPath: DB_PATH,
   backupDir: BACKUP_DIR,
@@ -160,8 +166,17 @@ const server = new Server({
     return { user: { role: "demo" } };
   },
 
-  async onStoreDocument() {
+  async onStoreDocument({ documentName, document }) {
     await backupService.tryBackup();
+    try {
+      const meta = getDocMetaFromYDoc(document);
+      docMetaCache.set(documentName, {
+        workspaceName: meta.workspaceName,
+        projectCount: meta.projectCount,
+      });
+    } catch {
+      // Non-critical — metadata will be populated on next store
+    }
   },
 
   async onRequest({ request, response }) {
@@ -246,6 +261,7 @@ const server = new Server({
         dbPath: DB_PATH,
         appVersion,
         maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
+        docMetaCache,
         getToken: getMcpToken,
         checkAuth: isMcpAuthed,
       });

@@ -95,6 +95,7 @@ export const handleMcpRequest = async ({
   dbPath,
   appVersion,
   maxDocDecodeBytes,
+  docMetaCache,
   getToken,
   checkAuth,
 }) => {
@@ -160,7 +161,7 @@ export const handleMcpRequest = async ({
     response.setHeader("Cache-Control", "no-store");
 
     // Create fresh MCP server + transport per request (stateless pattern)
-    server = createMcpServer({ dbPath, appVersion, maxDocDecodeBytes });
+    server = createMcpServer({ dbPath, appVersion, maxDocDecodeBytes, docMetaCache });
     transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

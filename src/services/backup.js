@@ -1,5 +1,7 @@
-import { mkdir, readdir, stat, unlink, copyFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, unlink, copyFile } from "node:fs/promises";
 import { join } from "node:path";
+
+const BACKUP_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
 
 /**
  * Service to handle SQLite database backups.
@@ -12,12 +14,14 @@ export class BackupService {
      * @param {string} [config.backupDir="./backups"] - Directory to store backups
      * @param {number} [config.intervalMinutes=60] - Minimum interval between backups in minutes
      * @param {number} [config.retentionDays=7] - Days to keep backups
+     * @param {string|null} [config.settingsFilePath=null] - Path to backup-settings.json
      */
     constructor(config) {
         this.dbPath = config.dbPath;
         this.backupDir = config.backupDir ?? "./backups";
         this.intervalMinutes = config.intervalMinutes ?? 60;
         this.retentionDays = config.retentionDays ?? 7;
+        this.settingsFilePath = config.settingsFilePath ?? null;
 
         this.lastBackupTime = 0;
         this.isBackingUp = false;
@@ -93,32 +97,111 @@ export class BackupService {
         }
     }
 
+    async _readSettings() {
+        if (!this.settingsFilePath) return null;
+        try {
+            const raw = await readFile(this.settingsFilePath, "utf-8");
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === "object" ? parsed : null;
+        } catch {
+            return null;
+        }
+    }
+
+    async _deleteBackup(filePath) {
+        await unlink(filePath);
+        for (const suffix of ["-wal", "-shm", "-journal"]) {
+            try {
+                await unlink(`${filePath}${suffix}`);
+            } catch (error) {
+                if (error?.code === "ENOENT") continue;
+            }
+        }
+    }
+
+    async _sizeOfBackup(filePath) {
+        let total = 0;
+        const mainStats = await stat(filePath).catch(() => null);
+        if (mainStats) total += mainStats.size;
+        for (const suffix of ["-wal", "-shm", "-journal"]) {
+            const s = await stat(`${filePath}${suffix}`).catch(() => null);
+            if (s) total += s.size;
+        }
+        return total;
+    }
+
+    async _listBackupEntries() {
+        const files = await readdir(this.backupDir);
+        const entries = [];
+        for (const file of files) {
+            if (!BACKUP_RE.test(file)) continue;
+            const filePath = join(this.backupDir, file);
+            const stats = await stat(filePath).catch(() => null);
+            if (!stats?.isFile?.()) continue;
+            const totalSize = await this._sizeOfBackup(filePath);
+            entries.push({ file, filePath, mtimeMs: stats.mtimeMs, totalSize });
+        }
+        // Sort oldest first for cleanup (delete from the beginning)
+        entries.sort((a, b) => a.mtimeMs - b.mtimeMs);
+        return entries;
+    }
+
     async _cleanOldBackups() {
         try {
-            const files = await readdir(this.backupDir);
+            const settings = await this._readSettings();
+            const limitMode = settings?.mode || "none";
+            const limitValue = Number(settings?.value);
+            const hasLimit = limitMode !== "none" && Number.isFinite(limitValue) && limitValue > 0;
+
+            // Build a full list of backups sorted oldest-first
+            let entries = await this._listBackupEntries();
+
+            // Phase 1: retention-days cleanup (skip entries that a count/size limit will keep)
             const retentionMs = this.retentionDays * 24 * 60 * 60 * 1000;
             const now = Date.now();
 
-            for (const file of files) {
-                if (!file.endsWith(".sqlite")) continue;
-
-                const filePath = join(this.backupDir, file);
-                const stats = await stat(filePath);
-
-                if (now - stats.mtimeMs > retentionMs) {
-                    await unlink(filePath);
-
-                    // Remove possible WAL/SHM sidecars for this backup
-                    const sidecars = [`${filePath}-wal`, `${filePath}-shm`, `${filePath}-journal`];
-                    for (const sidecarPath of sidecars) {
-                        try {
-                            await unlink(sidecarPath);
-                        } catch (error) {
-                            if (error?.code === "ENOENT") continue;
-                        }
+            if (retentionMs > 0) {
+                const toDelete = [];
+                for (const entry of entries) {
+                    if (now - entry.mtimeMs > retentionMs) {
+                        toDelete.push(entry);
                     }
+                }
 
-                    // Intentionally quiet on cleanup success.
+                // When a count limit is active, never delete more than would
+                // bring us below the allowed count via retention alone.
+                if (hasLimit && limitMode === "count") {
+                    while (entries.length - toDelete.length < limitValue && toDelete.length > 0) {
+                        toDelete.pop(); // spare the newest of the expired batch
+                    }
+                }
+
+                for (const entry of toDelete) {
+                    await this._deleteBackup(entry.filePath);
+                }
+
+                // Rebuild entries list after retention cleanup
+                if (toDelete.length > 0) {
+                    const deletedPaths = new Set(toDelete.map((e) => e.filePath));
+                    entries = entries.filter((e) => !deletedPaths.has(e.filePath));
+                }
+            }
+
+            // Phase 2: enforce user-configured limits (trim oldest first)
+            if (!hasLimit) return;
+
+            if (limitMode === "count") {
+                while (entries.length > limitValue) {
+                    const oldest = entries.shift();
+                    await this._deleteBackup(oldest.filePath);
+                }
+            } else if (limitMode === "size") {
+                let totalBytes = entries.reduce((sum, e) => sum + e.totalSize, 0);
+                // Always keep at least 1 backup even if it exceeds the size limit
+                while (totalBytes > limitValue && entries.length > 1) {
+                    const oldest = entries.shift();
+                    await this._deleteBackup(oldest.filePath);
+                    totalBytes -= oldest.totalSize;
                 }
             }
         } catch (error) {

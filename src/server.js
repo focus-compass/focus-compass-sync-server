@@ -78,6 +78,7 @@ let mcpToken = envMcpToken || persistedMcpToken || "";
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
 const BACKUP_INTERVAL_MINUTES = readNumberEnv("BACKUP_INTERVAL_MINUTES", 60);
 const BACKUP_RETENTION_DAYS = readNumberEnv("BACKUP_RETENTION_DAYS", 7);
+const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB_PATH), "backup-settings.json");
 
 const MAX_UPLOAD_BYTES = readNumberEnv("MAX_UPLOAD_BYTES", 10 * 1024 * 1024);
 const MAX_DOC_DECODE_BYTES = readNumberEnv("MAX_DOC_DECODE_BYTES", 128 * 1024 * 1024);
@@ -122,6 +123,7 @@ const backupService = new BackupService({
   backupDir: BACKUP_DIR,
   intervalMinutes: BACKUP_INTERVAL_MINUTES,
   retentionDays: BACKUP_RETENTION_DAYS,
+  settingsFilePath: BACKUP_SETTINGS_PATH,
 });
 
 const server = new Server({
@@ -240,8 +242,10 @@ const server = new Server({
         pathname,
         dbPath: DB_PATH,
         backupDir: BACKUP_DIR,
+        backupSettingsPath: BACKUP_SETTINGS_PATH,
         checkAuth: isAuthed,
         maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
+        docMetaCache,
       });
 
       await handleWorkspaceRequest({

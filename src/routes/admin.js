@@ -1,13 +1,16 @@
-import { readdir } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { readdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { pipeline } from "node:stream/promises";
 import {
   badRequest,
   internalServerError,
   notFound,
   payloadTooLarge,
+  unsupportedMediaType,
 } from "../lib/api.js";
 import { decodeDocName, ensureDbExistsOr404, requireAuth, withDb } from "../lib/db.js";
-import { statOrNull } from "../lib/fs.js";
+import { readJsonOrNull, statOrNull } from "../lib/fs.js";
 import { json } from "../lib/responses.js";
 import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
@@ -121,6 +124,34 @@ const getDocumentMetaOrNull = (db, docName) =>
 const getDocumentDataOrNull = (db, docName) =>
   db.prepare("SELECT data FROM documents WHERE name = ?").get(docName) ?? null;
 
+/**
+ * Return cached doc metadata, lazily decoding from binary if workspaceName is missing.
+ * Returns the cached entry (or null) — never throws.
+ */
+const ensureCachedMeta = (cache, dataStmt, name, dataSize, maxDocDecodeBytes) => {
+  if (!cache) return null;
+  const existing = cache.get(name);
+  if (existing?.workspaceName) return existing;
+  if (dataSize <= 0 || isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) return existing;
+
+  try {
+    const dataRow = dataStmt?.get(name);
+    if (!dataRow?.data) return existing;
+
+    const summary = getWorkspaceSummary(dataRow.data);
+    const wName = summary.workspace?.name ?? null;
+    if (!wName) return existing;
+
+    cache.set(name, {
+      workspaceName: wName,
+      projectCount: summary.projectCount ?? existing?.projectCount ?? 0,
+    });
+    return cache.get(name);
+  } catch {
+    return existing;
+  }
+};
+
 const handleDbInfo = async ({
   request,
   response,
@@ -128,6 +159,7 @@ const handleDbInfo = async ({
   dbPath,
   checkAuth,
   maxDocDecodeBytes = DEFAULT_MAX_DOC_DECODE_BYTES,
+  docMetaCache,
 }) => {
   requireAuth(request, response, checkAuth);
 
@@ -197,10 +229,23 @@ const handleDbInfo = async ({
 
       if (!includeSummaries) {
         const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
+        const dataStmt = docMetaCache
+          ? db.prepare("SELECT data FROM documents WHERE name = ?")
+          : null;
+
         for (const row of stmt.iterate()) {
           const dataSize = toByteLength(row?.dataSize);
           totalDataSize += dataSize;
-          documents.push({ name: row.name, dataSize });
+
+          const cached = ensureCachedMeta(
+            docMetaCache, dataStmt, row.name, dataSize, maxDocDecodeBytes,
+          );
+
+          documents.push({
+            name: row.name,
+            workspaceName: cached?.workspaceName ?? null,
+            dataSize,
+          });
         }
 
         json(response, 200, {
@@ -279,6 +324,121 @@ const handleBackups = async ({ request, response, backupDir, checkAuth }) => {
     if (err === null) throw null;
     console.error("Admin backups error:", err);
     internalServerError(response, "Failed to read backups");
+  }
+};
+
+const readJsonBody = async (request, response, maxBytes = 8192) => {
+  const contentType = String(request.headers["content-type"] ?? "").toLowerCase();
+  if (contentType && !contentType.includes("application/json")) {
+    return unsupportedMediaType(response, "Expected application/json");
+  }
+
+  let total = 0;
+  const chunks = [];
+
+  try {
+    for await (const chunk of request) {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += buf.length;
+      if (total > maxBytes) {
+        return badRequest(response, "Request body too large");
+      }
+      chunks.push(buf);
+    }
+  } catch {
+    return badRequest(response, "Failed to read request body");
+  }
+
+  if (!chunks.length) return {};
+  const raw = Buffer.concat(chunks).toString("utf-8").trim();
+  if (!raw) return {};
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return badRequest(response, "Invalid JSON");
+  }
+};
+
+const handleBackupDownload = async ({ request, response, backupDir, checkAuth, file }) => {
+  requireAuth(request, response, checkAuth);
+
+  const sanitized = sanitizeBackupFile(file, response);
+  if (!sanitized) {
+    badRequest(response, "Invalid backup file");
+  }
+
+  const filePath = join(backupDir, sanitized);
+  const stats = await statOrNull(filePath);
+  if (!stats || !stats.isFile()) {
+    notFound(response, "Backup not found");
+  }
+
+  response.writeHead(200, {
+    "Content-Type": "application/octet-stream",
+    "Content-Length": stats.size,
+    "Content-Disposition": `attachment; filename="${sanitized}"`,
+    "Cache-Control": "no-store",
+  });
+
+  try {
+    await pipeline(createReadStream(filePath), response);
+  } catch (error) {
+    if (error?.code === "ERR_STREAM_PREMATURE_CLOSE" || error?.code === "ECONNRESET") {
+      throw null;
+    }
+    console.error("Backup download stream error:", error);
+  }
+
+  throw null;
+};
+
+const handleGetBackupSettings = async ({ request, response, backupSettingsPath, checkAuth }) => {
+  requireAuth(request, response, checkAuth);
+
+  try {
+    const settings = await readJsonOrNull(backupSettingsPath);
+    const mode = settings && typeof settings.mode === "string" ? settings.mode : "none";
+    const value = settings && Number.isFinite(settings.value) ? settings.value : 0;
+    json(response, 200, { mode, value });
+  } catch (err) {
+    if (err === null) throw null;
+    console.error("Admin backup-settings read error:", err);
+    internalServerError(response, "Failed to read backup settings");
+  }
+};
+
+const handlePutBackupSettings = async ({ request, response, backupSettingsPath, checkAuth }) => {
+  requireAuth(request, response, checkAuth);
+
+  try {
+    const body = await readJsonBody(request, response);
+    const mode = typeof body.mode === "string" ? body.mode.trim() : "";
+
+    if (!["none", "count", "size"].includes(mode)) {
+      badRequest(response, 'Invalid mode. Must be "none", "count", or "size".');
+    }
+
+    let value = 0;
+    if (mode !== "none") {
+      value = Number(body.value);
+      if (!Number.isFinite(value) || value <= 0) {
+        badRequest(response, "Value must be a positive number");
+      }
+      if (mode === "count") {
+        value = Math.floor(value);
+      }
+    }
+
+    const payload = { mode, value, updatedAt: new Date().toISOString() };
+    await writeFile(backupSettingsPath, `${JSON.stringify(payload, null, 2)}\n`, "utf-8");
+
+    json(response, 200, { mode, value });
+  } catch (err) {
+    if (err === null) throw null;
+    console.error("Admin backup-settings write error:", err);
+    internalServerError(response, "Failed to save backup settings");
   }
 };
 
@@ -408,8 +568,10 @@ export const handleAdminRequest = async ({
   pathname,
   dbPath,
   backupDir,
+  backupSettingsPath,
   checkAuth,
   maxDocDecodeBytes,
+  docMetaCache,
 }) => {
   if (request.method === "GET" && pathname === "/api/admin/db-info") {
     await handleDbInfo({
@@ -419,6 +581,7 @@ export const handleAdminRequest = async ({
       dbPath,
       checkAuth,
       maxDocDecodeBytes,
+      docMetaCache,
     });
     return;
   }
@@ -426,6 +589,29 @@ export const handleAdminRequest = async ({
   if (request.method === "GET" && pathname === "/api/admin/backups") {
     await handleBackups({ request, response, backupDir, checkAuth });
     return;
+  }
+
+  const downloadMatch = pathname.match(/^\/api\/admin\/backups\/([^/]+)\/download$/);
+  if (request.method === "GET" && downloadMatch) {
+    await handleBackupDownload({
+      request,
+      response,
+      backupDir,
+      checkAuth,
+      file: decodeURIComponent(downloadMatch[1]),
+    });
+    return;
+  }
+
+  if (pathname === "/api/admin/backup-settings") {
+    if (request.method === "GET") {
+      await handleGetBackupSettings({ request, response, backupSettingsPath, checkAuth });
+      return;
+    }
+    if (request.method === "PUT") {
+      await handlePutBackupSettings({ request, response, backupSettingsPath, checkAuth });
+      return;
+    }
   }
 
   const match = pathname.match(/^\/api\/admin\/documents\/([^/]+)$/);

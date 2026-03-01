@@ -87,6 +87,7 @@
         var(--bg);
       background-attachment: fixed;
       overflow-x: hidden;
+      scrollbar-gutter: stable;
     }
 
     a {
@@ -870,6 +871,204 @@
       letter-spacing: -0.01em;
     }
 
+    .storage-card-clickable {
+      cursor: pointer;
+      transition: border-color 120ms, background 120ms;
+    }
+
+    .storage-card-clickable:hover {
+      border-color: var(--primary-a30);
+      background: var(--primary-a04);
+    }
+
+    .backup-settings {
+      margin-bottom: 4px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      display: grid;
+      gap: 10px;
+    }
+
+    .backup-settings-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .backup-settings-row label {
+      font-size: 13px;
+      font-weight: 600;
+      min-width: 110px;
+    }
+
+    .backup-settings-row select,
+    .backup-settings-row input[type="number"] {
+      font-family: var(--ui);
+      font-size: 13px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background-color: var(--surface);
+      color: var(--text);
+      color-scheme: light;
+    }
+
+    .backup-settings-row select {
+      min-width: 160px;
+    }
+
+    .backup-settings-row select:focus,
+    .backup-settings-row input[type="number"]:focus {
+      outline: none;
+      box-shadow: var(--focus-ring);
+      border-color: var(--primary);
+    }
+
+    .backup-settings-unit {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .backup-settings-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .backup-settings-ok {
+      font-size: 12px;
+      color: var(--ok);
+    }
+
+    .backup-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+
+    .backup-item + .backup-item {
+      margin-top: 6px;
+    }
+
+    .backup-item-info {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .backup-item-date {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .backup-item-file {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--code);
+      word-break: break-all;
+    }
+
+    .backup-item-size {
+      font-family: var(--ui);
+      font-size: 14px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
+    .detail-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .detail-back-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .image-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+
+    .image-item + .image-item {
+      margin-top: 6px;
+    }
+
+    .image-item-thumb {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: var(--surface-2);
+      flex-shrink: 0;
+    }
+
+    .image-item-thumb-placeholder {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      background: var(--surface-2);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+    }
+
+    .image-item-thumb-placeholder svg {
+      width: 20px;
+      height: 20px;
+      opacity: 0.4;
+    }
+
+    .image-item-info {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .image-item-date {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .image-item-id {
+      font-size: 12px;
+      font-family: var(--code);
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .image-item-size {
+      font-family: var(--ui);
+      font-size: 14px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
     .storage-hint {
       margin-top: auto;
     }
@@ -1274,8 +1473,24 @@
       min-width: 0;
     }
 
+    .item-title-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
     .item-title strong {
       min-width: 0;
+    }
+
+    .item-title .item-id {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--code);
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .item-linkmark {
@@ -1841,7 +2056,7 @@
                 </div>
                 <div class="panel-body storage-body">
                   <div class="storage-cards">
-                    <div class="storage-card">
+                    <div class="storage-card storage-card-clickable" id="databaseCard">
                       <div class="storage-card-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                           <ellipse cx="12" cy="5" rx="9" ry="3"/>
@@ -1855,7 +2070,7 @@
                       </div>
                       <div class="storage-card-size" id="statDb">-</div>
                     </div>
-                    <div class="storage-card">
+                    <div class="storage-card storage-card-clickable" id="backupsCard">
                       <div class="storage-card-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -1869,7 +2084,7 @@
                       </div>
                       <div class="storage-card-size" id="statBackupsSize">-</div>
                     </div>
-                    <div class="storage-card">
+                    <div class="storage-card storage-card-clickable" id="imagesCard">
                       <div class="storage-card-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                           <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
@@ -2034,6 +2249,92 @@
               </div>
             </div>
           </section>
+
+          <section class="step" id="step-database">
+            <div class="row one-col">
+              <div class="panel">
+                <div class="panel-head">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <button class="ghost small detail-back-btn" id="databaseBackBtn" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                      Back
+                    </button>
+                    <div>
+                      <h2>Workspaces</h2>
+                      <div class="panel-sub" id="docsSubDetail">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="panel-body">
+                  <div class="list" id="docListDetail"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="step" id="step-images">
+            <div class="row one-col">
+              <div class="panel">
+                <div class="panel-head">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <button class="ghost small detail-back-btn" id="imagesBackBtn" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                      Back
+                    </button>
+                    <div>
+                      <h2>Images</h2>
+                      <div class="panel-sub" id="imagesSub">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="panel-body">
+                  <div id="imageList"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="step" id="step-backups">
+            <div class="row one-col">
+              <div class="panel">
+                <div class="panel-head">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <button class="ghost small detail-back-btn" id="backupsBackBtn" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                      Back
+                    </button>
+                    <div>
+                      <h2>Backups</h2>
+                      <div class="panel-sub" id="backupsSub">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="panel-body">
+                  <div class="backup-settings">
+                    <div class="backup-settings-row">
+                      <label for="backupLimitMode">Limit mode</label>
+                      <select id="backupLimitMode">
+                        <option value="none">No limit (retention days only)</option>
+                        <option value="count">Max number of backups</option>
+                        <option value="size">Max total size</option>
+                      </select>
+                    </div>
+                    <div class="backup-settings-row" id="backupLimitValueRow" style="display:none;">
+                      <label for="backupLimitValue" id="backupLimitValueLabel">Max backups</label>
+                      <input type="number" id="backupLimitValue" min="1" step="1" style="width:100px;" />
+                      <span class="backup-settings-unit" id="backupLimitValueUnit"></span>
+                    </div>
+                    <div class="backup-settings-actions">
+                      <button class="ghost small" id="backupSettingsSaveBtn" type="button">Save settings</button>
+                      <span class="backup-settings-ok" id="backupSettingsOk" style="display:none;">Settings saved</span>
+                    </div>
+                    <div class="alert error" id="backupSettingsError" style="display:none;"></div>
+                  </div>
+                  <div id="backupList"></div>
+                </div>
+              </div>
+            </div>
+          </section>
       </div>
     </main>
 
@@ -2168,6 +2469,7 @@
       dbInfo: null,
       backups: [],
       backupsTotalBytes: null,
+      backupSettings: { mode: "none", value: 0 },
       images: [],
       lastRefreshIso: null,
       storageError: "",
@@ -2653,14 +2955,14 @@
 
     function renderDocsSub() {
       const docs = Array.isArray(state.docs) ? state.docs : [];
-      $("docsSub").textContent = `${docs.length} workspaces`;
+      const label = `${docs.length} workspace${docs.length === 1 ? "" : "s"}`;
+      $("docsSub").textContent = label;
+      const detailSub = $("docsSubDetail");
+      if (detailSub) detailSub.textContent = label;
     }
 
-    function renderDocs() {
+    function renderDocsInto(list) {
       const docs = Array.isArray(state.docs) ? state.docs : [];
-      renderDocsSub();
-
-      const list = $("docList");
       list.innerHTML = "";
 
       if (!docs.length) {
@@ -2673,7 +2975,7 @@
         item.className = "item";
         item.dataset.name = d.name;
         item.setAttribute("role", "button");
-        item.setAttribute("aria-label", `Copy workspace link: ${d.name}`);
+        item.setAttribute("aria-label", `Copy workspace link: ${d.workspaceName || d.name}`);
         item.title = "Click/tap to copy workspace connection link";
         item.tabIndex = 0;
 
@@ -2697,11 +2999,23 @@
           '<path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>' +
           "</svg>";
 
-        const docId = document.createElement("strong");
-        docId.textContent = d.name;
+        const titleText = document.createElement("div");
+        titleText.className = "item-title-text";
+
+        const docTitle = document.createElement("strong");
+        docTitle.textContent = d.workspaceName || d.name;
+
+        titleText.appendChild(docTitle);
+
+        if (d.workspaceName) {
+          const docId = document.createElement("span");
+          docId.className = "item-id";
+          docId.textContent = d.name;
+          titleText.appendChild(docId);
+        }
 
         title.appendChild(linkMark);
-        title.appendChild(docId);
+        title.appendChild(titleText);
 
         const actions = document.createElement("div");
         actions.className = "item-actions";
@@ -2753,6 +3067,13 @@
         item.appendChild(head);
         list.appendChild(item);
       }
+    }
+
+    function renderDocs() {
+      renderDocsSub();
+      renderDocsInto($("docList"));
+      const detailList = $("docListDetail");
+      if (detailList) renderDocsInto(detailList);
     }
 
     function renderStorage() {
@@ -3133,9 +3454,10 @@
       state.dbInfo = dbInfo;
       state.docs = Array.isArray(dbInfo.documents) ? dbInfo.documents : [];
 
-      const [backupsRes, imagesRes] = await Promise.allSettled([
+      const [backupsRes, imagesRes, settingsRes] = await Promise.allSettled([
         apiJson("/api/admin/backups", { token }),
         apiJson("/api/images", { token }),
+        apiJson("/api/admin/backup-settings", { token }),
       ]);
 
       if (backupsRes.status === "fulfilled") {
@@ -3155,11 +3477,342 @@
         state.storageError = state.storageError ? `${state.storageError}; images unavailable` : "Images unavailable";
       }
 
+      if (settingsRes.status === "fulfilled") {
+        state.backupSettings = {
+          mode: settingsRes.value.mode || "none",
+          value: Number(settingsRes.value.value) || 0,
+        };
+      } else {
+        state.backupSettings = { mode: "none", value: 0 };
+      }
+
       state.lastRefreshIso = new Date().toISOString();
       state.signedIn = true;
       renderStorage();
       renderDocs();
       await refreshMcpStatus();
+    }
+
+    // ── Backup management page ───────────────────────────────
+
+    function renderBackupSettingsForm() {
+      const { mode, value } = state.backupSettings;
+      $("backupLimitMode").value = mode;
+
+      const valueRow = $("backupLimitValueRow");
+      if (mode === "none") {
+        valueRow.style.display = "none";
+      } else {
+        valueRow.style.display = "flex";
+        $("backupLimitValueLabel").textContent = mode === "count" ? "Max backups" : "Max total size";
+        $("backupLimitValueUnit").textContent = mode === "size" ? "MB" : "";
+
+        if (mode === "size") {
+          $("backupLimitValue").value = value > 0 ? Math.round(value / (1024 * 1024)) : "";
+          $("backupLimitValue").step = "1";
+          $("backupLimitValue").min = "1";
+        } else {
+          $("backupLimitValue").value = value > 0 ? value : "";
+          $("backupLimitValue").step = "1";
+          $("backupLimitValue").min = "1";
+        }
+      }
+      $("backupSettingsError").style.display = "none";
+      $("backupSettingsOk").style.display = "none";
+    }
+
+    function renderBackupList() {
+      const backups = Array.isArray(state.backups) ? state.backups : [];
+      const totalBytes = calcBackupsBytes(backups, state.backupsTotalBytes);
+      $("backupsSub").textContent = `${backups.length} snapshot${backups.length === 1 ? "" : "s"}, ${formatBytes(totalBytes)} total`;
+
+      const list = $("backupList");
+      list.innerHTML = "";
+
+      if (!backups.length) {
+        list.innerHTML = '<div class="hint">No backups yet.</div>';
+        return;
+      }
+
+      for (const b of backups) {
+        const item = document.createElement("div");
+        item.className = "backup-item";
+
+        const info = document.createElement("div");
+        info.className = "backup-item-info";
+
+        const dateEl = document.createElement("div");
+        dateEl.className = "backup-item-date";
+        dateEl.textContent = formatLocalDateTime(b.createdAt);
+
+        const fileEl = document.createElement("div");
+        fileEl.className = "backup-item-file";
+        fileEl.textContent = b.file;
+
+        info.appendChild(dateEl);
+        info.appendChild(fileEl);
+
+        const sizeEl = document.createElement("div");
+        sizeEl.className = "backup-item-size";
+        sizeEl.textContent = formatBytes(b.totalSizeBytes || b.sizeBytes);
+
+        const dlBtn = document.createElement("button");
+        dlBtn.className = "ghost small";
+        dlBtn.type = "button";
+        dlBtn.textContent = "Download";
+        dlBtn.addEventListener("click", () => downloadBackup(b.file));
+
+        item.appendChild(info);
+        item.appendChild(sizeEl);
+        item.appendChild(dlBtn);
+        list.appendChild(item);
+      }
+    }
+
+    async function downloadBackup(file) {
+      try {
+        const res = await fetch(`/api/admin/backups/${encodeURIComponent(file)}/download`, {
+          headers: { Authorization: `Bearer ${state.token}` },
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `${res.status} ${res.statusText}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        toast(`Download failed: ${err.message}`, "error");
+      }
+    }
+
+    async function saveBackupSettings() {
+      const mode = $("backupLimitMode").value;
+      let value = 0;
+      if (mode !== "none") {
+        value = Number($("backupLimitValue").value);
+        if (!Number.isFinite(value) || value <= 0) {
+          $("backupSettingsError").textContent = "Value must be a positive number";
+          $("backupSettingsError").style.display = "block";
+          return;
+        }
+        if (mode === "size") {
+          value = Math.floor(value * 1024 * 1024);
+        } else {
+          value = Math.floor(value);
+        }
+      }
+
+      $("backupSettingsSaveBtn").disabled = true;
+      $("backupSettingsError").style.display = "none";
+      $("backupSettingsOk").style.display = "none";
+
+      try {
+        const res = await apiJson("/api/admin/backup-settings", {
+          method: "PUT",
+          token: state.token,
+          body: { mode, value },
+        });
+        state.backupSettings = { mode: res.mode || mode, value: Number(res.value) || value };
+        $("backupSettingsOk").style.display = "inline";
+        setTimeout(() => { $("backupSettingsOk").style.display = "none"; }, 2500);
+      } catch (err) {
+        $("backupSettingsError").textContent = err.message;
+        $("backupSettingsError").style.display = "block";
+      } finally {
+        $("backupSettingsSaveBtn").disabled = false;
+      }
+    }
+
+    async function refreshBackupsData() {
+      const token = state.token;
+      if (!token) return;
+      try {
+        const [backupsRes, settingsRes] = await Promise.allSettled([
+          apiJson("/api/admin/backups", { token }),
+          apiJson("/api/admin/backup-settings", { token }),
+        ]);
+
+        if (backupsRes.status === "fulfilled") {
+          state.backups = Array.isArray(backupsRes.value.backups) ? backupsRes.value.backups : [];
+          const totalSizeBytes = Number(backupsRes.value.totalSizeBytes);
+          state.backupsTotalBytes = Number.isFinite(totalSizeBytes) ? totalSizeBytes : null;
+        }
+        if (settingsRes.status === "fulfilled") {
+          state.backupSettings = {
+            mode: settingsRes.value.mode || "none",
+            value: Number(settingsRes.value.value) || 0,
+          };
+        }
+      } catch {
+        // keep stale data on network error
+      }
+    }
+
+    async function goBackups() {
+      setStep("backups");
+      renderBackupSettingsForm();
+      renderBackupList();
+      await refreshBackupsData();
+      renderBackupSettingsForm();
+      renderBackupList();
+      renderStorage();
+    }
+
+    async function goDatabase() {
+      setStep("database");
+      renderDocs();
+      // Refresh from server
+      try {
+        const dbInfo = await apiJson("/api/admin/db-info", { token: state.token });
+        state.dbInfo = dbInfo;
+        state.docs = Array.isArray(dbInfo.documents) ? dbInfo.documents : [];
+        renderDocs();
+        renderStorage();
+      } catch {
+        // keep stale data on error
+      }
+    }
+
+    function renderImageList() {
+      const images = Array.isArray(state.images) ? state.images : [];
+      const totalBytes = calcImagesBytes(images);
+      $("imagesSub").textContent = `${images.length} file${images.length === 1 ? "" : "s"}, ${formatBytes(totalBytes)} total`;
+
+      const list = $("imageList");
+      list.innerHTML = "";
+
+      if (!images.length) {
+        list.innerHTML = '<div class="hint">No images uploaded yet.</div>';
+        return;
+      }
+
+      // Sort newest first
+      const sorted = [...images].sort((a, b) => {
+        const ma = new Date(a.modified || 0).getTime();
+        const mb = new Date(b.modified || 0).getTime();
+        return mb - ma;
+      });
+
+      for (const img of sorted) {
+        const item = document.createElement("div");
+        item.className = "image-item";
+
+        // Thumbnail
+        const placeholder = document.createElement("div");
+        placeholder.className = "image-item-thumb-placeholder";
+        placeholder.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>' +
+          '<circle cx="9" cy="9" r="2"/>' +
+          '<path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>' +
+          "</svg>";
+        item.appendChild(placeholder);
+
+        // Load real thumbnail asynchronously
+        loadImageThumb(img.id, placeholder, item);
+
+        const info = document.createElement("div");
+        info.className = "image-item-info";
+
+        const dateEl = document.createElement("div");
+        dateEl.className = "image-item-date";
+        dateEl.textContent = img.modified ? formatLocalDateTime(img.modified) : "Unknown date";
+
+        const idEl = document.createElement("div");
+        idEl.className = "image-item-id";
+        idEl.textContent = img.id;
+
+        info.appendChild(dateEl);
+        info.appendChild(idEl);
+
+        const sizeEl = document.createElement("div");
+        sizeEl.className = "image-item-size";
+        sizeEl.textContent = formatBytes(img.size);
+
+        const dlBtn = document.createElement("button");
+        dlBtn.className = "ghost small";
+        dlBtn.type = "button";
+        dlBtn.textContent = "Download";
+        dlBtn.addEventListener("click", () => downloadImage(img.id));
+
+        item.appendChild(info);
+        item.appendChild(sizeEl);
+        item.appendChild(dlBtn);
+        list.appendChild(item);
+      }
+    }
+
+    function loadImageThumb(id, placeholder, parentItem) {
+      fetch(`/api/images/${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Bearer ${state.token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("load failed");
+          const ct = res.headers.get("content-type") || "";
+          // Only show thumbnails for raster images, not SVG
+          if (!ct.startsWith("image/") || ct.includes("svg")) throw new Error("not raster");
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          const img = document.createElement("img");
+          img.className = "image-item-thumb";
+          img.src = url;
+          img.alt = id;
+          img.addEventListener("load", () => URL.revokeObjectURL(url), { once: true });
+          parentItem.replaceChild(img, placeholder);
+        })
+        .catch(() => {
+          // Keep the placeholder on failure
+        });
+    }
+
+    async function downloadImage(id) {
+      try {
+        const res = await fetch(`/api/images/${encodeURIComponent(id)}`, {
+          headers: { Authorization: `Bearer ${state.token}` },
+        });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const contentType = res.headers.get("content-type") || "application/octet-stream";
+        const ext = contentType.includes("png") ? ".png"
+          : contentType.includes("jpeg") || contentType.includes("jpg") ? ".jpg"
+          : contentType.includes("webp") ? ".webp"
+          : contentType.includes("gif") ? ".gif"
+          : contentType.includes("svg") ? ".svg"
+          : "";
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${id}${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        toast(`Download failed: ${err.message}`, "error");
+      }
+    }
+
+    async function goImages() {
+      setStep("images");
+      renderImageList();
+      // Refresh from server
+      try {
+        const data = await apiJson("/api/images", { token: state.token });
+        state.images = Array.isArray(data.images) ? data.images : [];
+        renderImageList();
+        renderStorage();
+      } catch {
+        // keep stale data on error
+      }
     }
 
     async function goDashboard(errorMessage = "") {
@@ -3677,7 +4330,7 @@
         }
       });
 
-      $("docList").addEventListener("click", (e) => {
+      function handleDocListClick(e) {
         const openBtn = e.target.closest("button[data-action='open-workspace']");
         if (openBtn) {
           const name = openBtn.dataset.name;
@@ -3721,9 +4374,9 @@
         if (!name) return;
         if (!state.token) return;
         copyWorkspaceLink(item, docLinkForName(state.token, name));
-      });
+      }
 
-      $("docList").addEventListener("keydown", (e) => {
+      function handleDocListKeydown(e) {
         if (e.key !== "Enter" && e.key !== " ") return;
         if (e.target && e.target.closest && e.target.closest("button")) return;
         const item = e.target.closest(".item");
@@ -3733,7 +4386,12 @@
         e.preventDefault();
         if (!state.token) return;
         copyWorkspaceLink(item, docLinkForName(state.token, name));
-      });
+      }
+
+      $("docList").addEventListener("click", handleDocListClick);
+      $("docList").addEventListener("keydown", handleDocListKeydown);
+      $("docListDetail").addEventListener("click", handleDocListClick);
+      $("docListDetail").addEventListener("keydown", handleDocListKeydown);
 
       $("copyWsBtn").addEventListener("click", () => {
         if (!state.token) return;
@@ -3757,6 +4415,33 @@
         state.showToken = !state.showToken;
         renderDashboard();
       });
+
+      // Storage card navigation (event delegation)
+      document.querySelector(".storage-cards").addEventListener("click", (e) => {
+        if (!state.signedIn) return;
+        const card = e.target.closest(".storage-card-clickable");
+        if (!card) return;
+        if (card.id === "databaseCard") goDatabase();
+        else if (card.id === "backupsCard") goBackups();
+        else if (card.id === "imagesCard") goImages();
+      });
+
+      // Detail page back buttons
+      $("databaseBackBtn").addEventListener("click", () => goDashboard());
+      $("backupsBackBtn").addEventListener("click", () => goDashboard());
+      $("imagesBackBtn").addEventListener("click", () => goDashboard());
+
+      // Backup settings
+      $("backupLimitMode").addEventListener("change", () => {
+        const mode = $("backupLimitMode").value;
+        $("backupLimitValueRow").style.display = mode === "none" ? "none" : "flex";
+        $("backupLimitValueLabel").textContent = mode === "count" ? "Max backups" : "Max total size";
+        $("backupLimitValueUnit").textContent = mode === "size" ? "MB" : "";
+        $("backupSettingsError").style.display = "none";
+        $("backupSettingsOk").style.display = "none";
+      });
+
+      $("backupSettingsSaveBtn").addEventListener("click", () => saveBackupSettings());
     }
 
     wire();

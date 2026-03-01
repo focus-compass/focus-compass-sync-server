@@ -8,7 +8,7 @@ const toUint8Array = (data) => {
 
 const getRootSharedType = (ydoc) => {
   let root = ydoc.share.get("root");
-  if (!root && ydoc.share.size === 1) {
+  if (!root && ydoc.share.size > 0) {
     root = Array.from(ydoc.share.values())[0];
   }
   return root ?? null;
@@ -212,29 +212,19 @@ const readDateMs = (val) => {
 
   return null;
 };
-
-const extractWorkspaceFromRoot = (root) => {
-  const workspace = getProp(root, "workspace");
-  const id = readString(getProp(workspace, "id")) || null;
+/** Read workspace {id, name} from a plain JS root object (post-extractYjsContent). */
+const extractWorkspace = (root) => {
+  const ws = root?.workspace;
+  const id = (typeof ws?.id === "string" && ws.id) || null;
   const name =
-    readString(getProp(workspace, "name")) || readString(getProp(workspace, "title")) || null;
-
-  if (!id && !name) return null;
-  return { id, name };
+    (typeof ws?.name === "string" && ws.name) ||
+    (typeof ws?.title === "string" && ws.title) ||
+    null;
+  return id || name ? { id, name } : null;
 };
 
-const extractProjectCountFromRoot = (root) => {
-  const projects = getProp(root, "projects");
-  if (projects && typeof projects.length === "number") return projects.length;
-  if (projects && typeof projects.size === "number") return projects.size;
-
-  const json = safeToJson(projects);
-  if (Array.isArray(json)) return json.length;
-  if (isObject(json)) return Object.keys(json).length;
-  return 0;
-};
-
-const extractLastUpdatedAtFromRoot = (root) => {
+/** @param {object} root - plain JS object (already extracted via extractYjsContent) */
+const extractLastUpdatedAt = (root) => {
   let bestMs = null;
   const add = (val) => {
     const ms = readDateMs(val);
@@ -242,35 +232,26 @@ const extractLastUpdatedAtFromRoot = (root) => {
     if (bestMs == null || ms > bestMs) bestMs = ms;
   };
 
-  add(getProp(root, "exportedAt"));
-  add(getProp(root, "lastUpdatedAt"));
-  add(getProp(root, "updatedAt"));
-  add(getProp(root, "lastModifiedAt"));
-  add(getProp(root, "modifiedAt"));
+  add(root?.exportedAt);
+  add(root?.lastUpdatedAt);
+  add(root?.updatedAt);
+  add(root?.lastModifiedAt);
+  add(root?.modifiedAt);
 
-  const workspace = getProp(root, "workspace");
-  add(getProp(workspace, "lastUpdatedAt"));
-  add(getProp(workspace, "updatedAt"));
-  add(getProp(workspace, "lastModifiedAt"));
-  add(getProp(workspace, "modifiedAt"));
+  const workspace = root?.workspace;
+  add(workspace?.lastUpdatedAt);
+  add(workspace?.updatedAt);
+  add(workspace?.lastModifiedAt);
+  add(workspace?.modifiedAt);
 
-  const projects = getProp(root, "projects");
-  const iter = Array.isArray(projects)
-    ? projects
-    : projects && typeof projects.toArray === "function"
-      ? projects.toArray()
-      : projects && typeof projects.values === "function"
-        ? Array.from(projects.values())
-        : null;
+  const projects = Array.isArray(root?.projects) ? root.projects : [];
 
-  if (iter) {
-    for (const p of iter) {
-      add(getProp(p, "tasksLastModifiedAt"));
-      add(getProp(p, "lastUpdatedAt"));
-      add(getProp(p, "updatedAt"));
-      add(getProp(p, "lastModifiedAt"));
-      add(getProp(p, "modifiedAt"));
-    }
+  for (const p of projects) {
+    add(p?.tasksLastModifiedAt);
+    add(p?.lastUpdatedAt);
+    add(p?.updatedAt);
+    add(p?.lastModifiedAt);
+    add(p?.modifiedAt);
   }
 
   return bestMs != null ? new Date(bestMs).toISOString() : null;
@@ -278,13 +259,10 @@ const extractLastUpdatedAtFromRoot = (root) => {
 
 export const getDocMetaFromYDoc = (ydoc) => {
   try {
-    const root = getRootSharedType(ydoc);
-    const workspace = extractWorkspaceFromRoot(root);
-    const projectCount = extractProjectCountFromRoot(root);
-    return {
-      workspaceName: workspace?.name ?? null,
-      projectCount: projectCount ?? 0,
-    };
+    const root = extractYjsContent(getRootSharedType(ydoc)) ?? {};
+    const workspace = extractWorkspace(root);
+    const projectCount = Array.isArray(root.projects) ? root.projects.length : 0;
+    return { workspaceName: workspace?.name ?? null, projectCount };
   } catch {
     return { workspaceName: null, projectCount: 0 };
   }
@@ -299,10 +277,10 @@ export const getWorkspaceSummary = (data) => {
       Y.applyUpdate(ydoc, update);
     }
 
-    const root = getRootSharedType(ydoc);
-    const workspace = extractWorkspaceFromRoot(root);
-    const projectCount = extractProjectCountFromRoot(root);
-    const lastUpdatedAt = extractLastUpdatedAtFromRoot(root);
+    const root = extractYjsContent(getRootSharedType(ydoc)) ?? {};
+    const workspace = extractWorkspace(root);
+    const projectCount = Array.isArray(root.projects) ? root.projects.length : 0;
+    const lastUpdatedAt = extractLastUpdatedAt(root);
 
     return {
       sharedTypes: ydoc.share.size,

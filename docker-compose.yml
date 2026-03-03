@@ -20,6 +20,7 @@ services:
     # Environment variables
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=768"
       PORT: 8080
       # Optional (see .env.example). If omitted, the server starts in setup mode.
       HOCUSPOCUS_TOKEN: ${HOCUSPOCUS_TOKEN}
@@ -33,7 +34,7 @@ services:
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-10485760}
       MAX_DOC_DECODE_BYTES: ${MAX_DOC_DECODE_BYTES:-134217728}
       CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
-      YJS_GC: ${YJS_GC:-false}
+      YJS_GC: ${YJS_GC:-true}
     
     # Data Persistence:
     # Mount Docker Volume (or local folder) to store SQLite database.
@@ -55,10 +56,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 512M
+          memory: 1G
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     
     # Logging configuration
     logging:

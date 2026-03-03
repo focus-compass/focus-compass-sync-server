@@ -83,7 +83,7 @@ const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB
 const MAX_UPLOAD_BYTES = readNumberEnv("MAX_UPLOAD_BYTES", 10 * 1024 * 1024);
 const MAX_DOC_DECODE_BYTES = readNumberEnv("MAX_DOC_DECODE_BYTES", 128 * 1024 * 1024);
 
-const YJS_GC = readBoolEnv("YJS_GC", false);
+const YJS_GC = readBoolEnv("YJS_GC", true);
 
 const getAuthToken = () => authToken;
 const setAuthToken = (token) => {
@@ -131,8 +131,6 @@ const server = new Server({
   timeout: 30000,
   debounce: 2000,
   maxDebounce: 10000,
-  // By default, GC is disabled to preserve full CRDT state.
-  // Set YJS_GC=true to trade disk size for GC compaction.
   yDocOptions: {
     gc: YJS_GC,
   },

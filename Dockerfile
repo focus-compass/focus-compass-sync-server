@@ -26,4 +26,6 @@ RUN mkdir -p /app/data
 
 EXPOSE 8080
 
+ENV NODE_OPTIONS="--max-old-space-size=768"
+
 CMD ["node", "src/server.js"]

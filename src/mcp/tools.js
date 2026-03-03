@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { withDb } from "../lib/db.js";
 import {
+  DEFAULT_MAX_DOC_DECODE_BYTES,
+  createDocTooLargeMessage,
+  isDocTooLargeToDecode,
+  toByteLength,
+} from "../lib/doc.js";
+import {
   getContent,
   getProjectContentById,
   getWorkspaceSummary,
@@ -10,18 +16,9 @@ import { transformProject, transformWorkspace } from "../yjs/workspace.js";
 
 const MAX_DOC_NAME_LENGTH = 512;
 const MAX_PROJECT_ID_LENGTH = 256;
-const DEFAULT_MAX_DOC_DECODE_BYTES = 128 * 1024 * 1024;
-
-const toByteLength = (rawSize) => {
-  const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-};
-
-const isDocTooLargeToDecode = (binarySize, maxDocDecodeBytes) =>
-  Number.isFinite(maxDocDecodeBytes) && maxDocDecodeBytes > 0 && binarySize > maxDocDecodeBytes;
 
 const createDocTooLargeError = (docName, binarySize, maxDocDecodeBytes) => ({
-  error: `Document "${docName}" is ${binarySize} bytes and exceeds MAX_DOC_DECODE_BYTES (${maxDocDecodeBytes}).`,
+  error: createDocTooLargeMessage(docName, binarySize, maxDocDecodeBytes),
   code: "DOC_TOO_LARGE",
   dataSize: binarySize,
   maxDocDecodeBytes,
@@ -125,6 +122,29 @@ const documentsTableExists = (db) =>
       .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'")
       .get(),
   );
+
+/**
+ * Load and validate a single document's binary data from the DB.
+ * Returns { data } on success, or { error, ...extra } on failure.
+ */
+const loadDocumentData = (db, docName, maxDocDecodeBytes) => {
+  if (!documentsTableExists(db)) {
+    return { error: "Database is empty or incompatible (missing 'documents' table)." };
+  }
+
+  const row = db
+    .prepare("SELECT data, length(data) AS dataSize FROM documents WHERE name = ?")
+    .get(docName);
+
+  if (!row) return { error: `Document "${docName}" not found` };
+
+  const dataSize = toByteLength(row.dataSize);
+  if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
+    return createDocTooLargeError(docName, dataSize, maxDocDecodeBytes);
+  }
+
+  return { data: row.data };
+};
 
 export const registerTools = (
   server,
@@ -236,31 +256,14 @@ export const registerTools = (
       };
 
       const result = safeReadDb(dbPath, (db) => {
-        if (!documentsTableExists(db)) {
-          return { error: "Database is empty or incompatible (missing 'documents' table)." };
-        }
-
-        const meta = db
-          .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
-          .get(docName);
-
-        if (!meta) return { error: `Document "${docName}" not found` };
-
-        const dataSize = toByteLength(meta.dataSize);
-        if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
-          return createDocTooLargeError(docName, dataSize, maxDocDecodeBytes);
-        }
-
-        const row = db
-          .prepare("SELECT data FROM documents WHERE name = ?")
-          .get(docName);
-
-        if (!row) return { error: `Document "${docName}" not found` };
+        const loaded = loadDocumentData(db, docName, maxDocDecodeBytes);
+        if (loaded.error) return loaded;
 
         try {
-          const { content } = getContent(row.data);
+          const { content } = getContent(loaded.data);
           return transformWorkspace(content, docName, sectionFlags);
         } catch (err) {
+          console.error("MCP get_workspace decode error:", err);
           return { error: `Failed to decode document data: ${err.message}` };
         }
       });
@@ -295,32 +298,15 @@ export const registerTools = (
       const docName = rawDocName.trim();
 
       const result = safeReadDb(dbPath, (db) => {
-        if (!documentsTableExists(db)) {
-          return { error: "Database is empty or incompatible (missing 'documents' table)." };
-        }
-
-        const meta = db
-          .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
-          .get(docName);
-
-        if (!meta) return { error: `Document "${docName}" not found` };
-
-        const dataSize = toByteLength(meta.dataSize);
-        if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
-          return createDocTooLargeError(docName, dataSize, maxDocDecodeBytes);
-        }
-
-        const row = db
-          .prepare("SELECT data FROM documents WHERE name = ?")
-          .get(docName);
-
-        if (!row) return { error: `Document "${docName}" not found` };
+        const loaded = loadDocumentData(db, docName, maxDocDecodeBytes);
+        if (loaded.error) return loaded;
 
         try {
-          return listProjectsIndex(row.data, {
+          return listProjectsIndex(loaded.data, {
             includeProjectInfo: Boolean(includeProjectInfo),
           });
         } catch (err) {
+          console.error("MCP list_projects decode error:", err);
           return { error: `Failed to decode document data: ${err.message}` };
         }
       });
@@ -363,29 +349,11 @@ export const registerTools = (
       };
 
       const result = safeReadDb(dbPath, (db) => {
-        if (!documentsTableExists(db)) {
-          return { error: "Database is empty or incompatible (missing 'documents' table)." };
-        }
-
-        const meta = db
-          .prepare("SELECT name, length(data) AS dataSize FROM documents WHERE name = ?")
-          .get(docName);
-
-        if (!meta) return { error: `Document "${docName}" not found` };
-
-        const dataSize = toByteLength(meta.dataSize);
-        if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
-          return createDocTooLargeError(docName, dataSize, maxDocDecodeBytes);
-        }
-
-        const row = db
-          .prepare("SELECT data FROM documents WHERE name = ?")
-          .get(docName);
-
-        if (!row) return { error: `Document "${docName}" not found` };
+        const loaded = loadDocumentData(db, docName, maxDocDecodeBytes);
+        if (loaded.error) return loaded;
 
         try {
-          const lookup = getProjectContentById(row.data, projectId);
+          const lookup = getProjectContentById(loaded.data, projectId);
           if (!lookup?.found) {
             return {
               error: `Project "${projectId}" not found`,
@@ -402,6 +370,7 @@ export const registerTools = (
 
           return transformProject(lookup.project, allSections);
         } catch (err) {
+          console.error("MCP get_project decode error:", err);
           return { error: `Failed to decode document data: ${err.message}` };
         }
       });

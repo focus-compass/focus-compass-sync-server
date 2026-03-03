@@ -7,34 +7,21 @@ import {
   internalServerError,
   notFound,
   payloadTooLarge,
-  unsupportedMediaType,
 } from "../lib/api.js";
 import { decodeDocName, ensureDbExistsOr404, requireAuth, withDb } from "../lib/db.js";
+import {
+  DEFAULT_MAX_DOC_DECODE_BYTES,
+  createDocTooLargeMessage,
+  isDocTooLargeToDecode,
+  toByteLength,
+} from "../lib/doc.js";
+import { parseBool } from "../lib/env.js";
 import { readJsonOrNull, statOrNull } from "../lib/fs.js";
+import { readJsonBody } from "../lib/http.js";
 import { json } from "../lib/responses.js";
 import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
 const BACKUP_FILE_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
-const DEFAULT_MAX_DOC_DECODE_BYTES = 128 * 1024 * 1024;
-
-const parseBool = (value, defaultValue) => {
-  if (value === null || value === undefined) return defaultValue;
-  const lower = String(value).trim().toLowerCase();
-  if (lower === "false" || lower === "0" || lower === "no") return false;
-  if (lower === "true" || lower === "1" || lower === "yes") return true;
-  return defaultValue;
-};
-
-const toByteLength = (rawSize) => {
-  const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-};
-
-const isDocTooLargeToDecode = (binarySize, maxDocDecodeBytes) =>
-  Number.isFinite(maxDocDecodeBytes) && maxDocDecodeBytes > 0 && binarySize > maxDocDecodeBytes;
-
-const createDocTooLargeMessage = (docName, binarySize, maxDocDecodeBytes) =>
-  `Document "${docName}" is ${binarySize} bytes and exceeds MAX_DOC_DECODE_BYTES (${maxDocDecodeBytes}).`;
 
 const listBackups = async (backupDir) => {
   const names = await readdir(backupDir).catch((error) => {
@@ -327,40 +314,6 @@ const handleBackups = async ({ request, response, backupDir, checkAuth }) => {
   }
 };
 
-const readJsonBody = async (request, response, maxBytes = 8192) => {
-  const contentType = String(request.headers["content-type"] ?? "").toLowerCase();
-  if (contentType && !contentType.includes("application/json")) {
-    return unsupportedMediaType(response, "Expected application/json");
-  }
-
-  let total = 0;
-  const chunks = [];
-
-  try {
-    for await (const chunk of request) {
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      total += buf.length;
-      if (total > maxBytes) {
-        return badRequest(response, "Request body too large");
-      }
-      chunks.push(buf);
-    }
-  } catch {
-    return badRequest(response, "Failed to read request body");
-  }
-
-  if (!chunks.length) return {};
-  const raw = Buffer.concat(chunks).toString("utf-8").trim();
-  if (!raw) return {};
-
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return badRequest(response, "Invalid JSON");
-  }
-};
-
 const handleBackupDownload = async ({ request, response, backupDir, checkAuth, file }) => {
   requireAuth(request, response, checkAuth);
 
@@ -536,6 +489,7 @@ const handleDocDelete = async ({
   dbPath,
   checkAuth,
   encodedName,
+  docMetaCache,
 }) => {
   requireAuth(request, response, checkAuth);
   const docName = decodeDocName(encodedName, response);
@@ -552,6 +506,7 @@ const handleDocDelete = async ({
         notFound(response, "Document not found");
       }
 
+      docMetaCache?.delete(docName);
       json(response, 200, { success: true, deleted: docName });
     });
   } catch (err) {
@@ -634,7 +589,7 @@ export const handleAdminRequest = async ({
   }
 
   if (request.method === "DELETE") {
-    await handleDocDelete({ request, response, dbPath, checkAuth, encodedName });
+    await handleDocDelete({ request, response, dbPath, checkAuth, encodedName, docMetaCache });
     return;
   }
 };

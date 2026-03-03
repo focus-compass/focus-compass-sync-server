@@ -21,12 +21,19 @@ const serveTextFile = async (response, filePath, contentType = "text/plain") => 
   throw null;
 };
 
+/** Escape a value for safe inclusion inside double-quoted bash strings. */
+const escapeForBashDoubleQuote = (value) =>
+  String(value).replace(/[\\"$`!]/g, "\\$&");
+
 const serveInstallScript = (request, response, url) => {
   const { searchParams } = url;
-  const token = searchParams.get("token") || "YOUR_MCP_TOKEN";
+  const rawToken = searchParams.get("token") || "YOUR_MCP_TOKEN";
   const reqHost = request.headers.host || "localhost:8080";
   const proto = request.headers["x-forwarded-proto"] || "http";
-  const host = searchParams.get("host") || `${proto}://${reqHost}`;
+  const rawHost = searchParams.get("host") || `${proto}://${reqHost}`;
+
+  const token = escapeForBashDoubleQuote(rawToken);
+  const host = escapeForBashDoubleQuote(rawHost);
 
   const script = [
     "#!/usr/bin/env bash",

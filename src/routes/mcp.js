@@ -32,10 +32,8 @@ const parseContentLength = (value) => {
 };
 
 const drainRequestBody = (request) => {
-  request.on("data", () => {});
-  request.on("end", () => {});
-  request.on("error", () => {});
-  request.resume?.();
+  request.once("error", () => {});
+  request.resume();
 };
 
 const readJsonBodyLimited = (request, maxBytes) =>

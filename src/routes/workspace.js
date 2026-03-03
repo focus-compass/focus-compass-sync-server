@@ -4,30 +4,16 @@ import {
   payloadTooLarge,
 } from "../lib/api.js";
 import { decodeDocName, ensureDbExistsOr404, requireAuth, withDb } from "../lib/db.js";
+import {
+  DEFAULT_MAX_DOC_DECODE_BYTES,
+  createDocTooLargeMessage,
+  isDocTooLargeToDecode,
+  toByteLength,
+} from "../lib/doc.js";
+import { parseBool } from "../lib/env.js";
 import { json } from "../lib/responses.js";
 import { getContent } from "../yjs/inspect.js";
 import { transformWorkspace } from "../yjs/workspace.js";
-
-const DEFAULT_MAX_DOC_DECODE_BYTES = 128 * 1024 * 1024;
-
-const parseBool = (value, defaultValue) => {
-  if (value === null || value === undefined) return defaultValue;
-  const lower = String(value).trim().toLowerCase();
-  if (lower === "false" || lower === "0" || lower === "no") return false;
-  if (lower === "true" || lower === "1" || lower === "yes") return true;
-  return defaultValue;
-};
-
-const toByteLength = (rawSize) => {
-  const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-};
-
-const isDocTooLargeToDecode = (binarySize, maxDocDecodeBytes) =>
-  Number.isFinite(maxDocDecodeBytes) && maxDocDecodeBytes > 0 && binarySize > maxDocDecodeBytes;
-
-const createDocTooLargeMessage = (docName, binarySize, maxDocDecodeBytes) =>
-  `Document "${docName}" is ${binarySize} bytes and exceeds MAX_DOC_DECODE_BYTES (${maxDocDecodeBytes}).`;
 
 const parseSectionFlags = (url) => ({
   projectInfo: parseBool(url.searchParams.get("project_info"), true),
@@ -59,28 +45,20 @@ export const handleWorkspaceRequest = async ({
     await ensureDbExistsOr404(dbPath, response);
 
     withDb(dbPath, { readOnly: true }, (db) => {
-      const meta = db
-        .prepare("SELECT length(data) AS dataSize FROM documents WHERE name = ?")
+      const row = db
+        .prepare("SELECT data, length(data) AS dataSize FROM documents WHERE name = ?")
         .get(docName);
 
-      if (!meta) {
+      if (!row) {
         notFound(response, "Document not found");
       }
 
-      const binarySize = toByteLength(meta.dataSize);
+      const binarySize = toByteLength(row.dataSize);
       if (isDocTooLargeToDecode(binarySize, maxDocDecodeBytes)) {
         payloadTooLarge(
           response,
           createDocTooLargeMessage(docName, binarySize, maxDocDecodeBytes),
         );
-      }
-
-      const row = db
-        .prepare("SELECT data FROM documents WHERE name = ?")
-        .get(docName);
-
-      if (!row) {
-        notFound(response, "Document not found");
       }
 
       const { content } = getContent(row.data);

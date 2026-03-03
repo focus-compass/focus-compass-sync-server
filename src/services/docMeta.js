@@ -32,8 +32,10 @@ export class DocMetaCache {
           }
         }
       }
-    } catch {
-      // Missing or corrupt file — start with empty cache
+    } catch (err) {
+      if (err?.code !== "ENOENT") {
+        console.error("DocMetaCache: failed to load cache file:", err);
+      }
     }
   }
 
@@ -50,6 +52,14 @@ export class DocMetaCache {
   /** Get cached metadata for a single document (or null). */
   get(name) {
     return this._cache.get(name) ?? null;
+  }
+
+  /** Remove cached metadata for a document. */
+  delete(name) {
+    if (this._cache.delete(name)) {
+      this._dirty = true;
+      this._scheduleSave();
+    }
   }
 
   // ── Persistence ──────────────────────────────────────────────

@@ -12,3 +12,11 @@ export const readBoolEnv = (name, fallback = false) => {
   if (raw === "false") return false;
   return fallback;
 };
+
+export const parseBool = (value, defaultValue) => {
+  if (value === null || value === undefined) return defaultValue;
+  const lower = String(value).trim().toLowerCase();
+  if (lower === "false" || lower === "0" || lower === "no") return false;
+  if (lower === "true" || lower === "1" || lower === "yes") return true;
+  return defaultValue;
+};

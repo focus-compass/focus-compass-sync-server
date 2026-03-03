@@ -1,47 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { badRequest, internalServerError, unauthorized, unsupportedMediaType } from "../lib/api.js";
+import { badRequest, internalServerError, unauthorized } from "../lib/api.js";
 import { readJsonOrNull } from "../lib/fs.js";
+import { readJsonBody } from "../lib/http.js";
 import { json } from "../lib/responses.js";
 
 const createToken = () => randomBytes(24).toString("base64url");
 
 const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
-
-const readJsonBody = async (request, response, maxBytes = 8192) => {
-  const contentType = String(request.headers["content-type"] ?? "").toLowerCase();
-  if (contentType && !contentType.includes("application/json")) {
-    return unsupportedMediaType(response, "Expected application/json");
-  }
-
-  let total = 0;
-  const chunks = [];
-
-  try {
-    for await (const chunk of request) {
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      total += buf.length;
-      if (total > maxBytes) {
-        return badRequest(response, "Request body too large");
-      }
-      chunks.push(buf);
-    }
-  } catch {
-    return badRequest(response, "Failed to read request body");
-  }
-
-  if (!chunks.length) return {};
-  const raw = Buffer.concat(chunks).toString("utf-8").trim();
-  if (!raw) return {};
-
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return badRequest(response, "Invalid JSON");
-  }
-};
 
 const requireMasterAuth = ({ request, response, getMasterToken, checkMasterAuth }) => {
   if (!getMasterToken()) {

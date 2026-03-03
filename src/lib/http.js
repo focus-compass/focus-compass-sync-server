@@ -1,3 +1,39 @@
+import { badRequest, unsupportedMediaType } from "./api.js";
+
+export const readJsonBody = async (request, response, maxBytes = 8192) => {
+  const contentType = String(request.headers["content-type"] ?? "").toLowerCase();
+  if (contentType && !contentType.includes("application/json")) {
+    return unsupportedMediaType(response, "Expected application/json");
+  }
+
+  let total = 0;
+  const chunks = [];
+
+  try {
+    for await (const chunk of request) {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += buf.length;
+      if (total > maxBytes) {
+        return badRequest(response, "Request body too large");
+      }
+      chunks.push(buf);
+    }
+  } catch {
+    return badRequest(response, "Failed to read request body");
+  }
+
+  if (!chunks.length) return {};
+  const raw = Buffer.concat(chunks).toString("utf-8").trim();
+  if (!raw) return {};
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return badRequest(response, "Invalid JSON");
+  }
+};
+
 export const createCorsPolicy = (rawValue) => {
   const allowOrigins = String(rawValue ?? "*")
     .split(",")

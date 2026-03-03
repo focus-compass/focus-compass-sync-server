@@ -15,6 +15,7 @@ export const readJsonOrNull = async (filePath) => {
     return JSON.parse(content);
   } catch (error) {
     if (error?.code === "ENOENT") return null;
+    console.error(`readJsonOrNull: failed to read ${filePath}:`, error);
     return null;
   }
 };

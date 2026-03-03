@@ -100,7 +100,8 @@ export const listProjectsIndex = (data, { includeProjectInfo = false } = {}) => 
       result.push(item);
     }
     return result;
-  } catch {
+  } catch (err) {
+    console.error("listProjectsIndex: failed to decode Yjs data:", err);
     return [];
   } finally {
     ydoc.destroy();
@@ -140,7 +141,8 @@ export const getProjectContentById = (data, projectId) => {
 
     const extracted = extractYjsContent(match);
     return { found, project: extracted, availableProjects };
-  } catch {
+  } catch (err) {
+    console.error("getProjectContentById: failed to decode Yjs data:", err);
     return { found: false, project: null, availableProjects: [] };
   } finally {
     ydoc.destroy();
@@ -288,7 +290,8 @@ export const getWorkspaceSummary = (data) => {
       projectCount,
       lastUpdatedAt,
     };
-  } catch {
+  } catch (err) {
+    console.error("getWorkspaceSummary: failed to decode Yjs data:", err);
     return {
       sharedTypes: 0,
       workspace: null,

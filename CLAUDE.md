@@ -62,7 +62,7 @@ BACKUP_INTERVAL_MINUTES=60          # Backup frequency
 BACKUP_RETENTION_DAYS=7             # Backup retention
 MAX_UPLOAD_BYTES=10485760           # Upload limit (bytes)
 CORS_ALLOW_ORIGINS=*                # CORS allowlist (comma-separated) or '*'
-YJS_GC=false                        # Enable Yjs GC (smaller docs, less history)
+YJS_GC=true                         # Default: true (smaller docs, no full Yjs history)
 ```
 
 ## Docker

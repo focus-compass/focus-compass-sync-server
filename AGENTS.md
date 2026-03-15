@@ -51,7 +51,6 @@ Smoke checks:
 - `src/mcp/tools.js`: MCP tool definitions (read-only)
 - `src/routes/mcp.js`: MCP HTTP handler (`POST /mcp`, stateless Streamable HTTP)
 - `src/routes/mcpAdmin.js`: MCP admin API (`/api/mcp/*`)
-- `src/mcp.html`: MCP help/setup page
 - `src/focus-compass-skill.md`: Claude Code skill template (served as static)
 - `eslint.config.js`: ESLint v9 flat config
 - `docker-compose.yml`, `Dockerfile`: production containerization
@@ -138,7 +137,7 @@ For uploads/metadata:
 ### Hocuspocus / Yjs Specifics
 - WebSocket auth is enforced via `onAuthenticate`; keep REST + WS auth aligned.
 - `onStoreDocument` is used for periodic DB backups; keep it fast and safe.
-- `YJS_GC` toggles history retention; default is to preserve history.
+- `YJS_GC` toggles history retention; default is `true` (smaller docs, no full Yjs history).
 
 When changing Yjs/Hocuspocus behavior:
 - Prefer small, explicit changes; this server is intentionally minimal.

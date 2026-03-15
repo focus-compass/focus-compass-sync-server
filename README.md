@@ -107,13 +107,15 @@ MAX_DOC_DECODE_BYTES=134217728
 # CORS (comma-separated allowlist or '*')
 CORS_ALLOW_ORIGINS=*
 
-# Yjs GC (set true to reduce doc size, loses full history)
-YJS_GC=false
+# Yjs GC (default: true). Smaller docs, but full Yjs history is discarded.
+YJS_GC=true
 ```
 
 `HOCUSPOCUS_TOKEN` is optional. If it is not set, the server starts in setup mode and the first visit to `/` can generate and persist a token to `./data/auth.json`.
 
 `MAX_DOC_DECODE_BYTES` protects admin/workspace/MCP read endpoints from decoding extremely large Yjs documents in one request. This helps prevent out-of-memory crashes on small hosts.
+
+`YJS_GC` defaults to `true` in this server. That keeps document size smaller, but full Yjs edit history is not preserved. Database backups still preserve point-in-time snapshots of the current state.
 
 ### Persistence
 
@@ -142,6 +144,7 @@ const provider = new HocuspocusProvider({
   url: 'ws://localhost:8080',
   name: 'my-document', // unique document name
   document: doc,
+  token: 'your-auth-token',
 })
 ```
 
@@ -177,7 +180,6 @@ This server exposes a read-only MCP endpoint so that MCP clients (Claude Code, C
 
 - **Endpoint:** `POST /mcp` (Streamable HTTP, stateless)
 - **Auth:** `Authorization: Bearer <mcp-token>` (separate from the master token)
-- **Help page:** `GET /mcp.html`
 - **Persistence:** generated tokens are stored at `./data/mcp-auth.json` by default
 - **Response mode:** JSON responses (no SSE), but clients must still send `Accept: application/json, text/event-stream` per MCP Streamable HTTP rules.
 - **Request limit:** MCP request body is limited to 1 MiB.

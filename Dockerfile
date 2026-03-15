@@ -17,12 +17,14 @@ FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY package*.json ./
-COPY src ./src
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node package*.json ./
+COPY --chown=node:node src ./src
 
 # Create data directory
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data && chown -R node:node /app
+
+USER node
 
 EXPOSE 8080
 

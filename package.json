@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/focus-compass/server.git"
+    "url": "git+https://github.com/focus-compass/focus-compass-sync-server.git"
   },
   "keywords": [
     "hocuspocus",
@@ -29,9 +29,9 @@
   "author": "Focus Masters",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/focus-compass/server/issues"
+    "url": "https://github.com/focus-compass/focus-compass-sync-server/issues"
   },
-  "homepage": "https://github.com/focus-compass/server#readme",
+  "homepage": "https://github.com/focus-compass/focus-compass-sync-server#readme",
   "dependencies": {
     "@hocuspocus/extension-logger": "^3.4.0",
     "@hocuspocus/extension-sqlite": "^3.4.0",

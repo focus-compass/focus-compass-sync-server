@@ -22,7 +22,7 @@ Notes:
 - npm is the expected package manager (`package-lock.json` is present).
 
 Docker:
-- Start: `docker compose up -d --build` (logs: `docker compose logs -f`)
+- Start: `docker compose up -d` (logs: `docker compose logs -f`)
 - Stop: `docker compose down` (wipe volume: `docker compose down -v`, destructive)
 
 Smoke checks:

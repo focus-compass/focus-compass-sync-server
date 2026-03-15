@@ -16,15 +16,14 @@ FROM node:24-alpine
 
 WORKDIR /app
 ENV NODE_ENV=production
+LABEL org.opencontainers.image.source="https://github.com/focus-compass/focus-compass-sync-server"
+LABEL org.opencontainers.image.description="Real-time collaboration server based on Hocuspocus/Yjs with SQLite persistence"
 
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node package*.json ./
 COPY --chown=node:node src ./src
 
-# Create data directory
-RUN mkdir -p /app/data && chown -R node:node /app
-
-USER node
+RUN mkdir -p /app/data
 
 EXPOSE 8080
 

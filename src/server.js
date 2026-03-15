@@ -39,7 +39,7 @@ const appVersion = (String(process.env.APP_VERSION ?? "").trim() || packageVersi
 
 const updateRepo =
   String(process.env.UPDATE_REPO ?? process.env.GITHUB_UPDATE_REPO ?? "").trim() ||
-  "focus-compass/server";
+  "focus-compass/focus-compass-sync-server";
 
 const DB_PATH = process.env.DB_PATH ?? "./data/db.sqlite";
 const IMAGES_DIR = process.env.IMAGES_DIR ?? "./data/images";

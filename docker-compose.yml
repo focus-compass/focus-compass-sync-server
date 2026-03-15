@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   hocuspocus-sync:
-    # Build image from current directory using Dockerfile
-    build: .
+    # Published Docker image (override in .env if you want to pin a version)
+    image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:latest}
     
     # Container name for convenience
     container_name: hocuspocus_server
@@ -23,9 +21,9 @@ services:
       NODE_OPTIONS: "--max-old-space-size=768"
       PORT: 8080
       # Optional (see .env.example). If omitted, the server starts in setup mode.
-      HOCUSPOCUS_TOKEN: ${HOCUSPOCUS_TOKEN}
+      HOCUSPOCUS_TOKEN: ${HOCUSPOCUS_TOKEN:-}
       # Optional. If omitted, MCP is disabled until enabled from the admin UI.
-      MCP_TOKEN: ${MCP_TOKEN}
+      MCP_TOKEN: ${MCP_TOKEN:-}
       DB_PATH: ${DB_PATH:-./data/db.sqlite}
       IMAGES_DIR: ${IMAGES_DIR:-./data/images}
       BACKUP_DIR: ${BACKUP_DIR:-./data/backups}
@@ -50,16 +48,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    
-    # Resource limits to prevent excessive consumption
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.25'
-          memory: 256M
     
     # Logging configuration
     logging:

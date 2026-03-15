@@ -2469,6 +2469,7 @@
       dbInfo: null,
       backups: [],
       backupsTotalBytes: null,
+      pendingBackupDownloads: new Set(),
       backupSettings: { mode: "none", value: 0 },
       images: [],
       lastRefreshIso: null,
@@ -3559,7 +3560,10 @@
         const dlBtn = document.createElement("button");
         dlBtn.className = "ghost small";
         dlBtn.type = "button";
-        dlBtn.textContent = "Download";
+        const isPending = state.pendingBackupDownloads.has(b.file);
+        dlBtn.textContent = isPending ? "Preparing..." : "Download";
+        dlBtn.disabled = isPending;
+        dlBtn.setAttribute("aria-busy", String(isPending));
         dlBtn.addEventListener("click", () => downloadBackup(b.file));
 
         item.appendChild(info);
@@ -3570,6 +3574,11 @@
     }
 
     async function downloadBackup(file) {
+      if (state.pendingBackupDownloads.has(file)) return;
+
+      state.pendingBackupDownloads.add(file);
+      renderBackupList();
+
       try {
         const res = await fetch(`/api/admin/backups/${encodeURIComponent(file)}/download`, {
           headers: { Authorization: `Bearer ${state.token}` },
@@ -3589,6 +3598,9 @@
         URL.revokeObjectURL(url);
       } catch (err) {
         toast(`Download failed: ${err.message}`, "error");
+      } finally {
+        state.pendingBackupDownloads.delete(file);
+        renderBackupList();
       }
     }
 

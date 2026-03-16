@@ -3782,6 +3782,7 @@
           state.backupSettings = {
             mode: settingsRes.value.mode || "none",
             value: Number(settingsRes.value.value) || 0,
+            intervalMinutes: Number(settingsRes.value.intervalMinutes) || 30,
           };
         }
       } catch {

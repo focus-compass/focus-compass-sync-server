@@ -1,6 +1,6 @@
 {
   "name": "focus-compass-server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "WebSocket server for real-time collaboration based on Hocuspocus (CRDT/Yjs) with SQLite persistence",
   "main": "src/server.js",
   "type": "module",

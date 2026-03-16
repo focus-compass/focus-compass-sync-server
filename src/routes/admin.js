@@ -314,6 +314,22 @@ const handleBackups = async ({ request, response, backupDir, checkAuth }) => {
   }
 };
 
+const handleCreateBackup = async ({ request, response, backupService, checkAuth }) => {
+  requireAuth(request, response, checkAuth);
+
+  try {
+    const backupFile = await backupService.forceBackup();
+    json(response, 201, { success: true, file: backupFile });
+  } catch (err) {
+    if (err === null) throw null;
+    if (err.message === "Backup already in progress" || err.message === "Restore in progress") {
+      json(response, 409, { error: err.message });
+    }
+    console.error("Admin create-backup error:", err);
+    internalServerError(response, err.message || "Failed to create backup");
+  }
+};
+
 const handleBackupDownload = async ({ request, response, backupDir, checkAuth, file }) => {
   requireAuth(request, response, checkAuth);
 
@@ -352,9 +368,11 @@ const handleGetBackupSettings = async ({ request, response, backupSettingsPath, 
 
   try {
     const settings = await readJsonOrNull(backupSettingsPath);
-    const mode = settings && typeof settings.mode === "string" ? settings.mode : "none";
-    const value = settings && Number.isFinite(settings.value) ? settings.value : 0;
-    json(response, 200, { mode, value });
+    const mode = settings && typeof settings.mode === "string" ? settings.mode : "count";
+    const value = settings && Number.isFinite(settings.value) && settings.value > 0 ? settings.value : 10;
+    const rawInterval = Number(settings?.intervalMinutes);
+    const intervalMinutes = Number.isFinite(rawInterval) && rawInterval > 0 ? rawInterval : 30;
+    json(response, 200, { mode, value, intervalMinutes });
   } catch (err) {
     if (err === null) throw null;
     console.error("Admin backup-settings read error:", err);
@@ -369,8 +387,8 @@ const handlePutBackupSettings = async ({ request, response, backupSettingsPath, 
     const body = await readJsonBody(request, response);
     const mode = typeof body.mode === "string" ? body.mode.trim() : "";
 
-    if (!["none", "count", "size"].includes(mode)) {
-      badRequest(response, 'Invalid mode. Must be "none", "count", or "size".');
+    if (!["none", "days", "count", "size"].includes(mode)) {
+      badRequest(response, 'Invalid mode. Must be "none", "days", "count", or "size".');
     }
 
     let value = 0;
@@ -379,15 +397,23 @@ const handlePutBackupSettings = async ({ request, response, backupSettingsPath, 
       if (!Number.isFinite(value) || value <= 0) {
         badRequest(response, "Value must be a positive number");
       }
-      if (mode === "count") {
+      if (mode === "count" || mode === "days") {
         value = Math.floor(value);
       }
     }
 
-    const payload = { mode, value, updatedAt: new Date().toISOString() };
+    let intervalMinutes = Math.floor(Number(body.intervalMinutes));
+    if (!Number.isFinite(intervalMinutes) || intervalMinutes < 1) {
+      // Preserve existing interval if not provided; fall back to 30
+      const current = await readJsonOrNull(backupSettingsPath);
+      const currentInterval = Number(current?.intervalMinutes);
+      intervalMinutes = Number.isFinite(currentInterval) && currentInterval > 0 ? currentInterval : 30;
+    }
+
+    const payload = { mode, value, intervalMinutes, updatedAt: new Date().toISOString() };
     await writeFile(backupSettingsPath, `${JSON.stringify(payload, null, 2)}\n`, "utf-8");
 
-    json(response, 200, { mode, value });
+    json(response, 200, { mode, value, intervalMinutes });
   } catch (err) {
     if (err === null) throw null;
     console.error("Admin backup-settings write error:", err);
@@ -516,6 +542,79 @@ const handleDocDelete = async ({
   }
 };
 
+const RESTORE_EXIT_CODE = 75;
+
+const handleRestoreBackup = async ({
+  request,
+  response,
+  backupService,
+  checkAuth,
+  hocuspocusServer,
+  file,
+}) => {
+  requireAuth(request, response, checkAuth);
+
+  const sanitized = sanitizeBackupFile(file, response);
+  if (!sanitized) {
+    badRequest(response, "Invalid backup file");
+  }
+
+  let hocuspocusDestroyed = false;
+
+  try {
+    // Destroy Hocuspocus BEFORE touching the DB file.
+    // This closes all WebSocket connections and releases the SQLite handle,
+    // which is required on Windows (EBUSY) and prevents data races on Linux.
+    if (hocuspocusServer && typeof hocuspocusServer.destroy === "function") {
+      console.log("🔒 Stopping Hocuspocus before restore...");
+      await hocuspocusServer.destroy();
+      hocuspocusDestroyed = true;
+    }
+
+    const result = await backupService.restoreBackup(sanitized);
+
+    console.log(`✅ Restore complete: ${result.restoredFrom} (pre-restore: ${result.preRestoreBackup})`);
+
+    // Exit the process AFTER the HTTP response is fully flushed to the client.
+    response.on("finish", () => {
+      console.log("🔄 Restarting server after restore...");
+      process.exit(RESTORE_EXIT_CODE);
+    });
+
+    json(response, 200, {
+      success: true,
+      restoredFrom: result.restoredFrom,
+      preRestoreBackup: result.preRestoreBackup,
+      message: "Database restored. Server will restart now.",
+    });
+  } catch (err) {
+    if (err === null) throw null;
+
+    const msg = err.message || "Failed to restore backup";
+    console.error("Admin restore error:", err);
+
+    // If Hocuspocus was already destroyed, the server is in a zombie state.
+    // Force exit so the process manager restarts it cleanly.
+    if (hocuspocusDestroyed) {
+      response.on("finish", () => {
+        console.error("🔄 Hocuspocus was destroyed before restore failed — forcing restart.");
+        process.exit(RESTORE_EXIT_CODE);
+      });
+    }
+
+    if (msg === "Backup not found") {
+      notFound(response, msg);
+    }
+    if (msg === "Restore already in progress" || msg === "Backup in progress, try again shortly") {
+      json(response, 409, { error: msg });
+    }
+    if (msg.includes("integrity check failed")) {
+      badRequest(response, msg);
+    }
+    internalServerError(response, msg);
+  }
+};
+
 export const handleAdminRequest = async ({
   request,
   response,
@@ -524,9 +623,11 @@ export const handleAdminRequest = async ({
   dbPath,
   backupDir,
   backupSettingsPath,
+  backupService,
   checkAuth,
   maxDocDecodeBytes,
   docMetaCache,
+  hocuspocusServer,
 }) => {
   if (request.method === "GET" && pathname === "/api/admin/db-info") {
     await handleDbInfo({
@@ -541,9 +642,15 @@ export const handleAdminRequest = async ({
     return;
   }
 
-  if (request.method === "GET" && pathname === "/api/admin/backups") {
-    await handleBackups({ request, response, backupDir, checkAuth });
-    return;
+  if (pathname === "/api/admin/backups") {
+    if (request.method === "GET") {
+      await handleBackups({ request, response, backupDir, checkAuth });
+      return;
+    }
+    if (request.method === "POST") {
+      await handleCreateBackup({ request, response, backupService, checkAuth });
+      return;
+    }
   }
 
   const downloadMatch = pathname.match(/^\/api\/admin\/backups\/([^/]+)\/download$/);
@@ -554,6 +661,19 @@ export const handleAdminRequest = async ({
       backupDir,
       checkAuth,
       file: decodeURIComponent(downloadMatch[1]),
+    });
+    return;
+  }
+
+  const restoreMatch = pathname.match(/^\/api\/admin\/backups\/([^/]+)\/restore$/);
+  if (request.method === "POST" && restoreMatch) {
+    await handleRestoreBackup({
+      request,
+      response,
+      backupService,
+      checkAuth,
+      hocuspocusServer,
+      file: decodeURIComponent(restoreMatch[1]),
     });
     return;
   }

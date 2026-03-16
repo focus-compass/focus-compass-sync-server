@@ -2308,13 +2308,24 @@
                       <div class="panel-sub" id="backupsSub">-</div>
                     </div>
                   </div>
+                  <button class="ghost small" id="createBackupBtn" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;display:block;flex:0 0 auto;"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    Create Backup Now
+                  </button>
                 </div>
                 <div class="panel-body">
                   <div class="backup-settings">
                     <div class="backup-settings-row">
+                      <label for="backupIntervalMinutes">Auto-backup every</label>
+                      <input type="number" id="backupIntervalMinutes" min="1" step="1" style="width:80px;" />
+                      <span class="backup-settings-unit">min</span>
+                    </div>
+                    <div class="backup-settings-hint" style="color:var(--muted);font-size:12px;margin:-4px 0 8px;">A backup is created automatically when a document changes and at least this many minutes have passed since the last backup.</div>
+                    <div class="backup-settings-row">
                       <label for="backupLimitMode">Limit mode</label>
                       <select id="backupLimitMode">
-                        <option value="none">No limit (retention days only)</option>
+                        <option value="none">No limit</option>
+                        <option value="days">Retention days</option>
                         <option value="count">Max number of backups</option>
                         <option value="size">Max total size</option>
                       </select>
@@ -2470,7 +2481,7 @@
       backups: [],
       backupsTotalBytes: null,
       pendingBackupDownloads: new Set(),
-      backupSettings: { mode: "none", value: 0 },
+      backupSettings: { mode: "count", value: 10, intervalMinutes: 30 },
       images: [],
       lastRefreshIso: null,
       storageError: "",
@@ -2567,17 +2578,20 @@
       }
     }
 
-    function openConfirm({ title, body, onConfirm, okText = "Delete" }) {
+    function openConfirm({ title, body, onConfirm, okText = "Delete", okClass = "danger" }) {
       state.confirm = { open: true, title, body, onConfirm };
       $("confirmTitle").textContent = title;
       $("confirmBody").textContent = body;
-      $("confirmOkBtn").textContent = okText;
+      const okBtn = $("confirmOkBtn");
+      okBtn.textContent = okText;
+      okBtn.className = okClass;
       $("confirmModal").classList.add("visible");
     }
 
     function closeConfirm() {
       state.confirm = { open: false, title: "", body: "", onConfirm: null };
       $("confirmModal").classList.remove("visible");
+      $("confirmOkBtn").className = "danger";
     }
 
     function buildCurlCommand(docName, token) {
@@ -3482,9 +3496,10 @@
         state.backupSettings = {
           mode: settingsRes.value.mode || "none",
           value: Number(settingsRes.value.value) || 0,
+          intervalMinutes: Number(settingsRes.value.intervalMinutes) || 30,
         };
       } else {
-        state.backupSettings = { mode: "none", value: 0 };
+        state.backupSettings = { mode: "count", value: 10, intervalMinutes: 30 };
       }
 
       state.lastRefreshIso = new Date().toISOString();
@@ -3497,7 +3512,8 @@
     // ── Backup management page ───────────────────────────────
 
     function renderBackupSettingsForm() {
-      const { mode, value } = state.backupSettings;
+      const { mode, value, intervalMinutes } = state.backupSettings;
+      $("backupIntervalMinutes").value = intervalMinutes > 0 ? intervalMinutes : 30;
       $("backupLimitMode").value = mode;
 
       const valueRow = $("backupLimitValueRow");
@@ -3505,18 +3521,18 @@
         valueRow.style.display = "none";
       } else {
         valueRow.style.display = "flex";
-        $("backupLimitValueLabel").textContent = mode === "count" ? "Max backups" : "Max total size";
-        $("backupLimitValueUnit").textContent = mode === "size" ? "MB" : "";
+        const labels = { days: "Keep for", count: "Max backups", size: "Max total size" };
+        const units = { days: "days", count: "", size: "MB" };
+        $("backupLimitValueLabel").textContent = labels[mode] || "";
+        $("backupLimitValueUnit").textContent = units[mode] || "";
 
         if (mode === "size") {
           $("backupLimitValue").value = value > 0 ? Math.round(value / (1024 * 1024)) : "";
-          $("backupLimitValue").step = "1";
-          $("backupLimitValue").min = "1";
         } else {
           $("backupLimitValue").value = value > 0 ? value : "";
-          $("backupLimitValue").step = "1";
-          $("backupLimitValue").min = "1";
         }
+        $("backupLimitValue").step = "1";
+        $("backupLimitValue").min = "1";
       }
       $("backupSettingsError").style.display = "none";
       $("backupSettingsOk").style.display = "none";
@@ -3557,6 +3573,16 @@
         sizeEl.className = "backup-item-size";
         sizeEl.textContent = formatBytes(b.totalSizeBytes || b.sizeBytes);
 
+        const btnGroup = document.createElement("div");
+        btnGroup.style.cssText = "display:flex;gap:6px;align-items:center;flex-shrink:0;";
+
+        const restoreBtn = document.createElement("button");
+        restoreBtn.className = "ghost small";
+        restoreBtn.type = "button";
+        restoreBtn.textContent = "Restore";
+        restoreBtn.style.color = "var(--warn-ink)";
+        restoreBtn.addEventListener("click", () => confirmRestoreBackup(b.file, b.createdAt));
+
         const dlBtn = document.createElement("button");
         dlBtn.className = "ghost small";
         dlBtn.type = "button";
@@ -3566,9 +3592,12 @@
         dlBtn.setAttribute("aria-busy", String(isPending));
         dlBtn.addEventListener("click", () => downloadBackup(b.file));
 
+        btnGroup.appendChild(restoreBtn);
+        btnGroup.appendChild(dlBtn);
+
         item.appendChild(info);
         item.appendChild(sizeEl);
-        item.appendChild(dlBtn);
+        item.appendChild(btnGroup);
         list.appendChild(item);
       }
     }
@@ -3604,6 +3633,64 @@
       }
     }
 
+    function confirmRestoreBackup(file, createdAt) {
+      const dateStr = createdAt ? formatLocalDateTime(createdAt) : file;
+      openConfirm({
+        title: "Restore from backup",
+        body: `Replace the current database with the backup from ${dateStr}?\n\nA pre-restore snapshot of the current database will be created automatically. All connected clients will be disconnected. The server will restart.`,
+        okText: "Restore",
+        okClass: "ghost",
+        onConfirm: async () => {
+          const okBtn = $("confirmOkBtn");
+          okBtn.disabled = true;
+          okBtn.textContent = "Restoring...";
+          try {
+            await restoreBackup(file);
+          } finally {
+            okBtn.disabled = false;
+            okBtn.textContent = "Restore";
+          }
+        },
+      });
+    }
+
+    async function restoreBackup(file) {
+      try {
+        const res = await apiJson(`/api/admin/backups/${encodeURIComponent(file)}/restore`, {
+          method: "POST",
+          token: state.token,
+        });
+        closeConfirm();
+        toast("Database restored. Server is restarting\u2026");
+
+        // Show a reconnection overlay — the server will restart momentarily.
+        const overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;inset:0;z-index:2000;background:var(--overlay);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;";
+        const card = document.createElement("div");
+        card.style.cssText = "background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 32px;text-align:center;box-shadow:var(--shadow);max-width:400px;";
+        card.innerHTML = `<div style="font-size:16px;font-weight:700;margin-bottom:8px;">Server restarting</div>`
+          + `<div style="color:var(--muted);font-size:14px;line-height:1.45;">The database was restored from backup. The server is restarting. This page will reload automatically.</div>`
+          + (res.preRestoreBackup ? `<div style="margin-top:12px;font-size:12px;color:var(--muted);">Pre-restore snapshot: <code>${res.preRestoreBackup}</code></div>` : "");
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+
+        // Poll /health until the server comes back, then reload
+        const poll = setInterval(async () => {
+          try {
+            const r = await fetch("/health");
+            if (r.ok) {
+              clearInterval(poll);
+              location.reload();
+            }
+          } catch {
+            // Server still down — keep polling
+          }
+        }, 1000);
+      } catch (err) {
+        toast(`Restore failed: ${err.message}`, "error");
+      }
+    }
+
     async function saveBackupSettings() {
       const mode = $("backupLimitMode").value;
       let value = 0;
@@ -3617,8 +3704,15 @@
         if (mode === "size") {
           value = Math.floor(value * 1024 * 1024);
         } else {
-          value = Math.floor(value);
+          value = Math.floor(value); // days and count are integers
         }
+      }
+
+      const intervalMinutes = Math.floor(Number($("backupIntervalMinutes").value));
+      if (!Number.isFinite(intervalMinutes) || intervalMinutes < 1) {
+        $("backupSettingsError").textContent = "Interval must be at least 1 minute";
+        $("backupSettingsError").style.display = "block";
+        return;
       }
 
       $("backupSettingsSaveBtn").disabled = true;
@@ -3629,9 +3723,13 @@
         const res = await apiJson("/api/admin/backup-settings", {
           method: "PUT",
           token: state.token,
-          body: { mode, value },
+          body: { mode, value, intervalMinutes },
         });
-        state.backupSettings = { mode: res.mode || mode, value: Number(res.value) || value };
+        state.backupSettings = {
+          mode: res.mode || mode,
+          value: Number(res.value) || value,
+          intervalMinutes: Number(res.intervalMinutes) || intervalMinutes,
+        };
         $("backupSettingsOk").style.display = "inline";
         setTimeout(() => { $("backupSettingsOk").style.display = "none"; }, 2500);
       } catch (err) {
@@ -3639,6 +3737,30 @@
         $("backupSettingsError").style.display = "block";
       } finally {
         $("backupSettingsSaveBtn").disabled = false;
+      }
+    }
+
+    async function createBackupNow() {
+      const btn = $("createBackupBtn");
+      btn.disabled = true;
+      btn.textContent = "Creating...";
+
+      try {
+        await apiJson("/api/admin/backups", {
+          method: "POST",
+          token: state.token,
+        });
+        toast("Backup created successfully");
+        await refreshBackupsData();
+        renderBackupList();
+        renderStorage();
+      } catch (err) {
+        toast(`Backup failed: ${err.message}`, "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;display:block;flex:0 0 auto;"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
+          " Create Backup Now";
       }
     }
 
@@ -4447,13 +4569,16 @@
       $("backupLimitMode").addEventListener("change", () => {
         const mode = $("backupLimitMode").value;
         $("backupLimitValueRow").style.display = mode === "none" ? "none" : "flex";
-        $("backupLimitValueLabel").textContent = mode === "count" ? "Max backups" : "Max total size";
-        $("backupLimitValueUnit").textContent = mode === "size" ? "MB" : "";
+        const labels = { days: "Keep for", count: "Max backups", size: "Max total size" };
+        const units = { days: "days", count: "", size: "MB" };
+        $("backupLimitValueLabel").textContent = labels[mode] || "";
+        $("backupLimitValueUnit").textContent = units[mode] || "";
         $("backupSettingsError").style.display = "none";
         $("backupSettingsOk").style.display = "none";
       });
 
       $("backupSettingsSaveBtn").addEventListener("click", () => saveBackupSettings());
+      $("createBackupBtn").addEventListener("click", () => createBackupNow());
     }
 
     wire();

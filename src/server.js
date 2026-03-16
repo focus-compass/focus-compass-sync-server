@@ -76,8 +76,6 @@ let mcpToken = envMcpToken || persistedMcpToken || "";
 
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
-const BACKUP_INTERVAL_MINUTES = readNumberEnv("BACKUP_INTERVAL_MINUTES", 60);
-const BACKUP_RETENTION_DAYS = readNumberEnv("BACKUP_RETENTION_DAYS", 7);
 const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB_PATH), "backup-settings.json");
 
 const MAX_UPLOAD_BYTES = readNumberEnv("MAX_UPLOAD_BYTES", 10 * 1024 * 1024);
@@ -121,8 +119,6 @@ await docMetaCache.load();
 const backupService = new BackupService({
   dbPath: DB_PATH,
   backupDir: BACKUP_DIR,
-  intervalMinutes: BACKUP_INTERVAL_MINUTES,
-  retentionDays: BACKUP_RETENTION_DAYS,
   settingsFilePath: BACKUP_SETTINGS_PATH,
 });
 
@@ -241,9 +237,11 @@ const server = new Server({
         dbPath: DB_PATH,
         backupDir: BACKUP_DIR,
         backupSettingsPath: BACKUP_SETTINGS_PATH,
+        backupService,
         checkAuth: isAuthed,
         maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
         docMetaCache,
+        hocuspocusServer: server,
       });
 
       await handleWorkspaceRequest({

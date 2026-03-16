@@ -38,7 +38,7 @@ Hocuspocus is a WebSocket backend based on CRDT (Conflict-free Replicated Data T
 cp .env.example .env
 
 # 2. Recommended for production: pin a release image in .env
-# FOCUS_COMPASS_IMAGE=ghcr.io/focus-compass/focus-compass-sync-server:0.0.1
+# FOCUS_COMPASS_IMAGE=ghcr.io/focus-compass/focus-compass-sync-server:0.0.2
 
 # 3. Start server
 docker compose up -d
@@ -49,6 +49,10 @@ docker compose logs -f
 # 5. Check status
 docker ps
 
+# 6. Pull a newer published image
+docker compose pull
+docker compose up -d
+
 # Stop server
 docker compose down
 
@@ -57,6 +61,12 @@ docker compose down -v
 ```
 
 This compose file already uses the published GHCR image by default. `latest` is fine for trying the project quickly, but for production deployments you should pin `FOCUS_COMPASS_IMAGE` to a concrete release tag.
+
+If `FOCUS_COMPASS_IMAGE` is pinned to a specific tag like `:0.0.2`, Compose will stay on that version until you change the tag yourself. To refresh a mutable tag such as `:latest`, run `docker compose pull` before `docker compose up -d`.
+
+The Docker volume remains named `hocuspocus-data` for backward compatibility with existing installations.
+
+The default compose file sets `pull_policy: always`, which is useful on platforms like Dokploy that redeploy from the same compose file and should always check GHCR for a newer image digest.
 
 If you prefer not to use Compose, you can run the same image directly:
 
@@ -74,7 +84,7 @@ Try the latest published release:
 docker run -d \
   --name focus-compass-sync-server \
   -p 8080:8080 \
-  -v focus-compass-data:/app/data \
+  -v hocuspocus-data:/app/data \
   -e HOCUSPOCUS_TOKEN=your-secret-token \
   ghcr.io/focus-compass/focus-compass-sync-server:latest
 ```
@@ -85,9 +95,9 @@ Production example with a pinned release:
 docker run -d \
   --name focus-compass-sync-server \
   -p 8080:8080 \
-  -v focus-compass-data:/app/data \
+  -v hocuspocus-data:/app/data \
   -e HOCUSPOCUS_TOKEN=your-secret-token \
-  ghcr.io/focus-compass/focus-compass-sync-server:0.0.1
+  ghcr.io/focus-compass/focus-compass-sync-server:0.0.2
 ```
 
 Compose example using the published image:
@@ -103,10 +113,10 @@ services:
       PORT: 8080
       HOCUSPOCUS_TOKEN: your-secret-token
     volumes:
-      - focus-compass-data:/app/data
+      - hocuspocus-data:/app/data
 
 volumes:
-  focus-compass-data:
+  hocuspocus-data:
 ```
 
 The server will be available at `ws://localhost:8080`.
@@ -219,7 +229,7 @@ Server outputs logs like:
 2. **Add Redis** - For scaling to multiple instances.
 3. **Configure Auth** - Protect access to documents.
 4. **Backup** - Regularly backup the SQLite database.
-5. **Pin Docker versions** - Use a fixed image tag (`:0.0.1`) for production instead of `:latest`.
+5. **Pin Docker versions** - Use a fixed image tag (`:0.0.2`) for production instead of `:latest`.
 
 Resource limits are intentionally not encoded in the default compose file, because support differs across runtimes and Compose implementations. Set CPU/memory limits in the platform that actually runs the container.
 
@@ -232,18 +242,18 @@ Main branch pushes publish mutable development tags:
 - `ghcr.io/focus-compass/focus-compass-sync-server:edge`
 - `ghcr.io/focus-compass/focus-compass-sync-server:sha-<commit>`
 
-Version tag pushes such as `v0.0.1` publish release tags:
+Version tag pushes such as `v0.0.2` publish release tags:
 
-- `ghcr.io/focus-compass/focus-compass-sync-server:v0.0.1`
-- `ghcr.io/focus-compass/focus-compass-sync-server:0.0.1`
+- `ghcr.io/focus-compass/focus-compass-sync-server:v0.0.2`
+- `ghcr.io/focus-compass/focus-compass-sync-server:0.0.2`
 - `ghcr.io/focus-compass/focus-compass-sync-server:0.0`
 - `ghcr.io/focus-compass/focus-compass-sync-server:latest`
 
 Release flow:
 
 ```bash
-git tag v0.0.1
-git push origin v0.0.1
+git tag v0.0.2
+git push origin v0.0.2
 ```
 
 After the first publish, check the package visibility in GHCR. GitHub's container registry defaults new packages to private until you explicitly make them public.

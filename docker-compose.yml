@@ -1,28 +1,15 @@
 services:
-  hocuspocus-sync:
-    # Published Docker image (override in .env if you want to pin a version)
+  focus-compass:
     image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:latest}
-    
-    # Container name for convenience
-    container_name: hocuspocus_server
-    
-    # Always restart to ensure high uptime
+    pull_policy: always
     restart: unless-stopped
-    
-    # Port mapping:
-    # 8080 (host) -> 8080 (container)
-    # You can change 8080 on the host to e.g. 3000
     ports:
       - "${HOCUSPOCUS_PORT:-8080}:8080"
-    
-    # Environment variables
     environment:
       NODE_ENV: production
       NODE_OPTIONS: "--max-old-space-size=768"
       PORT: 8080
-      # Optional (see .env.example). If omitted, the server starts in setup mode.
       HOCUSPOCUS_TOKEN: ${HOCUSPOCUS_TOKEN:-}
-      # Optional. If omitted, MCP is disabled until enabled from the admin UI.
       MCP_TOKEN: ${MCP_TOKEN:-}
       DB_PATH: ${DB_PATH:-./data/db.sqlite}
       IMAGES_DIR: ${IMAGES_DIR:-./data/images}
@@ -33,39 +20,20 @@ services:
       MAX_DOC_DECODE_BYTES: ${MAX_DOC_DECODE_BYTES:-134217728}
       CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
       YJS_GC: ${YJS_GC:-true}
-    
-    # Data Persistence:
-    # Mount Docker Volume (or local folder) to store SQLite database.
-    # This ensures data is preserved across container restarts or updates.
-    # 'hocuspocus-data' is a named volume managed by Docker.
     volumes:
       - hocuspocus-data:/app/data
-    
-    # Healthcheck to monitor container status
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    
-    # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
-    # Network (optional but useful for isolation)
-    networks:
-      - hocuspocus-network
 
-# Define named volume for persistent storage
 volumes:
   hocuspocus-data:
     driver: local
-
-# Define network for isolation
-networks:
-  hocuspocus-network:
-    driver: bridge

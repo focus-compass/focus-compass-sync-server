@@ -2189,7 +2189,7 @@
 
                   <!-- Codex -->
                   <div class="mcp-panel" id="tab-codex">
-                    <div class="mcp-prompt-hint">Paste into Codex &mdash; it will configure the MCP connection.</div>
+                    <div class="mcp-prompt-hint">Paste into Codex &mdash; it will configure MCP, persist the token, and install the skill.</div>
                     <div class="mcp-prompt-row">
                       <div class="codebox" id="promptCodex">-</div>
                       <button class="ghost copy-btn" type="button" data-copy="promptCodex">Copy</button>
@@ -2197,11 +2197,11 @@
                     <details class="mcp-manual">
                       <summary>Manual config</summary>
                       <div class="mcp-step">
-                        <div class="mcp-step-label">JSON config</div>
-                        <div class="hint" style="font-size:12px;">Add to your Codex MCP settings (<code>.codex/</code> directory):</div>
+                        <div class="mcp-step-label">TOML config</div>
+                        <div class="hint" style="font-size:12px;">Add to <code>~/.codex/config.toml</code>:</div>
                         <div class="mcp-cmd">
-                          <div class="codebox" id="guideCodexJson" style="white-space:pre-wrap;">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideCodexJson">Copy</button>
+                          <div class="codebox" id="guideCodexToml" style="white-space:pre-wrap;">-</div>
+                          <button class="ghost copy-btn" type="button" data-copy="guideCodexToml">Copy</button>
                         </div>
                       </div>
                     </details>
@@ -3170,6 +3170,10 @@
     function mcpUrl() { return `${location.origin}/mcp`; }
     function skillUrl() { return `${location.origin}/focus-compass-skill.md`; }
 
+    function escapeForToml(value) {
+      return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    }
+
     function buildMcpAddCmd(token) {
       return `claude mcp add --transport http focus-compass ${mcpUrl()} --header "Authorization: Bearer ${token}"`;
     }
@@ -3184,6 +3188,16 @@
           },
         },
       }, null, 2);
+    }
+
+    function buildCodexToml() {
+      return [
+        `[mcp_servers.focusCompass]`,
+        `url = "${escapeForToml(mcpUrl())}"`,
+        `bearer_token_env_var = "FOCUS_COMPASS_MCP_TOKEN"`,
+        `http_headers = { "Accept" = "application/json, text/event-stream", "Content-Type" = "application/json" }`,
+        `enabled_tools = ["list_documents", "get_workspace", "list_projects", "get_project"]`,
+      ].join("\n");
     }
 
     function buildSkillCmd() {
@@ -3211,15 +3225,34 @@
 
     function buildPromptCodex(token) {
       return [
-        `Add my Focus Compass MCP server to your configuration.`,
+        `Install Focus Compass for Codex with the documented paths and minimal setup.`,
         ``,
-        `  Endpoint: ${mcpUrl()}`,
-        `  Transport: Streamable HTTP (stateless)`,
-        `  Authorization: Bearer ${token}`,
-        `  Content-Type: application/json`,
-        `  Accept: application/json, text/event-stream`,
+        `1. Update \`~/.codex/config.toml\` and add or update \`[mcp_servers.focusCompass]\` with:`,
+        `   - \`url = "${mcpUrl()}"\``,
+        `   - \`bearer_token_env_var = "FOCUS_COMPASS_MCP_TOKEN"\``,
+        `   - \`http_headers = { "Accept" = "application/json, text/event-stream", "Content-Type" = "application/json" }\``,
+        `   - \`enabled_tools = ["list_documents", "get_workspace", "list_projects", "get_project"]\``,
         ``,
-        `Read-only tools: list_documents, get_workspace, list_projects, get_project.`,
+        `2. If \`FOCUS_COMPASS_MCP_TOKEN\` is not already persisted as a user-level environment variable, persist it with:`,
+        `   - ${token}`,
+        ``,
+        `3. Create or update the user skill at \`$HOME/.agents/skills/focus-compass/SKILL.md\`.`,
+        `   Make it minimal, read-only, and clearly scoped to:`,
+        `   - \`list_documents\``,
+        `   - \`get_workspace\``,
+        `   - \`list_projects\``,
+        `   - \`get_project\``,
+        ``,
+        `4. Optionally add \`$HOME/.agents/skills/focus-compass/agents/openai.yaml\` if needed for UI metadata.`,
+        ``,
+        `5. Do not do broad exploration. If config or skill already exists, update it in place.`,
+        ``,
+        `6. Validate with one MCP call to \`list_documents\`.`,
+        ``,
+        `7. When finished, report only:`,
+        `   - what changed`,
+        `   - whether validation passed`,
+        `   - whether restart is needed`,
       ].join("\n");
     }
 
@@ -3265,8 +3298,8 @@
       if (pClaude) pClaude.textContent = buildPromptClaude(token);
 
       // Codex
-      const codexEl = $("guideCodexJson");
-      if (codexEl) codexEl.textContent = buildMcpJson(token);
+      const codexEl = $("guideCodexToml");
+      if (codexEl) codexEl.textContent = buildCodexToml();
 
       const pCodex = $("promptCodex");
       if (pCodex) pCodex.textContent = buildPromptCodex(token);

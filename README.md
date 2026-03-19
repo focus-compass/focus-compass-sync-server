@@ -295,6 +295,18 @@ claude mcp add --transport http focus-compass http://localhost:8080/mcp \
   --header "Authorization: Bearer YOUR_MCP_TOKEN"
 ```
 
+### Connect from Codex
+
+Add this to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.focusCompass]
+url = "http://localhost:8080/mcp"
+bearer_token_env_var = "FOCUS_COMPASS_MCP_TOKEN"
+http_headers = { "Accept" = "application/json, text/event-stream", "Content-Type" = "application/json" }
+enabled_tools = ["list_documents", "get_workspace", "list_projects", "get_project"]
+```
+
 ### Optional: /focus-compass skill
 
 Claude Code can load a custom **skill** that adds a `/focus-compass` command.
@@ -331,6 +343,41 @@ Install Focus Compass integration:
    - Save to: ~/.claude/skills/focus-compass/SKILL.md (macOS/Linux) or %USERPROFILE%\.claude\skills\focus-compass\SKILL.md (Windows)
 
 After setup, show me a quick overview of my projects using /focus-compass.
+```
+
+### Codex install prompt (optional)
+
+Paste this into Codex (replace `YOUR_MCP_TOKEN`):
+
+```text
+Install Focus Compass for Codex with the documented paths and minimal setup.
+
+1. Update `~/.codex/config.toml` and add or update `[mcp_servers.focusCompass]` with:
+   - `url = "http://localhost:8080/mcp"`
+   - `bearer_token_env_var = "FOCUS_COMPASS_MCP_TOKEN"`
+   - `http_headers = { "Accept" = "application/json, text/event-stream", "Content-Type" = "application/json" }`
+   - `enabled_tools = ["list_documents", "get_workspace", "list_projects", "get_project"]`
+
+2. If `FOCUS_COMPASS_MCP_TOKEN` is not already persisted as a user-level environment variable, persist it with:
+   - `YOUR_MCP_TOKEN`
+
+3. Create or update the user skill at `$HOME/.agents/skills/focus-compass/SKILL.md`.
+   Make it minimal, read-only, and clearly scoped to:
+   - `list_documents`
+   - `get_workspace`
+   - `list_projects`
+   - `get_project`
+
+4. Optionally add `$HOME/.agents/skills/focus-compass/agents/openai.yaml` if needed for UI metadata.
+
+5. Do not do broad exploration. If config or skill already exists, update it in place.
+
+6. Validate with one MCP call to `list_documents`.
+
+7. When finished, report only:
+   - what changed
+   - whether validation passed
+   - whether restart is needed
 ```
 
 Project-wide config (optional): create `.mcp.json` and use an env var so you don't commit tokens:

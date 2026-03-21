@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 import { extractYjsContent } from "./extract.js";
+import { formatDescription } from "./projectFormat.js";
 
 const toUint8Array = (data) => {
   if (!data) return new Uint8Array();
@@ -60,13 +61,11 @@ const readIdString = (val) => {
   return null;
 };
 
-const iterContainerValues = (container) => {
-  if (!container) return [];
-  if (Array.isArray(container)) return container;
-  if (typeof container.toArray === "function") return container.toArray();
-  if (typeof container.values === "function") return Array.from(container.values());
-  return [];
-};
+const isObject = (val) => val !== null && typeof val === "object";
+
+const extractRoot = (ydoc) => extractYjsContent(getRootSharedType(ydoc)) ?? {};
+
+const getProjectsFromRoot = (root) => (Array.isArray(root?.projects) ? root.projects : []);
 
 export const listProjectsIndex = (data, { includeProjectInfo = false } = {}) => {
   const update = toUint8Array(data);
@@ -77,27 +76,27 @@ export const listProjectsIndex = (data, { includeProjectInfo = false } = {}) => 
       Y.applyUpdate(ydoc, update);
     }
 
-    const root = getRootSharedType(ydoc);
-    const projects = iterContainerValues(getProp(root, "projects"));
+    const root = extractRoot(ydoc);
+    const projects = getProjectsFromRoot(root);
+    const descriptionMode = includeProjectInfo ? "full" : "summary";
 
     const result = [];
     for (const project of projects) {
       const id = readIdString(getProp(project, "id")) ?? null;
-      const title = readString(getProp(project, "title")) ?? null;
-      const item = { id, title };
+      const title = readString(getProp(project, "title"));
+      const description = formatDescription(
+        readString(getProp(getProp(project, "info"), "description")),
+        descriptionMode,
+      );
+      const item = {};
 
-      if (includeProjectInfo) {
-        const info = getProp(project, "info");
-        item.info = {
-          description: readString(getProp(info, "description")) ?? null,
-          image: readString(getProp(info, "image")) ?? null,
-          imageFit: readString(getProp(info, "imageFit")) ?? null,
-          imageCrop: readString(getProp(info, "imageCrop")) ?? null,
-        };
-        item.fields = safeToJson(getProp(project, "fields")) ?? {};
+      if (id != null) item.id = id;
+      if (title !== null) item.title = title;
+      if (description) item.description = description;
+
+      if (Object.keys(item).length > 0) {
+        result.push(item);
       }
-
-      result.push(item);
     }
     return result;
   } catch (err) {
@@ -117,8 +116,8 @@ export const getProjectContentById = (data, projectId) => {
       Y.applyUpdate(ydoc, update);
     }
 
-    const root = getRootSharedType(ydoc);
-    const projects = iterContainerValues(getProp(root, "projects"));
+    const root = extractRoot(ydoc);
+    const projects = getProjectsFromRoot(root);
 
     const availableProjects = [];
     let match = null;
@@ -126,8 +125,14 @@ export const getProjectContentById = (data, projectId) => {
 
     for (const project of projects) {
       const id = readIdString(getProp(project, "id")) ?? null;
-      const title = readString(getProp(project, "title")) ?? null;
-      availableProjects.push({ id, title });
+      const title = readString(getProp(project, "title"));
+      const available = {};
+
+      if (id != null) available.id = id;
+      if (title !== null) available.title = title;
+      if (Object.keys(available).length > 0) {
+        availableProjects.push(available);
+      }
 
       if (id && id === projectId) {
         match = project;
@@ -139,8 +144,7 @@ export const getProjectContentById = (data, projectId) => {
       return { found: false, project: null, availableProjects };
     }
 
-    const extracted = extractYjsContent(match);
-    return { found, project: extracted, availableProjects };
+    return { found, project: match, availableProjects };
   } catch (err) {
     console.error("getProjectContentById: failed to decode Yjs data:", err);
     return { found: false, project: null, availableProjects: [] };
@@ -148,8 +152,6 @@ export const getProjectContentById = (data, projectId) => {
     ydoc.destroy();
   }
 };
-
-const isObject = (val) => val !== null && typeof val === "object";
 
 const getProp = (container, key) => {
   if (!container) return undefined;
@@ -214,7 +216,7 @@ const readDateMs = (val) => {
 
   return null;
 };
-/** Read workspace {id, name} from a plain JS root object (post-extractYjsContent). */
+
 const extractWorkspace = (root) => {
   const ws = root?.workspace;
   const id = (typeof ws?.id === "string" && ws.id) || null;
@@ -225,7 +227,6 @@ const extractWorkspace = (root) => {
   return id || name ? { id, name } : null;
 };
 
-/** @param {object} root - plain JS object (already extracted via extractYjsContent) */
 const extractLastUpdatedAt = (root) => {
   let bestMs = null;
   const add = (val) => {
@@ -261,9 +262,9 @@ const extractLastUpdatedAt = (root) => {
 
 export const getDocMetaFromYDoc = (ydoc) => {
   try {
-    const root = extractYjsContent(getRootSharedType(ydoc)) ?? {};
+    const root = extractRoot(ydoc);
     const workspace = extractWorkspace(root);
-    const projectCount = Array.isArray(root.projects) ? root.projects.length : 0;
+    const projectCount = getProjectsFromRoot(root).length;
     return { workspaceName: workspace?.name ?? null, projectCount };
   } catch {
     return { workspaceName: null, projectCount: 0 };
@@ -279,9 +280,9 @@ export const getWorkspaceSummary = (data) => {
       Y.applyUpdate(ydoc, update);
     }
 
-    const root = extractYjsContent(getRootSharedType(ydoc)) ?? {};
+    const root = extractRoot(ydoc);
     const workspace = extractWorkspace(root);
-    const projectCount = Array.isArray(root.projects) ? root.projects.length : 0;
+    const projectCount = getProjectsFromRoot(root).length;
     const lastUpdatedAt = extractLastUpdatedAt(root);
 
     return {

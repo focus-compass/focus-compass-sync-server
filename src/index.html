@@ -2597,9 +2597,9 @@
     function buildCurlCommand(docName, token) {
       const base = `${location.origin}/api/workspace/${encodeURIComponent(docName)}`;
       const params = [
-        "project_info=true",
+        "project_info=false",
         "current_focus=true",
-        "next_tasks=true",
+        "next_tasks=false",
         "completed_tasks=false",
         "notes=false",
       ];

@@ -13,15 +13,17 @@ import {
 import { parseBool } from "../lib/env.js";
 import { json } from "../lib/responses.js";
 import { getContent } from "../yjs/inspect.js";
+import { createWorkspaceViewOptions } from "../yjs/viewOptions.js";
 import { transformWorkspace } from "../yjs/workspace.js";
 
-const parseSectionFlags = (url) => ({
-  projectInfo: parseBool(url.searchParams.get("project_info"), true),
-  currentFocus: parseBool(url.searchParams.get("current_focus"), true),
-  nextTasks: parseBool(url.searchParams.get("next_tasks"), true),
-  completedTasks: parseBool(url.searchParams.get("completed_tasks"), false),
-  notes: parseBool(url.searchParams.get("notes"), false),
-});
+const parseSectionFlags = (url) =>
+  createWorkspaceViewOptions({
+    project_info: parseBool(url.searchParams.get("project_info"), false),
+    current_focus: parseBool(url.searchParams.get("current_focus"), true),
+    next_tasks: parseBool(url.searchParams.get("next_tasks"), false),
+    completed_tasks: parseBool(url.searchParams.get("completed_tasks"), false),
+    notes: parseBool(url.searchParams.get("notes"), false),
+  });
 
 export const handleWorkspaceRequest = async ({
   request,

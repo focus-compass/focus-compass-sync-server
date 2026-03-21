@@ -37,15 +37,15 @@ Known error codes and what to tell the user:
    - If there is only one document, use it automatically.
    - If there are multiple and the user did not specify, ask which one to use.
 2. For a default overview (no specific question), call `get_workspace` with:
-   `{"sections":{"project_info":false,"current_focus":true,"next_tasks":true,"completed_tasks":false,"notes":false}}`
-   Then summarize per project: title, current focus task, and next tasks.
+   `{"sections":{"project_info":false,"current_focus":true,"next_tasks":false,"completed_tasks":false,"notes":false}}`
+   Then summarize per project: title, short description, and current focus.
 3. If the user asks about a specific project by title, call `list_projects` to find its `project_id`, then call `get_project` for full details.
 
 ## Output rules
 
 - Keep output concise and human-readable. Do not paste raw JSON unless the user asks.
 - Use short bullet lists or tables for multiple projects.
-- Highlight the current focus task for each project.
+- Highlight the current focus for each project.
 
 ## First run
 

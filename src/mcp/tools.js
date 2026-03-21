@@ -12,6 +12,10 @@ import {
   getWorkspaceSummary,
   listProjectsIndex,
 } from "../yjs/inspect.js";
+import {
+  createWorkspaceViewOptions,
+  FULL_PROJECT_VIEW_OPTIONS,
+} from "../yjs/viewOptions.js";
 import { transformProject, transformWorkspace } from "../yjs/workspace.js";
 
 const MAX_DOC_NAME_LENGTH = 512;
@@ -153,15 +157,15 @@ export const registerTools = (
   // ── list_documents ─────────────────────────────────────────────
   server.tool(
     "list_documents",
-    "List all documents (workspaces) in the Focus Compass database. By default returns lightweight metadata only; set include_summaries=true to decode workspace/project summary fields.",
+    "List all documents (workspaces) in the Focus Compass database. By default returns compact workspace summaries with project counts and timestamps; set include_summaries=false for a lighter metadata-only response.",
     {
       include_summaries: z
         .boolean()
         .optional()
-        .default(false)
-        .describe("Decode workspace/project summary fields (heavier for large datasets)"),
+        .default(true)
+        .describe("Return compact workspace summaries; disable for lighter metadata only"),
     },
-    async ({ include_summaries: includeSummaries = false }) => {
+    async ({ include_summaries: includeSummaries = true }) => {
       const result = safeReadDb(dbPath, (db) => {
         if (!documentsTableExists(db)) return [];
 
@@ -171,12 +175,17 @@ export const registerTools = (
           const stmt = db.prepare("SELECT name, length(data) AS dataSize FROM documents");
           for (const row of stmt.iterate()) {
             const cached = docMetaCache?.get(row.name);
-            docs.push({
+            const item = {
               name: row.name,
-              workspaceName: cached?.workspaceName ?? null,
               projectCount: cached?.projectCount ?? 0,
               dataSize: toByteLength(row?.dataSize),
-            });
+            };
+
+            if (toNonEmptyTrimmedStringOrNull(cached?.workspaceName)) {
+              item.workspace = { name: cached.workspaceName };
+            }
+
+            docs.push(item);
           }
           return docs;
         }
@@ -189,27 +198,28 @@ export const registerTools = (
           const dataSize = toByteLength(row?.dataSize);
 
           if (isDocTooLargeToDecode(dataSize, maxDocDecodeBytes)) {
-            docs.push({
+            const skipped = {
               name: row.name,
-              workspace: null,
-              projectCount: null,
-              lastUpdatedAt: null,
               dataSize,
               summarySkipped: true,
               summaryReason: "document_too_large",
-            });
+            };
+            docs.push(skipped);
             continue;
           }
 
           const dataRow = dataStmt.get(row.name);
           const summary = getWorkspaceSummary(dataRow?.data);
-          docs.push({
+          const item = {
             name: row.name,
-            workspace: summary.workspace,
             projectCount: summary.projectCount,
-            lastUpdatedAt: summary.lastUpdatedAt,
             dataSize,
-          });
+          };
+
+          if (summary.workspace) item.workspace = summary.workspace;
+          if (summary.lastUpdatedAt) item.lastUpdatedAt = summary.lastUpdatedAt;
+
+          docs.push(item);
         }
         return docs;
       });
@@ -227,16 +237,20 @@ export const registerTools = (
   // ── get_workspace ──────────────────────────────────────────────
   server.tool(
     "get_workspace",
-    "Get workspace overview with projects, tasks and notes. Use the sections parameter to control which data is included and reduce response size. Requires a document name from list_documents.",
+    "Get a compact workspace overview for LLM context. By default returns each project's id, title, short description, and current focus. Use sections to include full descriptions, additional task groups, or notes.",
     {
       document: z.string().describe("Document name (from list_documents)"),
       sections: z
         .object({
-          project_info: z.boolean().optional().default(true).describe("Include project descriptions and images"),
+          project_info: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe("Include full project descriptions instead of short summaries"),
           current_focus: z.boolean().optional().default(true).describe("Include current focus group and its tasks"),
-          next_tasks: z.boolean().optional().default(true).describe("Include tasks from upcoming groups"),
-          completed_tasks: z.boolean().optional().default(false).describe("Include completed tasks"),
-          notes: z.boolean().optional().default(false).describe("Include note collections"),
+          next_tasks: z.boolean().optional().default(false).describe("Include upcoming task groups"),
+          completed_tasks: z.boolean().optional().default(false).describe("Include completed task groups"),
+          notes: z.boolean().optional().default(false).describe("Include cleaned project notes"),
         })
         .optional()
         .default({}),
@@ -246,14 +260,7 @@ export const registerTools = (
       if (nameError) return errorResult(nameError);
 
       const docName = rawDocName.trim();
-      const s = rawSections ?? {};
-      const sectionFlags = {
-        projectInfo: s.project_info ?? true,
-        currentFocus: s.current_focus ?? true,
-        nextTasks: s.next_tasks ?? true,
-        completedTasks: s.completed_tasks ?? false,
-        notes: s.notes ?? false,
-      };
+      const sectionFlags = createWorkspaceViewOptions(rawSections);
 
       const result = safeReadDb(dbPath, (db) => {
         const loaded = loadDocumentData(db, docName, maxDocDecodeBytes);
@@ -282,14 +289,14 @@ export const registerTools = (
   // ── list_projects ──────────────────────────────────────────────
   server.tool(
     "list_projects",
-    "List projects in a document with their IDs and titles. Use project IDs from this response to call get_project. Optionally include project descriptions, images and fields.",
+    "List projects in a document with IDs, titles, and short descriptions for quick LLM-friendly scanning. Use get_project for full project context, task groups, and notes.",
     {
       document: z.string().describe("Document name (from list_documents)"),
       project_info: z
         .boolean()
         .optional()
         .default(false)
-        .describe("Include project descriptions, images and fields"),
+        .describe("Include full project descriptions instead of short summaries"),
     },
     async ({ document: rawDocName, project_info: includeProjectInfo }) => {
       const nameError = validateDocName(rawDocName);
@@ -325,7 +332,7 @@ export const registerTools = (
   // ── get_project ────────────────────────────────────────────────
   server.tool(
     "get_project",
-    "Get detailed info about a single project by its ID, including all tasks, focus groups, and notes. If the project_id is not found, the error includes a list of available project IDs.",
+    "Get the full cleaned context for a single project by ID, including description, custom fields, grouped tasks, and notes. If the project_id is not found, the error includes available project IDs.",
     {
       document: z.string().describe("Document name (from list_documents)"),
       project_id: z.string().describe("Project ID (from list_projects)"),
@@ -339,14 +346,6 @@ export const registerTools = (
 
       const docName = rawDocName.trim();
       const projectId = rawProjectId.trim();
-
-      const allSections = {
-        projectInfo: true,
-        currentFocus: true,
-        nextTasks: true,
-        completedTasks: true,
-        notes: true,
-      };
 
       const result = safeReadDb(dbPath, (db) => {
         const loaded = loadDocumentData(db, docName, maxDocDecodeBytes);
@@ -368,7 +367,7 @@ export const registerTools = (
             };
           }
 
-          return transformProject(lookup.project, allSections);
+          return transformProject(lookup.project, FULL_PROJECT_VIEW_OPTIONS);
         } catch (err) {
           console.error("MCP get_project decode error:", err);
           return { error: `Failed to decode document data: ${err.message}` };

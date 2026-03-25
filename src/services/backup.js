@@ -21,8 +21,17 @@ export class BackupService {
         this.settingsFilePath = config.settingsFilePath ?? null;
 
         this.lastBackupTime = 0;
+        this.lastAutoBackupAttemptTime = 0;
         this.isBackingUp = false;
         this.isRestoring = false;
+        this.autoBackupHealth = {
+            status: "ok",
+            consecutiveFailures: 0,
+            lastAttemptAt: null,
+            lastSuccessAt: null,
+            lastFailureAt: null,
+            lastError: "",
+        };
 
         this.ready = this._ensureDir();
     }
@@ -52,9 +61,16 @@ export class BackupService {
         const now = Date.now();
         const intervalMs = intervalMinutes * 60 * 1000;
 
-        if (now - this.lastBackupTime < intervalMs) return;
+        if (now - this.lastAutoBackupAttemptTime < intervalMs) return;
 
-        await this._createBackup("backup", { skipIntegrityCheck: true, settings });
+        this.lastAutoBackupAttemptTime = now;
+
+        try {
+            await this._createBackup("backup", { skipIntegrityCheck: true, settings });
+            this._markBackupSuccess();
+        } catch (error) {
+            this._markAutoBackupFailure(error);
+        }
     }
 
     /**
@@ -72,7 +88,45 @@ export class BackupService {
             throw new Error("Restore in progress");
         }
 
-        return this._createBackup();
+        const backupFile = await this._createBackup();
+        this._markBackupSuccess();
+        return backupFile;
+    }
+
+    getAutoBackupHealth() {
+        return {
+            status: this.autoBackupHealth.consecutiveFailures > 0 ? "degraded" : "ok",
+            consecutiveFailures: this.autoBackupHealth.consecutiveFailures,
+            lastAttemptAt: this.autoBackupHealth.lastAttemptAt,
+            lastSuccessAt: this.autoBackupHealth.lastSuccessAt,
+            lastFailureAt: this.autoBackupHealth.lastFailureAt,
+            lastError: this.autoBackupHealth.lastError,
+        };
+    }
+
+    _markBackupSuccess() {
+        const nowIso = new Date().toISOString();
+        this.autoBackupHealth = {
+            ...this.autoBackupHealth,
+            status: "ok",
+            consecutiveFailures: 0,
+            lastAttemptAt: nowIso,
+            lastSuccessAt: nowIso,
+            lastError: "",
+        };
+    }
+
+    _markAutoBackupFailure(error) {
+        const nowIso = new Date().toISOString();
+        const message = String(error?.message || error || "Auto-backup failed");
+        this.autoBackupHealth = {
+            ...this.autoBackupHealth,
+            status: "degraded",
+            consecutiveFailures: this.autoBackupHealth.consecutiveFailures + 1,
+            lastAttemptAt: nowIso,
+            lastFailureAt: nowIso,
+            lastError: message,
+        };
     }
 
     /**
@@ -90,6 +144,9 @@ export class BackupService {
      */
     async _createBackup(prefix = "backup", { skipIntegrityCheck = false, skipCleanup = false, settings = null } = {}) {
         this.isBackingUp = true;
+        let backupFile = null;
+        let backupPath = null;
+        let tempBackupPath = null;
 
         try {
             // Skip if database doesn't exist yet
@@ -101,21 +158,30 @@ export class BackupService {
             }
 
             const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-            const backupFile = `${prefix}-${timestamp}.sqlite`;
-            const backupPath = join(this.backupDir, backupFile);
+            backupFile = `${prefix}-${timestamp}.sqlite`;
+            backupPath = join(this.backupDir, backupFile);
+            tempBackupPath = join(this.backupDir, `${backupFile}.tmp`);
 
             // VACUUM INTO creates an atomic, fully consistent copy of the database
             // as a single file — no WAL, SHM, or journal sidecars needed.
             const db = new DatabaseSync(this.dbPath, { readOnly: true });
             try {
-                db.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
+                db.exec(`VACUUM INTO '${tempBackupPath.replace(/'/g, "''")}'`);
             } finally {
                 db.close();
             }
 
-            if (!skipIntegrityCheck) {
-                await this._verifyIntegrity(backupPath);
+            const backupStats = await stat(tempBackupPath).catch(() => null);
+            if (!backupStats?.isFile?.() || backupStats.size <= 0) {
+                throw new Error("Backup file is empty");
             }
+
+            if (!skipIntegrityCheck) {
+                await this._verifyIntegrity(tempBackupPath);
+            }
+
+            await rename(tempBackupPath, backupPath);
+            tempBackupPath = null;
 
             this.lastBackupTime = Date.now();
 
@@ -125,6 +191,12 @@ export class BackupService {
 
             return backupFile;
         } catch (error) {
+            if (tempBackupPath) {
+                await unlink(tempBackupPath).catch(() => {});
+            }
+            if (backupPath) {
+                await this._deleteBackup(backupPath).catch(() => {});
+            }
             console.error("❌ Backup failed:", error.message);
             throw error;
         } finally {

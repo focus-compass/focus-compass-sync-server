@@ -488,6 +488,15 @@
       font-weight: 600;
     }
 
+    .alert-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .alert-line + .alert-line {
+      margin-top: 2px;
+    }
+
     .alert.info {
       border-color: var(--primary-a25);
       background: var(--primary-a06);
@@ -881,6 +890,21 @@
       background: var(--primary-a04);
     }
 
+    .storage-card-warning {
+      border-color: var(--warn-a35);
+      background: var(--warn-a10);
+    }
+
+    .storage-card-warning .storage-card-icon {
+      background: rgba(242, 153, 0, 0.12);
+      color: var(--warn-ink);
+    }
+
+    .storage-card-clickable.storage-card-warning:hover {
+      border-color: var(--warn-a35);
+      background: rgba(242, 153, 0, 0.14);
+    }
+
     .backup-settings {
       margin-bottom: 4px;
       padding: 14px;
@@ -895,12 +919,15 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
+      min-width: 0;
     }
 
     .backup-settings-row label {
       font-size: 13px;
       font-weight: 600;
       min-width: 110px;
+      flex: 0 0 110px;
     }
 
     .backup-settings-row select,
@@ -913,9 +940,12 @@
       background-color: var(--surface);
       color: var(--text);
       color-scheme: light;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .backup-settings-row select {
+      flex: 1 1 220px;
       min-width: 160px;
     }
 
@@ -932,10 +962,18 @@
       white-space: nowrap;
     }
 
+    .backup-settings-hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin: -4px 0 8px;
+    }
+
     .backup-settings-actions {
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .backup-settings-ok {
@@ -944,7 +982,8 @@
     }
 
     .backup-item {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: center;
       gap: 12px;
       padding: 10px 14px;
@@ -985,6 +1024,49 @@
       color: var(--text);
       white-space: nowrap;
       letter-spacing: -0.01em;
+      justify-self: end;
+    }
+
+    .backup-item-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+      .backup-settings {
+        padding: 12px;
+      }
+
+      .backup-settings-row {
+        align-items: flex-start;
+      }
+
+      .backup-settings-row label {
+        flex-basis: 100%;
+        min-width: 0;
+      }
+
+      .backup-settings-row select {
+        min-width: 0;
+        width: 100%;
+        flex-basis: 100%;
+      }
+
+      .backup-item {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: flex-start;
+      }
+
+      .backup-item-size {
+        justify-self: start;
+      }
+
+      .backup-item-actions {
+        justify-content: flex-start;
+      }
     }
 
     .detail-back-btn {
@@ -2099,6 +2181,7 @@
                       <div class="storage-card-size" id="statImagesSize">-</div>
                     </div>
                   </div>
+                  <div class="alert warn" id="backupHealthDashAlert" style="display:none;"></div>
                   <div class="alert warn storage-hint" id="storageHint">-</div>
                 </div>
               </div>
@@ -2320,7 +2403,7 @@
                       <input type="number" id="backupIntervalMinutes" min="1" step="1" style="width:80px;" />
                       <span class="backup-settings-unit">min</span>
                     </div>
-                    <div class="backup-settings-hint" style="color:var(--muted);font-size:12px;margin:-4px 0 8px;">A backup is created automatically when a document changes and at least this many minutes have passed since the last backup.</div>
+                    <div class="backup-settings-hint">A backup is created automatically when a document changes and at least this many minutes have passed since the last backup.</div>
                     <div class="backup-settings-row">
                       <label for="backupLimitMode">Limit mode</label>
                       <select id="backupLimitMode">
@@ -2341,6 +2424,7 @@
                     </div>
                     <div class="alert error" id="backupSettingsError" style="display:none;"></div>
                   </div>
+                  <div class="alert warn" id="backupHealthDetailAlert" style="display:none;"></div>
                   <div id="backupList"></div>
                 </div>
               </div>
@@ -2480,6 +2564,14 @@
       dbInfo: null,
       backups: [],
       backupsTotalBytes: null,
+      backupHealth: {
+        status: "ok",
+        consecutiveFailures: 0,
+        lastAttemptAt: null,
+        lastSuccessAt: null,
+        lastFailureAt: null,
+        lastError: "",
+      },
       pendingBackupDownloads: new Set(),
       backupSettings: { mode: "count", value: 10, intervalMinutes: 30 },
       images: [],
@@ -2647,6 +2739,85 @@
         return new Date(isoString).toLocaleString();
       } catch {
         return String(isoString);
+      }
+    }
+
+    function normalizeBackupHealth(raw, backups = []) {
+      const latestBackupAt = Array.isArray(backups) && backups.length
+        ? String(backups[0]?.createdAt || "").trim()
+        : "";
+      const consecutiveFailures = Math.max(0, Math.floor(Number(raw?.consecutiveFailures) || 0));
+      return {
+        status: consecutiveFailures > 0 ? "degraded" : "ok",
+        consecutiveFailures,
+        lastAttemptAt: String(raw?.lastAttemptAt || "").trim(),
+        lastSuccessAt: String(raw?.lastSuccessAt || latestBackupAt || "").trim(),
+        lastFailureAt: String(raw?.lastFailureAt || "").trim(),
+        lastError: String(raw?.lastError || "").trim(),
+      };
+    }
+
+    function setAlertLines(element, title, lines) {
+      if (!element) return;
+
+      const safeLines = Array.isArray(lines)
+        ? lines.map((line) => String(line || "").trim()).filter(Boolean)
+        : [];
+
+      element.replaceChildren();
+
+      if (!safeLines.length) {
+        element.style.display = "none";
+        return;
+      }
+
+      const titleEl = document.createElement("div");
+      titleEl.className = "alert-title";
+      titleEl.textContent = title;
+      element.appendChild(titleEl);
+
+      for (const line of safeLines) {
+        const lineEl = document.createElement("div");
+        lineEl.className = "alert-line";
+        lineEl.textContent = line;
+        element.appendChild(lineEl);
+      }
+
+      element.style.display = "block";
+    }
+
+    function buildBackupHealthLines() {
+      const health = state.backupHealth || normalizeBackupHealth(null, state.backups);
+      if (health.status !== "degraded" || health.consecutiveFailures <= 0) return [];
+
+      const lines = [];
+      if (health.consecutiveFailures === 1) {
+        lines.push("The latest automatic backup attempt failed.");
+      } else {
+        lines.push(`Automatic backups have failed ${health.consecutiveFailures} times in a row.`);
+      }
+      if (health.lastFailureAt) {
+        lines.push(`Last failure: ${formatLocalDateTime(health.lastFailureAt)}.`);
+      }
+      if (health.lastSuccessAt) {
+        lines.push(`Last successful backup: ${formatLocalDateTime(health.lastSuccessAt)}.`);
+      } else {
+        lines.push("No successful backup is available yet.");
+      }
+      if (health.lastError) {
+        lines.push(`Error: ${health.lastError}`);
+      }
+      return lines;
+    }
+
+    function renderBackupHealthAlerts() {
+      const lines = buildBackupHealthLines();
+      setAlertLines($("backupHealthDashAlert"), "Backups need attention", lines);
+      setAlertLines($("backupHealthDetailAlert"), "Backups need attention", lines);
+
+      const backupsCard = $("backupsCard");
+      if (backupsCard) {
+        backupsCard.classList.toggle("storage-card-warning", lines.length > 0);
       }
     }
 
@@ -3119,6 +3290,8 @@
       const imageCount = Array.isArray(state.images) ? state.images.length : 0;
       $("statImagesSize").textContent = formatBytes(imagesBytes);
       $("statImagesCount").textContent = imageCount;
+
+      renderBackupHealthAlerts();
     }
 
     function renderRevealButtons() {
@@ -3493,6 +3666,7 @@
       state.signedIn = false;
       state.storageError = "";
       state.lastRefreshIso = null;
+      state.backupHealth = normalizeBackupHealth(null, []);
       state.selectedDocName = "";
       closeConfirm();
       closeDocModal();
@@ -3512,9 +3686,11 @@
         state.backups = Array.isArray(backupsRes.value.backups) ? backupsRes.value.backups : [];
         const totalSizeBytes = Number(backupsRes.value.totalSizeBytes);
         state.backupsTotalBytes = Number.isFinite(totalSizeBytes) ? totalSizeBytes : null;
+        state.backupHealth = normalizeBackupHealth(backupsRes.value.health, state.backups);
       } else {
         state.backups = [];
         state.backupsTotalBytes = null;
+        state.backupHealth = normalizeBackupHealth(null, []);
         state.storageError = "Backups unavailable";
       }
 
@@ -3575,6 +3751,7 @@
       const backups = Array.isArray(state.backups) ? state.backups : [];
       const totalBytes = calcBackupsBytes(backups, state.backupsTotalBytes);
       $("backupsSub").textContent = `${backups.length} snapshot${backups.length === 1 ? "" : "s"}, ${formatBytes(totalBytes)} total`;
+      renderBackupHealthAlerts();
 
       const list = $("backupList");
       list.innerHTML = "";
@@ -3607,7 +3784,7 @@
         sizeEl.textContent = formatBytes(b.totalSizeBytes || b.sizeBytes);
 
         const btnGroup = document.createElement("div");
-        btnGroup.style.cssText = "display:flex;gap:6px;align-items:center;flex-shrink:0;";
+        btnGroup.className = "backup-item-actions";
 
         const restoreBtn = document.createElement("button");
         restoreBtn.className = "ghost small";
@@ -3810,6 +3987,7 @@
           state.backups = Array.isArray(backupsRes.value.backups) ? backupsRes.value.backups : [];
           const totalSizeBytes = Number(backupsRes.value.totalSizeBytes);
           state.backupsTotalBytes = Number.isFinite(totalSizeBytes) ? totalSizeBytes : null;
+          state.backupHealth = normalizeBackupHealth(backupsRes.value.health, state.backups);
         }
         if (settingsRes.status === "fulfilled") {
           state.backupSettings = {

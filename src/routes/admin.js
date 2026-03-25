@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { readdir, writeFile } from "node:fs/promises";
+import { readdir, unlink, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import {
@@ -22,6 +22,14 @@ import { json } from "../lib/responses.js";
 import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
 const BACKUP_FILE_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
+const BACKUP_SIDECAR_SUFFIXES = ["-wal", "-shm", "-journal"];
+
+const removeBackupArtifacts = async (filePath) => {
+  await Promise.allSettled([
+    unlink(filePath),
+    ...BACKUP_SIDECAR_SUFFIXES.map((suffix) => unlink(`${filePath}${suffix}`)),
+  ]);
+};
 
 const listBackups = async (backupDir) => {
   const names = await readdir(backupDir).catch((error) => {
@@ -35,6 +43,10 @@ const listBackups = async (backupDir) => {
     const fullPath = join(backupDir, name);
     const stats = await statOrNull(fullPath);
     if (!stats?.isFile?.()) continue;
+    if (stats.size <= 0) {
+      await removeBackupArtifacts(fullPath);
+      continue;
+    }
 
     const sidecars = {
       wal: 0,
@@ -297,7 +309,7 @@ const handleDbInfo = async ({
   }
 };
 
-const handleBackups = async ({ request, response, backupDir, checkAuth }) => {
+const handleBackups = async ({ request, response, backupDir, backupService, checkAuth }) => {
   requireAuth(request, response, checkAuth);
 
   try {
@@ -306,7 +318,16 @@ const handleBackups = async ({ request, response, backupDir, checkAuth }) => {
       (sum, backup) => sum + (backup.totalSizeBytes ?? backup.sizeBytes ?? 0),
       0
     );
-    json(response, 200, { backups, totalSizeBytes });
+    const health = typeof backupService?.getAutoBackupHealth === "function"
+      ? backupService.getAutoBackupHealth()
+      : null;
+    const effectiveHealth = health
+      ? {
+        ...health,
+        lastSuccessAt: health.lastSuccessAt || backups[0]?.createdAt || null,
+      }
+      : null;
+    json(response, 200, { backups, totalSizeBytes, health: effectiveHealth });
   } catch (err) {
     if (err === null) throw null;
     console.error("Admin backups error:", err);
@@ -341,6 +362,10 @@ const handleBackupDownload = async ({ request, response, backupDir, checkAuth, f
   const filePath = join(backupDir, sanitized);
   const stats = await statOrNull(filePath);
   if (!stats || !stats.isFile()) {
+    notFound(response, "Backup not found");
+  }
+  if (stats.size <= 0) {
+    await removeBackupArtifacts(filePath);
     notFound(response, "Backup not found");
   }
 
@@ -644,7 +669,7 @@ export const handleAdminRequest = async ({
 
   if (pathname === "/api/admin/backups") {
     if (request.method === "GET") {
-      await handleBackups({ request, response, backupDir, checkAuth });
+      await handleBackups({ request, response, backupDir, backupService, checkAuth });
       return;
     }
     if (request.method === "POST") {

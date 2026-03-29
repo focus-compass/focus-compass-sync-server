@@ -734,7 +734,14 @@ export const handleAdminRequest = async ({
   }
 
   if (request.method === "DELETE") {
-    await handleDocDelete({ request, response, dbPath, checkAuth, encodedName, docMetaCache });
+    await handleDocDelete({
+      request,
+      response,
+      dbPath,
+      checkAuth,
+      encodedName,
+      docMetaCache,
+    });
     return;
   }
 };

@@ -2718,6 +2718,9 @@
 
     const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
     const NEW_TOKEN_RE = /^[A-Za-z0-9_-]+$/;
+    const DEFAULT_APP_ROUTE = "dashboard";
+    const DETAIL_APP_ROUTES = new Set(["database", "backups", "images"]);
+    const APP_ROUTES = new Set([DEFAULT_APP_ROUTE, ...DETAIL_APP_ROUTES]);
 
     const $ = (id) => document.getElementById(id);
 
@@ -2755,6 +2758,7 @@
       images: [],
       lastRefreshIso: null,
       storageError: "",
+      appRoute: DEFAULT_APP_ROUTE,
       selectedDocName: "",
       selectedDocData: null,
       mcp: { enabled: false, envManaged: false },
@@ -2769,6 +2773,93 @@
       el.classList.add("visible");
       clearTimeout(toast._t);
       toast._t = setTimeout(() => el.classList.remove("visible"), 2600);
+    }
+
+    function normalizeAppRoute(route) {
+      const value = String(route || "").trim().toLowerCase();
+      return APP_ROUTES.has(value) ? value : DEFAULT_APP_ROUTE;
+    }
+
+    function readAppRouteFromUrl(urlString = location.href) {
+      try {
+        const url = new URL(urlString, location.origin);
+        return normalizeAppRoute(url.searchParams.get("view"));
+      } catch {
+        return DEFAULT_APP_ROUTE;
+      }
+    }
+
+    function buildAppUrl(route, urlString = location.href) {
+      const nextRoute = normalizeAppRoute(route);
+      const url = new URL(urlString, location.origin);
+      url.hash = "";
+      if (nextRoute === DEFAULT_APP_ROUTE) {
+        url.searchParams.delete("view");
+      } else {
+        url.searchParams.set("view", nextRoute);
+      }
+      return `${url.pathname}${url.search}`;
+    }
+
+    function syncAppRoute(route, historyMode = "push") {
+      const nextRoute = normalizeAppRoute(route);
+      state.appRoute = nextRoute;
+
+      if (historyMode === "none") return;
+
+      const nextUrl = buildAppUrl(nextRoute);
+      const currentUrl = `${location.pathname}${location.search}`;
+
+      try {
+        if (historyMode === "seed" && DETAIL_APP_ROUTES.has(nextRoute)) {
+          // Keep Back inside the app after a direct open of a detail screen.
+          history.replaceState({ appRoute: DEFAULT_APP_ROUTE }, "", buildAppUrl(DEFAULT_APP_ROUTE));
+          history.pushState({ appRoute: nextRoute }, "", nextUrl);
+          return;
+        }
+
+        const shouldReplace = historyMode === "replace";
+        if (shouldReplace && currentUrl === nextUrl && history.state?.appRoute === nextRoute) {
+          return;
+        }
+
+        history[shouldReplace ? "replaceState" : "pushState"]({ appRoute: nextRoute }, "", nextUrl);
+      } catch {
+        // ignore
+      }
+    }
+
+    function getInitialRouteHistoryMode(route = readAppRouteFromUrl()) {
+      const nextRoute = normalizeAppRoute(route);
+      if (history.state?.appRoute === nextRoute) {
+        return "none";
+      }
+      if (DETAIL_APP_ROUTES.has(nextRoute) && !history.state?.appRoute) {
+        return "seed";
+      }
+      return "replace";
+    }
+
+    async function openRequestedRoute(options = {}) {
+      const route = readAppRouteFromUrl();
+      if (route === "database") return goDatabase(options);
+      if (route === "backups") return goBackups(options);
+      if (route === "images") return goImages(options);
+      return goDashboard("", options);
+    }
+
+    function goBackToDashboard() {
+      if (DETAIL_APP_ROUTES.has(state.appRoute)) {
+        history.back();
+        return;
+      }
+      void goDashboard("", { history: "replace" });
+    }
+
+    function closeTransientUi() {
+      closeConfirm();
+      closeDocModal();
+      if (isTokenModalOpen()) closeTokenModal();
     }
 
     function setStep(name) {
@@ -3871,9 +3962,7 @@
       state.lastRefreshIso = null;
       state.backupHealth = normalizeBackupHealth(null, []);
       state.selectedDocName = "";
-      closeConfirm();
-      closeDocModal();
-      if (isTokenModalOpen()) closeTokenModal();
+      closeTransientUi();
 
       const dbInfo = await apiJson("/api/admin/db-info", { token });
       state.dbInfo = dbInfo;
@@ -4204,7 +4293,9 @@
       }
     }
 
-    async function goBackups() {
+    async function goBackups(options = {}) {
+      syncAppRoute("backups", options.history ?? "push");
+      closeTransientUi();
       setStep("backups");
       renderBackupSettingsForm();
       renderBackupList();
@@ -4214,7 +4305,9 @@
       renderStorage();
     }
 
-    async function goDatabase() {
+    async function goDatabase(options = {}) {
+      syncAppRoute("database", options.history ?? "push");
+      closeTransientUi();
       setStep("database");
       renderDocs();
       // Refresh from server
@@ -4350,7 +4443,9 @@
       }
     }
 
-    async function goImages() {
+    async function goImages(options = {}) {
+      syncAppRoute("images", options.history ?? "push");
+      closeTransientUi();
       setStep("images");
       renderImageList();
       // Refresh from server
@@ -4364,11 +4459,10 @@
       }
     }
 
-    async function goDashboard(errorMessage = "") {
+    async function goDashboard(errorMessage = "", options = {}) {
+      syncAppRoute("dashboard", options.history ?? "replace");
       setTopLogoutVisible(Boolean(state.token));
-      closeConfirm();
-      closeDocModal();
-      if (isTokenModalOpen()) closeTokenModal();
+      closeTransientUi();
       $("dashError").style.display = errorMessage ? "block" : "none";
       if (errorMessage) $("dashError").textContent = errorMessage;
       setStep("dashboard");
@@ -4382,9 +4476,7 @@
     async function goLogin(message = "") {
       state.signedIn = false;
       setTopLogoutVisible(false);
-      closeConfirm();
-      closeDocModal();
-      if (isTokenModalOpen()) closeTokenModal();
+      closeTransientUi();
       setStep("login");
       renderTop();
 
@@ -4395,9 +4487,7 @@
     async function goSetup(message = "") {
       state.signedIn = false;
       setTopLogoutVisible(false);
-      closeConfirm();
-      closeDocModal();
-      if (isTokenModalOpen()) closeTokenModal();
+      closeTransientUi();
       setStep("setup");
       renderTop();
       $("setupError").style.display = message ? "block" : "none";
@@ -4406,15 +4496,14 @@
 
     async function bootstrap() {
       setTopLogoutVisible(false);
-      closeConfirm();
-      closeDocModal();
+      closeTransientUi();
       setStep("loading");
 
       const hashToken = readTokenFromHash();
       if (hashToken) {
         saveToken(hashToken);
         try {
-          history.replaceState({}, "", "/");
+          history.replaceState(history.state, "", buildAppUrl(readAppRouteFromUrl()));
         } catch {
           // ignore
         }
@@ -4461,7 +4550,7 @@
 
       try {
         await tryLoadDashboardData(state.token);
-        await goDashboard();
+        await openRequestedRoute({ history: getInitialRouteHistoryMode() });
       } catch (err) {
         const msg = String(err?.message || "");
         const isAuth = msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("not authorized");
@@ -4542,7 +4631,7 @@
           await refreshStatus();
           try {
             await tryLoadDashboardData(res.token);
-            await goDashboard();
+            await openRequestedRoute({ history: getInitialRouteHistoryMode() });
           } catch (err) {
             state.docs = [];
             await goDashboard(`Failed to load data: ${err.message}`);
@@ -4574,7 +4663,7 @@
           saveToken(token);
           state.showToken = false;
           toast("Signed in");
-          await goDashboard();
+          await openRequestedRoute({ history: getInitialRouteHistoryMode() });
         } catch (err) {
           $("loginError").textContent = err.message;
           $("loginError").style.display = "block";
@@ -4591,8 +4680,14 @@
         clearToken();
         state.signedIn = false;
         setTopLogoutVisible(false);
+        syncAppRoute("dashboard", "replace");
         toast("Logged out");
         bootstrap();
+      });
+
+      window.addEventListener("popstate", () => {
+        if (!state.signedIn) return;
+        void openRequestedRoute({ history: "none" });
       });
 
       // MCP toggle switch
@@ -4860,7 +4955,7 @@
           closeTokenModal();
           toast("Master token updated");
           await tryLoadDashboardData(saved);
-          await goDashboard();
+          await openRequestedRoute({ history: "none" });
         } catch (e) {
           err.textContent = e.message;
           err.style.display = "block";
@@ -4975,15 +5070,15 @@
         if (!state.signedIn) return;
         const card = e.target.closest(".storage-card-clickable");
         if (!card) return;
-        if (card.id === "databaseCard") goDatabase();
-        else if (card.id === "backupsCard") goBackups();
-        else if (card.id === "imagesCard") goImages();
+        if (card.id === "databaseCard") void goDatabase({ history: "push" });
+        else if (card.id === "backupsCard") void goBackups({ history: "push" });
+        else if (card.id === "imagesCard") void goImages({ history: "push" });
       });
 
       // Detail page back buttons
-      $("databaseBackBtn").addEventListener("click", () => goDashboard());
-      $("backupsBackBtn").addEventListener("click", () => goDashboard());
-      $("imagesBackBtn").addEventListener("click", () => goDashboard());
+      $("databaseBackBtn").addEventListener("click", () => goBackToDashboard());
+      $("backupsBackBtn").addEventListener("click", () => goBackToDashboard());
+      $("imagesBackBtn").addEventListener("click", () => goBackToDashboard());
 
       // Backup settings
       $("backupLimitMode").addEventListener("change", () => {

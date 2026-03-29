@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { badRequest, notFound, unauthorized } from "./api.js";
 import { statOrNull } from "./fs.js";
 import { safeDecodeURIComponent } from "./http.js";
+import { enableSecureDelete } from "./sqlite.js";
 
 const MAX_DOC_NAME_LENGTH = 512;
 
@@ -14,6 +15,9 @@ export const requireAuth = (request, response, checkAuth) => {
 export const withDb = (dbPath, options, fn) => {
   const db = new DatabaseSync(dbPath, options);
   try {
+    if (!options?.readOnly) {
+      enableSecureDelete(db);
+    }
     return fn(db);
   } finally {
     db.close();

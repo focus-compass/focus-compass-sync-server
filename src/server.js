@@ -1,6 +1,5 @@
 import "dotenv/config";
 
-import { SQLite } from "@hocuspocus/extension-sqlite";
 import { Server } from "@hocuspocus/server";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -14,6 +13,7 @@ import {
   setCorsHeaders,
   setSecurityHeaders,
 } from "./lib/http.js";
+import { FocusCompassSQLite } from "./lib/hocuspocusSqlite.js";
 import { json, noContent } from "./lib/responses.js";
 import { handleAdminRequest } from "./routes/admin.js";
 import { handleAuthRequest } from "./routes/auth.js";
@@ -130,7 +130,7 @@ const server = new Server({
   yDocOptions: {
     gc: YJS_GC,
   },
-  extensions: [new SQLite({ database: DB_PATH })],
+  extensions: [new FocusCompassSQLite({ database: DB_PATH })],
 
   async onAuthenticate({ token, request, requestParameters }) {
     const expected = getAuthToken();
@@ -301,6 +301,8 @@ if (envManaged) {
 } else {
   console.log(`Auth: not initialized (open http://localhost:${port}/)`);
 }
+
+console.log("SQLite secure_delete: ON");
 
 try {
   const shutdown = async (signal) => {

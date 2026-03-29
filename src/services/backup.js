@@ -130,10 +130,9 @@ export class BackupService {
     }
 
     /**
-     * Creates an atomic, compact backup in two phases:
-     * 1. Take a live snapshot with SQLite's backup API.
-     * 2. Run VACUUM INTO on that offline snapshot to purge free pages and
-     *    deleted-content traces from the final backup artifact.
+     * Creates a consistent live backup using SQLite's backup API.
+     * This intentionally uses a single mechanism for both automatic and
+     * manual backups so the behavior is stable and predictable.
      *
      * @param {string} [prefix="backup"] - Filename prefix
      * @param {Object} [options]
@@ -148,7 +147,6 @@ export class BackupService {
         this.isBackingUp = true;
         let backupFile = null;
         let backupPath = null;
-        let tempSnapshotPath = null;
         let tempBackupPath = null;
 
         try {
@@ -164,15 +162,9 @@ export class BackupService {
             const backupBase = `${prefix}-${timestamp}`;
             backupFile = `${backupBase}.sqlite`;
             backupPath = join(this.backupDir, backupFile);
-            tempSnapshotPath = join(this.backupDir, `${backupBase}.snapshot.sqlite`);
             tempBackupPath = join(this.backupDir, `${backupBase}.tmp.sqlite`);
 
-            // First copy the live database safely, then compact that offline
-            // snapshot so the final backup is smaller and cleaner.
-            await this._copyDatabase(this.dbPath, tempSnapshotPath);
-            await this._vacuumIntoBackup(tempSnapshotPath, tempBackupPath);
-            await this._deleteDatabaseArtifacts(tempSnapshotPath).catch(() => {});
-            tempSnapshotPath = null;
+            await this._copyDatabase(this.dbPath, tempBackupPath);
 
             const backupStats = await stat(tempBackupPath).catch(() => null);
             if (!backupStats?.isFile?.() || backupStats.size <= 0) {
@@ -194,9 +186,6 @@ export class BackupService {
 
             return backupFile;
         } catch (error) {
-            if (tempSnapshotPath) {
-                await this._deleteDatabaseArtifacts(tempSnapshotPath).catch(() => {});
-            }
             if (tempBackupPath) {
                 await this._deleteDatabaseArtifacts(tempBackupPath).catch(() => {});
             }
@@ -211,25 +200,13 @@ export class BackupService {
     }
 
     async _copyDatabase(sourcePath, targetPath) {
+        await this._deleteDatabaseArtifacts(targetPath).catch(() => {});
+
         const sourceDb = new DatabaseSync(sourcePath, { readOnly: true });
         try {
             await sqliteBackup(sourceDb, targetPath);
         } finally {
             sourceDb.close();
-        }
-    }
-
-    async _vacuumIntoBackup(sourcePath, targetPath) {
-        await this._deleteDatabaseArtifacts(targetPath).catch(() => {});
-
-        const db = new DatabaseSync(sourcePath);
-        try {
-            db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-            db.prepare("PRAGMA journal_mode=DELETE").get();
-            db.exec("PRAGMA synchronous=FULL");
-            db.exec(`VACUUM INTO '${BackupService._escapeSqlString(targetPath)}'`);
-        } finally {
-            db.close();
         }
     }
 
@@ -442,10 +419,6 @@ export class BackupService {
                 if (error?.code === "ENOENT") continue;
             }
         }
-    }
-
-    static _escapeSqlString(value) {
-        return String(value).replace(/'/g, "''");
     }
 
     async _cleanOldBackups(cachedSettings = null) {

@@ -129,6 +129,10 @@
       button {
         transition: none;
       }
+
+      .version-indicator.checking::before {
+        animation: none;
+      }
     }
 
     header {
@@ -163,6 +167,13 @@
       gap: 8px;
       flex-wrap: nowrap;
       flex-shrink: 0;
+    }
+
+    .version-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex: 0 0 auto;
     }
 
     .brand h1 {
@@ -327,6 +338,82 @@
       border-color: var(--danger-a35);
       background: var(--danger-a10);
       color: var(--danger);
+    }
+
+    #versionPill {
+      justify-content: center;
+      min-width: 7ch;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .version-indicator {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--muted);
+      font-family: var(--code);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      flex: 0 0 auto;
+    }
+
+    .version-indicator.show {
+      display: inline-flex;
+    }
+
+    .version-indicator.warn {
+      border-color: var(--warn-a35);
+      background: var(--warn-a10);
+      color: var(--warn-ink);
+    }
+
+    .version-indicator.bad {
+      border-color: var(--danger-a35);
+      background: var(--danger-a10);
+      color: var(--danger);
+    }
+
+    .version-indicator.checking {
+      width: 28px;
+      min-width: 28px;
+      padding: 0;
+    }
+
+    .version-indicator.checking::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--primary-a30);
+      border-top-color: var(--primary);
+      animation: version-spin 700ms linear infinite;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes version-spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .card-body {
@@ -957,6 +1044,10 @@
     }
 
     .backup-settings-unit {
+      display: inline-flex;
+      align-items: center;
+      align-self: center;
+      min-height: 32px;
       font-size: 12px;
       color: var(--muted);
       white-space: nowrap;
@@ -1038,10 +1129,6 @@
     @media (max-width: 640px) {
       .backup-settings {
         padding: 12px;
-      }
-
-      .backup-settings-row {
-        align-items: flex-start;
       }
 
       .backup-settings-row label {
@@ -1858,26 +1945,71 @@
       letter-spacing: 0.5px;
     }
 
-    .mcp-cmd {
-      display: flex;
-      gap: 8px;
-      align-items: flex-start;
+    .mcp-cmd,
+    .mcp-prompt-row {
+      position: relative;
+      min-width: 0;
+    }
+
+    .mcp-cmd .codebox,
+    .mcp-prompt-row .codebox {
+      width: 100%;
+      min-width: 0;
+      padding-right: 52px;
+      font-size: 12px;
+      white-space: pre-wrap;
     }
 
     .mcp-cmd .codebox {
-      flex: 1;
-      min-width: 0;
-      font-size: 12px;
-      white-space: pre-wrap;
       word-break: break-all;
     }
 
-    .mcp-cmd .copy-btn {
-      flex: 0 0 auto;
-      padding: 6px 12px;
-      min-height: 32px;
-      font-size: 12px;
+    .mcp-guide .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1;
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      min-height: 30px;
+      padding: 0;
       border-radius: 8px;
+      border-color: var(--border-soft);
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--muted);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    .mcp-guide .copy-btn:hover {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--primary);
+    }
+
+    .mcp-guide .copy-btn svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
+    .mcp-guide .copy-btn .icon-check {
+      display: none;
+    }
+
+    .mcp-guide .copy-btn.copied {
+      background: var(--ok-a08);
+      border-color: var(--ok-a35);
+      color: var(--ok);
+      box-shadow: none;
+    }
+
+    .mcp-guide .copy-btn.copied .icon-copy {
+      display: none;
+    }
+
+    .mcp-guide .copy-btn.copied .icon-check {
+      display: block;
     }
 
     .mcp-manual {
@@ -1953,23 +2085,9 @@
       line-height: 1.4;
     }
 
-    .mcp-prompt-row {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-    }
-
     .mcp-prompt-row .codebox {
-      flex: 1;
-      min-width: 0;
-      font-size: 12px;
-      white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.5;
-    }
-
-    .mcp-prompt-row .copy-btn {
-      flex: 0 0 auto;
     }
 
     .step {
@@ -2007,7 +2125,11 @@
           <span class="brand-text">Focus Compass Server</span>
         </h1>
         <div class="top-actions">
-          <button class="pill" id="versionPill" type="button" title="Click to check for updates">v-</button>
+          <div class="version-control">
+            <button class="pill" id="versionPill" type="button" title="Click to check for updates">v-</button>
+            <span class="version-indicator" id="versionIndicator" aria-hidden="true"></span>
+            <span class="sr-only" id="versionStatusText" aria-live="polite"></span>
+          </div>
           <button class="icon-btn small" id="topLogoutBtn" type="button" title="Logout" aria-label="Logout" style="display: none;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -2242,7 +2364,15 @@
                     <div class="mcp-prompt-hint">Paste into Claude Code &mdash; it will set up MCP and install the <code>/focus-compass</code> skill.</div>
                     <div class="mcp-prompt-row">
                       <div class="codebox" id="promptClaude">-</div>
-                      <button class="ghost copy-btn" type="button" data-copy="promptClaude">Copy</button>
+                      <button class="ghost copy-btn" type="button" data-copy="promptClaude" title="Copy prompt" aria-label="Copy prompt">
+                        <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="m20 6-11 11-5-5"></path>
+                        </svg>
+                      </button>
                     </div>
                     <details class="mcp-manual">
                       <summary>Alternative: one-liner or manual steps</summary>
@@ -2250,21 +2380,45 @@
                         <div class="mcp-step-label">One-liner install (bash)</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideInstallCmd" style="font-size:11px;">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideInstallCmd">Copy</button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideInstallCmd" title="Copy command" aria-label="Copy command">
+                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <path d="m20 6-11 11-5-5"></path>
+                            </svg>
+                          </button>
                         </div>
                       </div>
                       <div class="mcp-step">
                         <div class="mcp-step-label">1. Add MCP server</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideClaudeCmd">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideClaudeCmd">Copy</button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideClaudeCmd" title="Copy command" aria-label="Copy command">
+                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <path d="m20 6-11 11-5-5"></path>
+                            </svg>
+                          </button>
                         </div>
                       </div>
                       <div class="mcp-step">
                         <div class="mcp-step-label">2. Install skill</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideSkillCmd" style="font-size:11px; white-space:pre-wrap;">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideSkillCmd">Copy</button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideSkillCmd" title="Copy command" aria-label="Copy command">
+                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <path d="m20 6-11 11-5-5"></path>
+                            </svg>
+                          </button>
                         </div>
                       </div>
                     </details>
@@ -2275,7 +2429,15 @@
                     <div class="mcp-prompt-hint">Paste into Codex &mdash; it will configure MCP, persist the token, and install the skill.</div>
                     <div class="mcp-prompt-row">
                       <div class="codebox" id="promptCodex">-</div>
-                      <button class="ghost copy-btn" type="button" data-copy="promptCodex">Copy</button>
+                      <button class="ghost copy-btn" type="button" data-copy="promptCodex" title="Copy prompt" aria-label="Copy prompt">
+                        <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="m20 6-11 11-5-5"></path>
+                        </svg>
+                      </button>
                     </div>
                     <details class="mcp-manual">
                       <summary>Manual config</summary>
@@ -2284,7 +2446,15 @@
                         <div class="hint" style="font-size:12px;">Add to <code>~/.codex/config.toml</code>:</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideCodexToml" style="white-space:pre-wrap;">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideCodexToml">Copy</button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideCodexToml" title="Copy config" aria-label="Copy config">
+                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <path d="m20 6-11 11-5-5"></path>
+                            </svg>
+                          </button>
                         </div>
                       </div>
                     </details>
@@ -2297,7 +2467,15 @@
                       <div class="hint" style="font-size:12px;">Universal format &mdash; works with Claude Desktop, Cursor, Windsurf, and other MCP clients.</div>
                       <div class="mcp-cmd">
                         <div class="codebox" id="guideDesktopJson" style="white-space:pre-wrap;">-</div>
-                        <button class="ghost copy-btn" type="button" data-copy="guideDesktopJson">Copy</button>
+                        <button class="ghost copy-btn" type="button" data-copy="guideDesktopJson" title="Copy config" aria-label="Copy config">
+                          <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                          <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m20 6-11 11-5-5"></path>
+                          </svg>
+                        </button>
                       </div>
                     </div>
                     <div class="mcp-step">
@@ -3106,6 +3284,8 @@
     function renderTop() {
       const versionPill = $("versionPill");
       if (!versionPill) return;
+      const versionIndicator = $("versionIndicator");
+      const versionStatusText = $("versionStatusText");
 
       const v = normalizeVersion(state.appVersion);
       const versionText = v ? `v${v}` : "v-";
@@ -3113,29 +3293,52 @@
       const u = state.update || {};
 
       versionPill.disabled = u.status === "checking";
+      versionPill.textContent = versionText;
+
+      let statusText = "";
+      let indicatorClass = "version-indicator";
+      let indicatorText = "";
+      let indicatorTitle = "";
 
       if (u.status === "checking") {
         versionPill.className = "pill";
-        versionPill.textContent = `${versionText} · Checking...`;
         versionPill.title = "Checking for updates...";
+        statusText = "Checking for updates";
+        indicatorClass = "version-indicator show checking";
+        indicatorTitle = "Checking for updates...";
       } else if (u.status === "outdated") {
         const latestTag = u.latestTag || (u.latestVersion ? `v${u.latestVersion}` : "");
         versionPill.className = "pill warn";
-        versionPill.textContent = latestTag ? `${versionText} → ${latestTag}` : `${versionText} · Update available`;
-        versionPill.title = "Update available · Click to re-check";
+        versionPill.title = latestTag ? `Update available: ${latestTag} · Click to re-check` : "Update available · Click to re-check";
+        statusText = latestTag ? `Update available: ${latestTag}` : "Update available";
+        indicatorClass = "version-indicator show warn";
+        indicatorText = "new";
+        indicatorTitle = versionPill.title;
       } else if (u.status === "upToDate") {
         versionPill.className = "pill ok";
-        versionPill.textContent = versionText;
         versionPill.title = "Up to date · Click to re-check";
+        statusText = "Up to date";
       } else if (u.status === "error") {
         versionPill.className = "pill bad";
-        versionPill.textContent = `${versionText} · Check failed`;
         versionPill.title = u.error || "Update check failed · Click to retry";
+        statusText = u.error ? `Update check failed: ${u.error}` : "Update check failed";
+        indicatorClass = "version-indicator show bad";
+        indicatorText = "!";
+        indicatorTitle = versionPill.title;
       } else {
         // idle state - not yet checked
         versionPill.className = "pill";
-        versionPill.textContent = versionText;
         versionPill.title = "Click to check for updates";
+      }
+
+      if (versionIndicator) {
+        versionIndicator.className = indicatorClass;
+        versionIndicator.textContent = indicatorText;
+        versionIndicator.title = indicatorTitle;
+      }
+
+      if (versionStatusText) {
+        versionStatusText.textContent = statusText;
       }
     }
 
@@ -4502,12 +4705,17 @@
 
       // Copy buttons in guide
       document.querySelectorAll(".mcp-guide .copy-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const targetId = btn.dataset.copy;
           const directText = btn.dataset.copyText;
           const text = directText || String($(targetId)?.textContent || "").trim();
           if (!text || text === "-") return;
-          copyText(text, "Copied");
+          try {
+            await navigator.clipboard.writeText(text);
+            flashButtonCopied(btn);
+          } catch (err) {
+            toast(`Copy failed: ${String(err?.message || err)}`, "error");
+          }
         });
       });
 

@@ -1,4 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
+import { backup as sqliteBackup, DatabaseSync } from "node:sqlite";
 import { mkdir, readdir, readFile, rename, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -46,7 +46,7 @@ export class BackupService {
 
     /**
      * Attempts to create a backup if the interval has passed.
-     * Safe to call frequently — skips integrity check for performance.
+     * Safe to call frequently.
      * Reads intervalMinutes from settings (default 30).
      */
     async tryBackup() {
@@ -66,7 +66,7 @@ export class BackupService {
         this.lastAutoBackupAttemptTime = now;
 
         try {
-            await this._createBackup("backup", { skipIntegrityCheck: true, settings });
+            await this._createBackup("backup", { settings });
             this._markBackupSuccess();
         } catch (error) {
             this._markAutoBackupFailure(error);
@@ -130,8 +130,10 @@ export class BackupService {
     }
 
     /**
-     * Creates an atomic, consistent backup using SQLite VACUUM INTO.
-     * Produces a single self-contained .sqlite file (no WAL/SHM/journal sidecars).
+     * Creates an atomic, compact backup in two phases:
+     * 1. Take a live snapshot with SQLite's backup API.
+     * 2. Run VACUUM INTO on that offline snapshot to purge free pages and
+     *    deleted-content traces from the final backup artifact.
      *
      * @param {string} [prefix="backup"] - Filename prefix
      * @param {Object} [options]
@@ -146,6 +148,7 @@ export class BackupService {
         this.isBackingUp = true;
         let backupFile = null;
         let backupPath = null;
+        let tempSnapshotPath = null;
         let tempBackupPath = null;
 
         try {
@@ -158,18 +161,18 @@ export class BackupService {
             }
 
             const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-            backupFile = `${prefix}-${timestamp}.sqlite`;
+            const backupBase = `${prefix}-${timestamp}`;
+            backupFile = `${backupBase}.sqlite`;
             backupPath = join(this.backupDir, backupFile);
-            tempBackupPath = join(this.backupDir, `${backupFile}.tmp`);
+            tempSnapshotPath = join(this.backupDir, `${backupBase}.snapshot.sqlite`);
+            tempBackupPath = join(this.backupDir, `${backupBase}.tmp.sqlite`);
 
-            // VACUUM INTO creates an atomic, fully consistent copy of the database
-            // as a single file — no WAL, SHM, or journal sidecars needed.
-            const db = new DatabaseSync(this.dbPath, { readOnly: true });
-            try {
-                db.exec(`VACUUM INTO '${tempBackupPath.replace(/'/g, "''")}'`);
-            } finally {
-                db.close();
-            }
+            // First copy the live database safely, then compact that offline
+            // snapshot so the final backup is smaller and cleaner.
+            await this._copyDatabase(this.dbPath, tempSnapshotPath);
+            await this._vacuumIntoBackup(tempSnapshotPath, tempBackupPath);
+            await this._deleteDatabaseArtifacts(tempSnapshotPath).catch(() => {});
+            tempSnapshotPath = null;
 
             const backupStats = await stat(tempBackupPath).catch(() => null);
             if (!backupStats?.isFile?.() || backupStats.size <= 0) {
@@ -191,16 +194,42 @@ export class BackupService {
 
             return backupFile;
         } catch (error) {
+            if (tempSnapshotPath) {
+                await this._deleteDatabaseArtifacts(tempSnapshotPath).catch(() => {});
+            }
             if (tempBackupPath) {
-                await unlink(tempBackupPath).catch(() => {});
+                await this._deleteDatabaseArtifacts(tempBackupPath).catch(() => {});
             }
             if (backupPath) {
-                await this._deleteBackup(backupPath).catch(() => {});
+                await this._deleteDatabaseArtifacts(backupPath).catch(() => {});
             }
             console.error("❌ Backup failed:", error.message);
             throw error;
         } finally {
             this.isBackingUp = false;
+        }
+    }
+
+    async _copyDatabase(sourcePath, targetPath) {
+        const sourceDb = new DatabaseSync(sourcePath, { readOnly: true });
+        try {
+            await sqliteBackup(sourceDb, targetPath);
+        } finally {
+            sourceDb.close();
+        }
+    }
+
+    async _vacuumIntoBackup(sourcePath, targetPath) {
+        await this._deleteDatabaseArtifacts(targetPath).catch(() => {});
+
+        const db = new DatabaseSync(sourcePath);
+        try {
+            db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+            db.prepare("PRAGMA journal_mode=DELETE").get();
+            db.exec("PRAGMA synchronous=FULL");
+            db.exec(`VACUUM INTO '${BackupService._escapeSqlString(targetPath)}'`);
+        } finally {
+            db.close();
         }
     }
 
@@ -212,18 +241,33 @@ export class BackupService {
      */
     async _verifyIntegrity(filePath, deleteOnFailure = true) {
         const db = new DatabaseSync(filePath, { readOnly: true });
+        let integrityError = null;
+        let result = null;
         try {
             const row = db.prepare("PRAGMA integrity_check").get();
-            const result = row?.integrity_check ?? row?.["integrity_check"];
-            if (result !== "ok") {
-                db.close();
-                if (deleteOnFailure) {
-                    await unlink(filePath).catch(() => {});
-                }
-                throw new Error(`Backup integrity check failed: ${result}`);
-            }
+            result = row?.integrity_check ?? row?.["integrity_check"];
+        } catch (error) {
+            integrityError = error;
         } finally {
             try { db.close(); } catch { /* already closed */ }
+        }
+
+        // integrity_check can materialize transient WAL/SHM files even for a
+        // clean backup; remove them so snapshots remain a single-file artifact.
+        await BackupService._removeSidecars(filePath).catch(() => {});
+
+        if (integrityError) {
+            if (deleteOnFailure) {
+                await this._deleteDatabaseArtifacts(filePath).catch(() => {});
+            }
+            throw integrityError;
+        }
+
+        if (result !== "ok") {
+            if (deleteOnFailure) {
+                await this._deleteDatabaseArtifacts(filePath).catch(() => {});
+            }
+            throw new Error(`Backup integrity check failed: ${result}`);
         }
     }
 
@@ -238,7 +282,7 @@ export class BackupService {
         }
     }
 
-    async _deleteBackup(filePath) {
+    async _deleteDatabaseArtifacts(filePath) {
         await unlink(filePath);
         for (const suffix of ["-wal", "-shm", "-journal"]) {
             try {
@@ -338,32 +382,37 @@ export class BackupService {
             throw new Error(`Failed to create pre-restore snapshot: ${error.message}`);
         }
 
-        // 4. Replace current DB: rename old → .old, copy backup → DB_PATH
+        // 4. Replace current DB: create a restored temp DB, swap it into place,
+        //    then remove stale sidecars from the previous live database.
         const oldDbPath = `${this.dbPath}.old`;
+        let tempRestorePath = `${this.dbPath}.restore.tmp`;
         try {
+            await this._deleteDatabaseArtifacts(tempRestorePath).catch(() => {});
+
+            await this._copyDatabase(backupPath, tempRestorePath);
+            await BackupService._removeSidecars(backupPath).catch(() => {});
+            await this._verifyIntegrity(tempRestorePath);
+
             // Move current DB out of the way
             const hasDb = await stat(this.dbPath).catch(() => null);
             if (hasDb) {
                 await rename(this.dbPath, oldDbPath);
             }
 
-            // Use VACUUM INTO from the backup to create a clean copy at DB_PATH.
-            // This ensures the restored file is a self-contained, consistent DB.
-            const db = new DatabaseSync(backupPath, { readOnly: true });
-            try {
-                db.exec(`VACUUM INTO '${this.dbPath.replace(/'/g, "''")}'`);
-            } finally {
-                db.close();
-            }
+            await rename(tempRestorePath, this.dbPath);
+            tempRestorePath = null;
 
             // Remove stale sidecars from the live DB path
             await BackupService._removeSidecars(this.dbPath);
 
             // Clean up .old file (best-effort)
-            await unlink(oldDbPath).catch(() => {});
+            await this._deleteDatabaseArtifacts(oldDbPath).catch(() => {});
         } catch (error) {
             // Attempt to roll back: restore the .old file if it exists
             try {
+                if (tempRestorePath) {
+                    await this._deleteDatabaseArtifacts(tempRestorePath).catch(() => {});
+                }
                 const hasOld = await stat(oldDbPath).catch(() => null);
                 if (hasOld) {
                     await unlink(this.dbPath).catch(() => {});
@@ -395,6 +444,10 @@ export class BackupService {
         }
     }
 
+    static _escapeSqlString(value) {
+        return String(value).replace(/'/g, "''");
+    }
+
     async _cleanOldBackups(cachedSettings = null) {
         try {
             const settings = cachedSettings ?? await this._readSettings();
@@ -411,21 +464,21 @@ export class BackupService {
                 const now = Date.now();
                 for (const entry of entries) {
                     if (now - entry.mtimeMs > maxAgeMs) {
-                        await this._deleteBackup(entry.filePath);
+                        await this._deleteDatabaseArtifacts(entry.filePath);
                     }
                 }
             } else if (mode === "count") {
                 const maxCount = Math.floor(effectiveValue);
                 while (entries.length > maxCount) {
                     const oldest = entries.shift();
-                    await this._deleteBackup(oldest.filePath);
+                    await this._deleteDatabaseArtifacts(oldest.filePath);
                 }
             } else if (mode === "size") {
                 let totalBytes = entries.reduce((sum, e) => sum + e.totalSize, 0);
                 // Always keep at least 1 backup even if it exceeds the size limit
                 while (totalBytes > effectiveValue && entries.length > 1) {
                     const oldest = entries.shift();
-                    await this._deleteBackup(oldest.filePath);
+                    await this._deleteDatabaseArtifacts(oldest.filePath);
                     totalBytes -= oldest.totalSize;
                 }
             }

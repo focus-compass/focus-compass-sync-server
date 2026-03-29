@@ -14,6 +14,7 @@ import {
   setSecurityHeaders,
 } from "./lib/http.js";
 import { FocusCompassSQLite } from "./lib/hocuspocusSqlite.js";
+import { ensurePrivateDir, hardenPrivateFileIfExists } from "./lib/privateFiles.js";
 import { json, noContent } from "./lib/responses.js";
 import { handleAdminRequest } from "./routes/admin.js";
 import { handleAuthRequest } from "./routes/auth.js";
@@ -50,6 +51,11 @@ const AUTH_FILE_PATH =
 
 const MCP_AUTH_FILE_PATH =
   process.env.MCP_AUTH_FILE_PATH ?? join(dirname(DB_PATH), "mcp-auth.json");
+
+await ensurePrivateDir(dirname(AUTH_FILE_PATH));
+await ensurePrivateDir(dirname(MCP_AUTH_FILE_PATH));
+await hardenPrivateFileIfExists(AUTH_FILE_PATH);
+await hardenPrivateFileIfExists(MCP_AUTH_FILE_PATH);
 
 const envTokenRaw = normalizeAuthToken(process.env.HOCUSPOCUS_TOKEN);
 const envToken = envTokenRaw && envTokenRaw.trim() ? envTokenRaw.trim() : "";

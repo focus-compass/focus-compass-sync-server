@@ -1,9 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
 import { badRequest, internalServerError, unauthorized } from "../lib/api.js";
 import { readJsonOrNull } from "../lib/fs.js";
 import { readJsonBody } from "../lib/http.js";
+import { writePrivateJsonFile } from "../lib/privateFiles.js";
 import { json } from "../lib/responses.js";
 
 const createToken = () => {
@@ -71,10 +70,7 @@ export const handleAuthRequest = async ({
     };
 
     try {
-      await mkdir(dirname(authFilePath), { recursive: true });
-      await writeFile(authFilePath, `${JSON.stringify(payload, null, 2)}\n`, {
-        encoding: "utf-8",
-      });
+      await writePrivateJsonFile(authFilePath, payload);
     } catch (err) {
       console.error("Auth rotate error:", err);
       return internalServerError(response, "Failed to update token");
@@ -105,11 +101,7 @@ export const handleAuthRequest = async ({
   };
 
   try {
-    await mkdir(dirname(authFilePath), { recursive: true });
-    await writeFile(authFilePath, `${JSON.stringify(payload, null, 2)}\n`, {
-      encoding: "utf-8",
-      flag: "wx",
-    });
+    await writePrivateJsonFile(authFilePath, payload, { flag: "wx" });
   } catch (err) {
     if (err?.code === "EEXIST") {
       const existing = await readJsonOrNull(authFilePath);

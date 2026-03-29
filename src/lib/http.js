@@ -58,7 +58,7 @@ export const setCorsHeaders = (req, res, corsPolicy) => {
     res.setHeader("Vary", "Origin");
   }
 
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
     "Authorization, Content-Type, If-None-Match, Accept, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID"

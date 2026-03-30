@@ -24,6 +24,7 @@ export class BackupService {
         this.lastAutoBackupAttemptTime = 0;
         this.isBackingUp = false;
         this.isRestoring = false;
+        this.isAutoBackupQueued = false;
         this.autoBackupHealth = {
             status: "ok",
             consecutiveFailures: 0,
@@ -50,27 +51,41 @@ export class BackupService {
      * Reads intervalMinutes from settings (default 30).
      */
     async tryBackup() {
-        await this.ready;
-
         if (this.isBackingUp || this.isRestoring) return;
 
-        const settings = await this._readSettings();
-        const raw = Number(settings?.intervalMinutes);
-        const intervalMinutes = Number.isFinite(raw) && raw > 0 ? raw : 30;
-
-        const now = Date.now();
-        const intervalMs = intervalMinutes * 60 * 1000;
-
-        if (now - this.lastAutoBackupAttemptTime < intervalMs) return;
-
-        this.lastAutoBackupAttemptTime = now;
-
         try {
+            await this.ready;
+
+            const settings = await this._readSettings();
+            const raw = Number(settings?.intervalMinutes);
+            const intervalMinutes = Number.isFinite(raw) && raw > 0 ? raw : 30;
+
+            const now = Date.now();
+            const intervalMs = intervalMinutes * 60 * 1000;
+
+            if (now - this.lastAutoBackupAttemptTime < intervalMs) return;
+
+            this.lastAutoBackupAttemptTime = now;
+
             await this._createBackup("backup", { settings });
             this._markBackupSuccess();
         } catch (error) {
             this._markAutoBackupFailure(error);
         }
+    }
+
+    /**
+     * Queues an automatic backup outside the document store hook so writes do
+     * not wait for snapshot/compaction work.
+     */
+    requestAutoBackup() {
+        if (this.isAutoBackupQueued) return;
+
+        this.isAutoBackupQueued = true;
+        setTimeout(() => {
+            this.isAutoBackupQueued = false;
+            void this.tryBackup();
+        }, 0);
     }
 
     /**
@@ -130,23 +145,26 @@ export class BackupService {
     }
 
     /**
-     * Creates a consistent live backup using SQLite's backup API.
-     * This intentionally uses a single mechanism for both automatic and
-     * manual backups so the behavior is stable and predictable.
+     * Creates an atomic, compact backup in two phases:
+     * 1. Take a live snapshot with SQLite's backup API.
+     * 2. Run VACUUM INTO on that offline snapshot to purge free pages and
+     *    deleted-content traces from the final backup artifact.
      *
      * @param {string} [prefix="backup"] - Filename prefix
      * @param {Object} [options]
-     * @param {boolean} [options.skipIntegrityCheck=false] - Skip PRAGMA integrity_check
-     *   (for automatic interval backups where speed matters)
      * @param {boolean} [options.skipCleanup=false] - Skip old-backup cleanup
      *   (for pre-restore snapshots where we must not delete the source backup)
      * @param {Object|null} [options.settings=null] - Pre-read settings to avoid re-reading the file
      * @returns {Promise<string>} backup filename
      */
-    async _createBackup(prefix = "backup", { skipIntegrityCheck = false, skipCleanup = false, settings = null } = {}) {
+    async _createBackup(
+        prefix = "backup",
+        { skipCleanup = false, settings = null } = {},
+    ) {
         this.isBackingUp = true;
         let backupFile = null;
         let backupPath = null;
+        let tempSnapshotPath = null;
         let tempBackupPath = null;
 
         try {
@@ -162,18 +180,20 @@ export class BackupService {
             const backupBase = `${prefix}-${timestamp}`;
             backupFile = `${backupBase}.sqlite`;
             backupPath = join(this.backupDir, backupFile);
+            tempSnapshotPath = join(this.backupDir, `${backupBase}.snapshot.sqlite`);
             tempBackupPath = join(this.backupDir, `${backupBase}.tmp.sqlite`);
 
-            await this._copyDatabase(this.dbPath, tempBackupPath);
+            await this._copyDatabase(this.dbPath, tempSnapshotPath);
+            await this._vacuumIntoBackup(tempSnapshotPath, tempBackupPath);
+            await this._deleteDatabaseArtifacts(tempSnapshotPath).catch(() => {});
+            tempSnapshotPath = null;
 
             const backupStats = await stat(tempBackupPath).catch(() => null);
             if (!backupStats?.isFile?.() || backupStats.size <= 0) {
                 throw new Error("Backup file is empty");
             }
 
-            if (!skipIntegrityCheck) {
-                await this._verifyIntegrity(tempBackupPath);
-            }
+            await this._verifyIntegrity(tempBackupPath);
 
             await rename(tempBackupPath, backupPath);
             tempBackupPath = null;
@@ -186,6 +206,9 @@ export class BackupService {
 
             return backupFile;
         } catch (error) {
+            if (tempSnapshotPath) {
+                await this._deleteDatabaseArtifacts(tempSnapshotPath).catch(() => {});
+            }
             if (tempBackupPath) {
                 await this._deleteDatabaseArtifacts(tempBackupPath).catch(() => {});
             }
@@ -202,12 +225,30 @@ export class BackupService {
     async _copyDatabase(sourcePath, targetPath) {
         await this._deleteDatabaseArtifacts(targetPath).catch(() => {});
 
-        const sourceDb = new DatabaseSync(sourcePath, { readOnly: true });
+        const sourceDb = new DatabaseSync(sourcePath);
         try {
             await sqliteBackup(sourceDb, targetPath);
+        } catch (error) {
+            throw new Error(`Live snapshot failed: ${error.message}`, { cause: error });
         } finally {
             sourceDb.close();
         }
+    }
+
+    async _vacuumIntoBackup(sourcePath, targetPath) {
+        await this._deleteDatabaseArtifacts(targetPath).catch(() => {});
+
+        const db = new DatabaseSync(sourcePath);
+        try {
+            db.exec(`VACUUM INTO '${BackupService._escapeSqlString(targetPath)}'`);
+        } catch (error) {
+            throw new Error(`Compact backup failed: ${error.message}`, { cause: error });
+        } finally {
+            try { db.close(); } catch { /* already closed */ }
+        }
+
+        await BackupService._removeSidecars(sourcePath).catch(() => {});
+        await BackupService._removeSidecars(targetPath).catch(() => {});
     }
 
     /**
@@ -419,6 +460,10 @@ export class BackupService {
                 if (error?.code === "ENOENT") continue;
             }
         }
+    }
+
+    static _escapeSqlString(value) {
+        return String(value).replace(/'/g, "''");
     }
 
     async _cleanOldBackups(cachedSettings = null) {

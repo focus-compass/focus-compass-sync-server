@@ -169,7 +169,7 @@ const server = new Server({
   },
 
   async onStoreDocument({ documentName, document }) {
-    await backupService.tryBackup();
+    backupService.requestAutoBackup();
     try {
       const meta = getDocMetaFromYDoc(document);
       docMetaCache.set(documentName, {

@@ -31,7 +31,25 @@ Hocuspocus is a WebSocket backend based on CRDT (Conflict-free Replicated Data T
 
 ## Quick Start
 
-### Run with Docker Compose (Recommended)
+### Run Locally with Node.js
+
+```bash
+# 1. Copy example env file (optional)
+cp .env.example .env
+
+# 2. Install dependencies
+npm ci
+
+# 3. Start server
+npm run dev
+
+# 4. Open the app
+# http://localhost:8080
+```
+
+The local development server listens on `http://localhost:8080` and `ws://localhost:8080` by default.
+
+### Deploy with Docker Compose (Dokploy / Reverse Proxy)
 
 ```bash
 # 1. Copy example env file (optional)
@@ -68,6 +86,8 @@ The Docker volume remains named `hocuspocus-data` for backward compatibility wit
 
 The default compose file sets `pull_policy: always`, which is useful on platforms like Dokploy that redeploy from the same compose file and should always check GHCR for a newer image digest.
 
+The base `docker-compose.yml` exposes container port `8080` only to the internal Docker network so reverse proxies such as Dokploy/Traefik can route multiple instances without host-port conflicts. In Dokploy, add a domain and set the container port to `8080`.
+
 If you prefer not to use Compose, you can run the same image directly:
 
 ### Run Published Docker Image Directly
@@ -100,7 +120,7 @@ docker run -d \
   ghcr.io/focus-compass/focus-compass-sync-server:0.0.2
 ```
 
-Compose example using the published image:
+Compose example for direct host access using the published image:
 
 ```yaml
 services:
@@ -127,7 +147,7 @@ The server will be available at `ws://localhost:8080`.
 
 - **`src/server.js`** - Hocuspocus server configuration
 - **`Dockerfile`** - Docker image for deployment
-- **`docker-compose.yml`** - Container orchestration
+- **`docker-compose.yml`** - Base container orchestration for reverse-proxy deployments
 - **`package.json`** - Project dependencies
 
 ### Environment Variables
@@ -135,11 +155,8 @@ The server will be available at `ws://localhost:8080`.
 Create a `.env` file in the project root (or copy `.env.example`):
 
 ```bash
-# HTTP/WebSocket port the server listens on
+# Local HTTP/WebSocket port the server listens on
 PORT=8080
-
-# Docker Compose host port mapping (optional)
-HOCUSPOCUS_PORT=8080
 
 # Required in production (Bearer token for WS + REST)
 HOCUSPOCUS_TOKEN=your-secret-token

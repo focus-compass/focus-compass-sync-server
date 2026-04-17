@@ -3,8 +3,8 @@ services:
     image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:latest}
     pull_policy: always
     restart: unless-stopped
-    ports:
-      - "${HOCUSPOCUS_PORT:-8080}:8080"
+    expose:
+      - "8080"
     environment:
       NODE_ENV: production
       NODE_OPTIONS: "--max-old-space-size=768"

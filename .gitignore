@@ -44,3 +44,9 @@ temp/
 backups/
 test_backups/
 /.claude/settings.local.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example

@@ -8,7 +8,7 @@ Hocuspocus/Yjs with SQLite persistence.
 - Entrypoint: `src/server.js`
 - Persistence: SQLite file at `DB_PATH` (default `./data/db.sqlite`)
 - Images: files under `IMAGES_DIR` (default `./data/images`) plus `*.meta.json`
-- Auth: Bearer token (`HOCUSPOCUS_TOKEN`) for WebSocket + all REST endpoints
+- Auth: Bearer token (`ACCESS_TOKEN`) for WebSocket + all REST endpoints
 
 ## Commands
 Local (no build step; plain Node runtime):
@@ -27,7 +27,7 @@ Docker:
 
 Smoke checks:
 - `curl http://localhost:8080/health`
-- `curl -H "Authorization: Bearer $HOCUSPOCUS_TOKEN" http://localhost:8080/api/images`
+- `curl -H "Authorization: Bearer $ACCESS_TOKEN" http://localhost:8080/api/images`
 - Admin UI: `http://localhost:8080/`
 
 ### Tests
@@ -61,7 +61,7 @@ Smoke checks:
 - Do not commit secrets: `.env` is gitignored (see `.gitignore`).
 - Do not commit runtime data: `data/`, `*.sqlite`, backups, images are ignored.
 - Auth constraints (enforced in `src/server.js`):
-  - If `HOCUSPOCUS_TOKEN` is not set, the server starts in setup mode and the first
+  - If `ACCESS_TOKEN` is not set, the server starts in setup mode and the first
     visit to `/` can generate a token that is persisted to `AUTH_FILE_PATH` (default `./data/auth.json`).
 
 ## Code Style Guidelines

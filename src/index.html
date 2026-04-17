@@ -2924,7 +2924,7 @@
       $("tokenNewInput").value = state.token || "";
 
       if (state.envManaged) {
-        err.textContent = "Master token is managed by environment (HOCUSPOCUS_TOKEN). Change it there and restart.";
+        err.textContent = "Master token is managed by environment (ACCESS_TOKEN). Change it there and restart.";
         err.style.display = "block";
         $("tokenNewInput").disabled = true;
         $("tokenGenerateBtn").disabled = true;

@@ -9,7 +9,7 @@ services:
       NODE_ENV: production
       NODE_OPTIONS: "--max-old-space-size=768"
       PORT: 8080
-      HOCUSPOCUS_TOKEN: ${HOCUSPOCUS_TOKEN:-}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
       MCP_TOKEN: ${MCP_TOKEN:-}
       DB_PATH: ${DB_PATH:-./data/db.sqlite}
       IMAGES_DIR: ${IMAGES_DIR:-./data/images}

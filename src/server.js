@@ -57,7 +57,7 @@ await ensurePrivateDir(dirname(MCP_AUTH_FILE_PATH));
 await hardenPrivateFileIfExists(AUTH_FILE_PATH);
 await hardenPrivateFileIfExists(MCP_AUTH_FILE_PATH);
 
-const envTokenRaw = normalizeAuthToken(process.env.HOCUSPOCUS_TOKEN);
+const envTokenRaw = normalizeAuthToken(process.env.ACCESS_TOKEN);
 const envToken = envTokenRaw && envTokenRaw.trim() ? envTokenRaw.trim() : "";
 const envManaged = Boolean(envToken);
 

@@ -54,7 +54,7 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 
 ```bash
 PORT=8080                           # Server port
-HOCUSPOCUS_TOKEN=your-secret-token  # Bearer token for auth
+ACCESS_TOKEN=your-secret-token      # Bearer token for auth
 DB_PATH=./data/db.sqlite            # SQLite database path
 IMAGES_DIR=./data/images            # Image storage directory
 BACKUP_DIR=./data/backups           # Backup directory

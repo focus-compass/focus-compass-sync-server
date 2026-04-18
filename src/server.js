@@ -137,7 +137,6 @@ const server = new Server({
     gc: YJS_GC,
   },
   extensions: [new FocusCompassSQLite({ database: DB_PATH })],
-  websocketOptions: { perMessageDeflate: false },
 
   async onAuthenticate({ token, request, requestParameters }) {
     const expected = getAuthToken();

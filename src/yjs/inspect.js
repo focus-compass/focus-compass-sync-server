@@ -15,21 +15,6 @@ const getRootSharedType = (ydoc) => {
   return root ?? null;
 };
 
-export const countSharedTypes = (data) => {
-  const update = toUint8Array(data);
-  if (update.byteLength === 0) return 0;
-
-  const ydoc = new Y.Doc();
-  try {
-    Y.applyUpdate(ydoc, update);
-    return ydoc.share.size;
-  } catch {
-    return 0;
-  } finally {
-    ydoc.destroy();
-  }
-};
-
 export const getContent = (data) => {
   const update = toUint8Array(data);
   const ydoc = new Y.Doc();

@@ -16,13 +16,8 @@ export const cleanupFormidableFiles = async (files) => {
     allFiles
       .filter((file) => file && typeof file.filepath === "string")
       .map(async (file) => {
-        try {
-          await unlink(file.filepath);
-        } catch (error) {
-          if (error?.code !== "ENOENT") {
-            // Best-effort cleanup
-          }
-        }
+        // Best-effort cleanup — the temp file may already be gone.
+        await unlink(file.filepath).catch(() => {});
       })
   );
 };

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { text } from "../lib/responses.js";
+import { text, RESPONSE_SENT } from "../lib/responses.js";
 
 const serveHtml = async (response, filePath) => {
   const content = await readFile(filePath, "utf-8");
@@ -8,7 +8,7 @@ const serveHtml = async (response, filePath) => {
     "Cache-Control": "no-store",
   });
   response.end(content);
-  throw null;
+  throw RESPONSE_SENT;
 };
 
 const serveTextFile = async (response, filePath, contentType = "text/plain") => {
@@ -18,7 +18,7 @@ const serveTextFile = async (response, filePath, contentType = "text/plain") => 
     "Cache-Control": "no-store",
   });
   response.end(content);
-  throw null;
+  throw RESPONSE_SENT;
 };
 
 /** Escape a value for safe inclusion inside double-quoted bash strings. */
@@ -60,7 +60,7 @@ const serveInstallScript = (request, response, url) => {
     "Cache-Control": "no-store",
   });
   response.end(script);
-  throw null;
+  throw RESPONSE_SENT;
 };
 
 export const handleStaticRequest = async ({
@@ -91,10 +91,10 @@ export const handleStaticRequest = async ({
 
     text(response, 404, "Not Found");
   } catch (error) {
-    if (error === null) throw null;
+    if (error === RESPONSE_SENT) throw error;
     console.error(`Error serving ${pathname}:`, error.message);
     response.writeHead(500, { "Content-Type": "text/plain" });
     response.end("Internal Server Error");
-    throw null;
+    throw RESPONSE_SENT;
   }
 };

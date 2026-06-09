@@ -1,5 +1,6 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpServer } from "../mcp/server.js";
+import { RESPONSE_SENT } from "../lib/responses.js";
 
 const MAX_MCP_BODY_BYTES = 1024 * 1024;
 
@@ -22,7 +23,7 @@ const jsonRpcError = (
       id: null,
     }),
   );
-  throw null;
+  throw RESPONSE_SENT;
 };
 
 const parseContentLength = (value) => {
@@ -168,7 +169,7 @@ export const handleMcpRequest = async ({
     await server.connect(transport);
     await transport.handleRequest(request, response, body.value);
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("MCP request error:", err);
     if (!response.headersSent) {
       jsonRpcError(response, 500, -32603, "Internal error");
@@ -181,5 +182,5 @@ export const handleMcpRequest = async ({
       socket?.setTimeout?.(previousSocketTimeout);
     }
   }
-  throw null;
+  throw RESPONSE_SENT;
 };

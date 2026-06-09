@@ -14,7 +14,7 @@ import {
 import { requireAuth } from "../lib/db.js";
 import { cleanupFormidableFiles } from "../lib/formidable.js";
 import { readJsonOrNull, statOrNull } from "../lib/fs.js";
-import { json } from "../lib/responses.js";
+import { json, RESPONSE_SENT } from "../lib/responses.js";
 
 export const IMAGE_ID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
 
@@ -137,7 +137,7 @@ const handleListImages = async ({ request, response, imagesDir, checkAuth }) => 
 
     json(response, 200, { count: images.length, images });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("List images error:", err);
     internalServerError(response, "Failed to list images");
   }
@@ -186,7 +186,7 @@ const handleGetImage = async ({ request, response, pathname, imagesDir, checkAut
       "Cache-Control": "public, max-age=31536000, immutable",
     });
     response.end();
-    throw null;
+    throw RESPONSE_SENT;
   }
 
   response.writeHead(200, {
@@ -202,12 +202,12 @@ const handleGetImage = async ({ request, response, pathname, imagesDir, checkAut
     await pipeline(createReadStream(filePath), response);
   } catch (error) {
     if (error?.code === "ERR_STREAM_PREMATURE_CLOSE" || error?.code === "ECONNRESET") {
-      throw null;
+      throw RESPONSE_SENT;
     }
     console.error("Image stream error:", error);
   }
 
-  throw null;
+  throw RESPONSE_SENT;
 };
 
 const handleDeleteImage = async ({ request, response, pathname, imagesDir, checkAuth }) => {

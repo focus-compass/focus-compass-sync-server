@@ -15,7 +15,7 @@ import {
 } from "./lib/http.js";
 import { FocusCompassSQLite } from "./lib/hocuspocusSqlite.js";
 import { ensurePrivateDir, hardenPrivateFileIfExists } from "./lib/privateFiles.js";
-import { json, noContent } from "./lib/responses.js";
+import { json, noContent, RESPONSE_SENT } from "./lib/responses.js";
 import { handleAdminRequest } from "./routes/admin.js";
 import { handleAuthRequest } from "./routes/auth.js";
 import { handleImagesRequest } from "./routes/images.js";
@@ -281,7 +281,7 @@ const server = new Server({
         mcpSkillFilePath,
       });
     } catch (err) {
-      if (err === null) throw null;
+      if (err === RESPONSE_SENT) throw err;
       console.error("Request handler error:", err);
       if (!response.headersSent) {
         json(response, 500, { error: "Internal Server Error" });
@@ -293,7 +293,7 @@ const server = new Server({
           // Ignore double-end errors
         }
       }
-      throw null;
+      throw RESPONSE_SENT;
     }
   },
 });

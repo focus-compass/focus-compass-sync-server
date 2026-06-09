@@ -11,7 +11,7 @@ import {
   toByteLength,
 } from "../lib/doc.js";
 import { parseBool } from "../lib/env.js";
-import { json } from "../lib/responses.js";
+import { json, RESPONSE_SENT } from "../lib/responses.js";
 import { getContent } from "../yjs/inspect.js";
 import { createWorkspaceViewOptions } from "../yjs/viewOptions.js";
 import { transformWorkspace } from "../yjs/workspace.js";
@@ -68,7 +68,7 @@ export const handleWorkspaceRequest = async ({
       json(response, 200, result);
     });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("Workspace endpoint error:", err);
     internalServerError(response, "Failed to read workspace");
   }

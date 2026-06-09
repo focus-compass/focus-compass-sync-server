@@ -18,7 +18,7 @@ import {
 import { parseBool } from "../lib/env.js";
 import { readJsonOrNull, statOrNull } from "../lib/fs.js";
 import { readJsonBody } from "../lib/http.js";
-import { json } from "../lib/responses.js";
+import { json, RESPONSE_SENT } from "../lib/responses.js";
 import { getContent, getWorkspaceSummary } from "../yjs/inspect.js";
 
 const BACKUP_FILE_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
@@ -303,7 +303,7 @@ const handleDbInfo = async ({
       });
     });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("Admin db-info error:", err);
     internalServerError(response, "Failed to read database info");
   }
@@ -329,7 +329,7 @@ const handleBackups = async ({ request, response, backupDir, backupService, chec
       : null;
     json(response, 200, { backups, totalSizeBytes, health: effectiveHealth });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("Admin backups error:", err);
     internalServerError(response, "Failed to read backups");
   }
@@ -342,7 +342,7 @@ const handleCreateBackup = async ({ request, response, backupService, checkAuth 
     const backupFile = await backupService.forceBackup();
     json(response, 201, { success: true, file: backupFile });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     if (err.message === "Backup already in progress" || err.message === "Restore in progress") {
       json(response, 409, { error: err.message });
     }
@@ -380,12 +380,12 @@ const handleBackupDownload = async ({ request, response, backupDir, checkAuth, f
     await pipeline(createReadStream(filePath), response);
   } catch (error) {
     if (error?.code === "ERR_STREAM_PREMATURE_CLOSE" || error?.code === "ECONNRESET") {
-      throw null;
+      throw RESPONSE_SENT;
     }
     console.error("Backup download stream error:", error);
   }
 
-  throw null;
+  throw RESPONSE_SENT;
 };
 
 const handleGetBackupSettings = async ({ request, response, backupSettingsPath, checkAuth }) => {
@@ -399,7 +399,7 @@ const handleGetBackupSettings = async ({ request, response, backupSettingsPath, 
     const intervalMinutes = Number.isFinite(rawInterval) && rawInterval > 0 ? rawInterval : 30;
     json(response, 200, { mode, value, intervalMinutes });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("Admin backup-settings read error:", err);
     internalServerError(response, "Failed to read backup settings");
   }
@@ -440,7 +440,7 @@ const handlePutBackupSettings = async ({ request, response, backupSettingsPath, 
 
     json(response, 200, { mode, value, intervalMinutes });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("Admin backup-settings write error:", err);
     internalServerError(response, "Failed to save backup settings");
   }
@@ -528,7 +528,7 @@ const handleDocGet = async ({
       });
     });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("Admin document error:", err);
     internalServerError(response, "Failed to read document");
   }
@@ -561,7 +561,7 @@ const handleDocDelete = async ({
       json(response, 200, { success: true, deleted: docName });
     });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
     console.error("Admin delete error:", err);
     internalServerError(response, "Failed to delete document");
   }
@@ -613,7 +613,7 @@ const handleRestoreBackup = async ({
       message: "Database restored. Server will restart now.",
     });
   } catch (err) {
-    if (err === null) throw null;
+    if (err === RESPONSE_SENT) throw err;
 
     const msg = err.message || "Failed to restore backup";
     console.error("Admin restore error:", err);

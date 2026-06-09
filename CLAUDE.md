@@ -58,12 +58,12 @@ ACCESS_TOKEN=your-secret-token      # Bearer token for auth
 DB_PATH=./data/db.sqlite            # SQLite database path
 IMAGES_DIR=./data/images            # Image storage directory
 BACKUP_DIR=./data/backups           # Backup directory
-BACKUP_INTERVAL_MINUTES=60          # Backup frequency
-BACKUP_RETENTION_DAYS=7             # Backup retention
 MAX_UPLOAD_BYTES=10485760           # Upload limit (bytes)
 CORS_ALLOW_ORIGINS=*                # CORS allowlist (comma-separated) or '*'
 YJS_GC=true                         # Default: true (smaller docs, no full Yjs history)
 ```
+
+Backup interval and retention are not environment variables — they are configured at runtime from the admin UI and persisted to `backup-settings.json` next to the database.
 
 ## Docker
 

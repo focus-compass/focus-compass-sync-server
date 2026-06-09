@@ -23,10 +23,15 @@ COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node package*.json ./
 COPY --chown=node:node src ./src
 
-RUN mkdir -p /app/data
+# Create the data dir and hand it to the unprivileged node user so the
+# runtime (and named volume, which inherits this ownership) is writable.
+RUN mkdir -p /app/data && chown -R node:node /app/data
 
 EXPOSE 8080
 
 ENV NODE_OPTIONS="--max-old-space-size=768"
+
+# Drop root: run as the built-in unprivileged node user.
+USER node
 
 CMD ["node", "src/server.js"]

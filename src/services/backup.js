@@ -4,6 +4,17 @@ import { join } from "node:path";
 
 const BACKUP_RE = /^backup-[0-9A-Za-z._-]+\.sqlite$/;
 
+// Deletes a file, treating "already gone" (ENOENT) as success but letting real
+// failures (permissions, locks) surface so callers can log or react to them.
+const unlinkIfExists = async (filePath) => {
+    try {
+        await unlink(filePath);
+    } catch (error) {
+        if (error?.code === "ENOENT") return;
+        throw error;
+    }
+};
+
 /**
  * Service to handle SQLite database backups.
  * Creates a copy of the database file at specified intervals and cleans up old backups.
@@ -301,13 +312,9 @@ export class BackupService {
     }
 
     async _deleteDatabaseArtifacts(filePath) {
-        await unlink(filePath);
+        await unlinkIfExists(filePath);
         for (const suffix of ["-wal", "-shm", "-journal"]) {
-            try {
-                await unlink(`${filePath}${suffix}`);
-            } catch (error) {
-                if (error?.code === "ENOENT") continue;
-            }
+            await unlinkIfExists(`${filePath}${suffix}`);
         }
     }
 
@@ -454,11 +461,7 @@ export class BackupService {
      */
     static async _removeSidecars(dbPath) {
         for (const suffix of ["-wal", "-shm", "-journal"]) {
-            try {
-                await unlink(`${dbPath}${suffix}`);
-            } catch (error) {
-                if (error?.code === "ENOENT") continue;
-            }
+            await unlinkIfExists(`${dbPath}${suffix}`);
         }
     }
 

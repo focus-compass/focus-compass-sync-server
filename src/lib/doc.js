@@ -1,7 +1,8 @@
 export const DEFAULT_MAX_DOC_DECODE_BYTES = 128 * 1024 * 1024;
 
 export const toByteLength = (rawSize) => {
-  const n = typeof rawSize === "bigint" ? Number(rawSize) : Number(rawSize);
+  // Number() handles bigint, number and numeric strings uniformly.
+  const n = Number(rawSize);
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
 

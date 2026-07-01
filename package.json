@@ -11,7 +11,10 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test:e2e": "node tests/e2e-client.mjs",
+    "test:docker-guide": "bash tests/test-docker-guide.sh",
+    "test:install-script": "bash tests/test-install-script.sh"
   },
   "repository": {
     "type": "git",
@@ -45,6 +48,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.6.0",
+    "@hocuspocus/provider": "^3.4.3",
     "eslint": "^9.6.0",
     "globals": "^17.1.0"
   }

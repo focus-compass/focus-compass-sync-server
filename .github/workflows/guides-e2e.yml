@@ -1,0 +1,44 @@
+# E2E tests for the public setup guides (focus-compass.com/sync-server).
+# Run manually from the Actions tab, or let the weekly cron catch silent
+# breakage of the published image / production install script.
+name: guides-e2e
+
+on:
+  workflow_dispatch:
+    inputs:
+      installer_url:
+        description: Installer URL to test
+        required: false
+        default: https://focus-compass.com/install-sync-server.sh
+  schedule:
+    # Weekly: Monday 06:20 UTC
+    - cron: "20 6 * * 1"
+
+jobs:
+  docker-guide:
+    name: docker run guide (published image)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Run the Docker guide test
+        run: bash tests/test-docker-guide.sh
+
+  install-script:
+    name: curl | bash guide (production script)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Run the installer guide test
+        env:
+          INSTALLER_URL: ${{ github.event.inputs.installer_url || 'https://focus-compass.com/install-sync-server.sh' }}
+        run: bash tests/test-install-script.sh

@@ -281,10 +281,20 @@ const server = new Server({
         mcpSkillFilePath,
       });
     } catch (err) {
-      if (err === RESPONSE_SENT) throw err;
+      // Hocuspocus' requestHandler treats a FALSY rejection as "a hook already
+      // handled this request" and rethrows anything truthy, which crashes the
+      // process as an unhandled rejection (its catch block runs outside any
+      // awaiter). So RESPONSE_SENT must never escape onRequest — translate it
+      // (and our own 500 path) to the falsy `throw null` Hocuspocus expects.
+      if (err === RESPONSE_SENT) throw null;
       console.error("Request handler error:", err);
       if (!response.headersSent) {
-        json(response, 500, { error: "Internal Server Error" });
+        try {
+          json(response, 500, { error: "Internal Server Error" });
+        } catch {
+          // json() throws RESPONSE_SENT after writing; a real write failure
+          // is covered by the end() below either way.
+        }
       }
       if (!response.writableEnded) {
         try {
@@ -293,7 +303,7 @@ const server = new Server({
           // Ignore double-end errors
         }
       }
-      throw RESPONSE_SENT;
+      throw null;
     }
   },
 });

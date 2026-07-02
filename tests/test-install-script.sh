@@ -66,6 +66,19 @@ compose_in() {
   fi
 }
 
+# Like compose_in but pins `-f docker-compose.yml`, emulating how reverse-proxy
+# deploy platforms (Dokploy/Traefik) invoke compose — an explicit -f turns off
+# docker-compose.override.yml auto-loading.
+compose_base_only() {
+  local dir="$1"
+  shift
+  if docker compose version >/dev/null 2>&1; then
+    (cd "${dir}" && docker compose -f docker-compose.yml "$@")
+  else
+    (cd "${dir}" && docker-compose -f docker-compose.yml "$@")
+  fi
+}
+
 cleanup() {
   if [ "${KEEP:-0}" = "1" ]; then
     echo "KEEP=1 — leaving ${INSTALL_DIR} and its stack in place."
@@ -194,6 +207,28 @@ if [ "${CONTAINER_STATE}" = "running" ]; then
   ok "compose service is running"
 else
   fail "compose service state: ${CONTAINER_STATE:-not found}"
+fi
+
+# --- 3b. compose port topology (reverse-proxy safety) --------------------------
+# The self-host path (plain `docker compose up`) MUST publish the host port, or
+# the installer/README URL is unreachable. Reverse-proxy platforms invoke
+# `docker compose -f docker-compose.yml ...`, which MUST NOT publish a host port
+# or it clashes with the proxy (Dokploy: "Bind for 0.0.0.0:8080 ... port is
+# already allocated"). Guards against regressing either side of that split.
+log "Step 3b: compose port topology (reverse-proxy safety)"
+PLAIN_CFG="$(compose_in "${INSTALL_DIR}" config 2>/dev/null || true)"
+BASE_CFG="$(compose_base_only "${INSTALL_DIR}" config 2>/dev/null || true)"
+
+if printf '%s' "${PLAIN_CFG}" | grep -qE "published:[[:space:]]*\"?${HOST_PORT}\"?"; then
+  ok "plain compose publishes host port ${HOST_PORT} (installer/README path)"
+else
+  fail "plain compose does not publish host port ${HOST_PORT} — installer/README URL would be unreachable"
+fi
+
+if printf '%s' "${BASE_CFG}" | grep -qE "published:"; then
+  fail "base-only compose still binds a host port — clashes behind a reverse proxy (Dokploy 'port is already allocated')"
+else
+  ok "base-only compose does not bind a host port (reverse-proxy safe)"
 fi
 
 # --- 4. app-level e2e ----------------------------------------------------------

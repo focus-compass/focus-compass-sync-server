@@ -3,11 +3,16 @@ services:
     image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:latest}
     pull_policy: always
     restart: unless-stopped
-    # The install script writes HOCUSPOCUS_PORT into .env and the setup guide
-    # promises http://<host>:<port> right after install — the port must be
-    # published on the host, not just exposed to the compose network.
-    ports:
-      - "${HOCUSPOCUS_PORT:-8080}:8080"
+    # Base file is reverse-proxy friendly (Dokploy/Traefik, Caddy, nginx):
+    # the proxy reaches the container over the compose network, so the port is
+    # only exposed internally and NOT bound on the host (host 8080 is usually
+    # taken by the proxy — binding it fails with "port is already allocated").
+    # Direct host access for the self-host installer / README quick start is
+    # added by docker-compose.override.yml, which a plain `docker compose up`
+    # auto-loads but an explicit `docker compose -f docker-compose.yml` (what
+    # reverse-proxy platforms run) deliberately ignores.
+    expose:
+      - "8080"
     environment:
       NODE_ENV: production
       NODE_OPTIONS: "--max-old-space-size=768"

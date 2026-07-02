@@ -44,6 +44,19 @@ docker compose logs -f
 
 The default `docker-compose.yml` points at the GHCR image reference above and persists runtime data in a Docker volume mounted to `/app/data`.
 
+#### Port publishing vs. reverse proxy
+
+- A plain `docker compose up` (the command above, and the one the install
+  script runs) auto-loads `docker-compose.override.yml`, which publishes the
+  server on the host as `${HOCUSPOCUS_PORT:-8080}` for direct
+  `http://<host>:<port>` access.
+- Behind a reverse proxy (Dokploy/Traefik, Caddy, nginx, …) the base
+  `docker-compose.yml` only `expose`s the port on the compose network so the
+  proxy can route to it — the host port is not bound. Deploy platforms that run
+  `docker compose -f docker-compose.yml ...` explicitly get this automatically
+  (an explicit `-f` skips the override). With a bare `docker compose up` behind
+  your own proxy, delete `docker-compose.override.yml`.
+
 ## Configuration
 
 Use [.env.example](.env.example) as the source of truth for environment variable names.

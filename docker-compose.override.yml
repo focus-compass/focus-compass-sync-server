@@ -1,0 +1,17 @@
+# Self-host / direct-access override.
+#
+# Docker Compose auto-loads this file for a plain `docker compose up` (no -f),
+# which is what the install script and the README Docker quick start run. It
+# publishes the server port on the host so http://<host>:<port> works without a
+# reverse proxy. HOCUSPOCUS_PORT is written to .env by install-sync-server.sh.
+#
+# Reverse-proxy deploys (Dokploy/Traefik, etc.) invoke
+# `docker compose -f docker-compose.yml ...` explicitly, which turns OFF
+# override auto-loading — so they never bind the port on the host and keep
+# routing over the compose network via the base file's `expose`. If you deploy
+# behind your own proxy with a bare `docker compose up`, delete this file (or
+# set HOCUSPOCUS_PORT to a free host port).
+services:
+  focus-compass:
+    ports:
+      - "${HOCUSPOCUS_PORT:-8080}:8080"

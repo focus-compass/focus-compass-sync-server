@@ -35,6 +35,8 @@ IMAGE="${IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:latest}"
 RUN_ID="$(date +%s)-$RANDOM"
 CONTAINER_NAME="fc-sync-guide-test-${RUN_ID}"
 VOLUME_NAME="fc-sync-guide-data-${RUN_ID}"
+HEAL_CONTAINER_NAME="fc-sync-heal-test-${RUN_ID}"
+HEAL_VOLUME_NAME="fc-sync-heal-data-${RUN_ID}"
 STATE_FILE="${TMPDIR:-/tmp}/fc-sync-e2e-state-${RUN_ID}.json"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-90}"
 STABILITY_WINDOW_SECONDS="${STABILITY_WINDOW_SECONDS:-10}"
@@ -70,37 +72,43 @@ port_is_free() {
   ! curl -s -o /dev/null --connect-timeout 1 "http://127.0.0.1:$1/" 2>/dev/null
 }
 
-HOST_PORT="${HOST_PORT:-}"
-if [ -z "${HOST_PORT}" ]; then
-  for candidate in 18090 18091 18092 18093 18094; do
+pick_free_port() {
+  for candidate in "$@"; do
     if port_is_free "${candidate}"; then
-      HOST_PORT="${candidate}"
-      break
+      printf '%s' "${candidate}"
+      return 0
     fi
   done
-fi
+  return 1
+}
+
+HOST_PORT="${HOST_PORT:-$(pick_free_port 18090 18091 18092 18093 18094 || true)}"
 if [ -z "${HOST_PORT}" ]; then
   echo "[FAIL] Could not find a free host port (tried 18090-18094)." >&2
   exit 1
 fi
 BASE_URL="http://127.0.0.1:${HOST_PORT}"
 
+HEAL_PORT="$(pick_free_port 18095 18096 18097 18098 18099 || true)"
+
 # --- cleanup ------------------------------------------------------------------
 cleanup() {
   if [ "${KEEP:-0}" = "1" ]; then
-    echo "KEEP=1 — leaving container ${CONTAINER_NAME} and volume ${VOLUME_NAME} in place."
+    echo "KEEP=1 — leaving containers/volumes in place."
     return
   fi
-  "${DOCKER_BIN}" rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
-  "${DOCKER_BIN}" volume rm "${VOLUME_NAME}" >/dev/null 2>&1 || true
+  "${DOCKER_BIN}" rm -f "${CONTAINER_NAME}" "${HEAL_CONTAINER_NAME}" >/dev/null 2>&1 || true
+  "${DOCKER_BIN}" volume rm "${VOLUME_NAME}" "${HEAL_VOLUME_NAME}" >/dev/null 2>&1 || true
   rm -f "${STATE_FILE}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
+# wait_for_health <timeout-seconds> [base-url]
 wait_for_health() {
   local deadline=$(( $(date +%s) + $1 ))
+  local url="${2:-${BASE_URL}}"
   while [ "$(date +%s)" -lt "${deadline}" ]; do
-    if curl -fsS --max-time 3 "${BASE_URL}/health" 2>/dev/null | grep -q '"ok":true'; then
+    if curl -fsS --max-time 3 "${url}/health" 2>/dev/null | grep -q '"ok":true'; then
       return 0
     fi
     sleep 2
@@ -201,6 +209,37 @@ if "${DOCKER_BIN}" stop "${CONTAINER_NAME}" >/dev/null 2>&1 \
   fi
 else
   fail "container did not come back after stop/start"
+fi
+
+# --- 8. root-owned volume upgrade path ----------------------------------------
+# Reproduces the real Dokploy failure: a data volume created by an older
+# root-based image stays owned by root, and the current node-user image must
+# still start (the entrypoint takes ownership and drops to node). Without the
+# entrypoint this is EACCES on ./data/images.
+log "Step 8: server recovers a root-owned data volume (upgrade path)"
+if [ -z "${HEAL_PORT}" ]; then
+  fail "no free port for the heal check (skipped)"
+else
+  # Seed a volume owned by root:root, as an old root image would have left it.
+  if "${DOCKER_BIN}" run --rm --user 0 -v "${HEAL_VOLUME_NAME}:/app/data" "${IMAGE}" \
+      sh -c 'mkdir -p /app/data && chown -R 0:0 /app/data && touch /app/data/root-owned.marker' >/dev/null 2>&1; then
+    if "${DOCKER_BIN}" run -d --name "${HEAL_CONTAINER_NAME}" \
+        -p "${HEAL_PORT}:8080" -v "${HEAL_VOLUME_NAME}:/app/data" "${IMAGE}" >/dev/null \
+        && wait_for_health "${HEALTH_TIMEOUT_SECONDS}" "http://127.0.0.1:${HEAL_PORT}"; then
+      # Confirm the server actually runs as the unprivileged node user.
+      RUNTIME_UID="$("${DOCKER_BIN}" exec "${HEAL_CONTAINER_NAME}" id -u 2>/dev/null | tr -d '[:space:]' || true)"
+      if [ "${RUNTIME_UID}" = "0" ]; then
+        fail "server recovered the volume but is still running as root (uid 0)"
+      else
+        ok "server recovered a root-owned volume and runs as non-root (uid ${RUNTIME_UID:-unknown})"
+      fi
+    else
+      fail "server did not become healthy on a root-owned volume (entrypoint chown/drop failed)"
+      "${DOCKER_BIN}" logs --tail=40 "${HEAL_CONTAINER_NAME}" 2>&1 || true
+    fi
+  else
+    fail "could not seed a root-owned volume for the heal check"
+  fi
 fi
 
 # --- summary ------------------------------------------------------------------

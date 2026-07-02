@@ -1,6 +1,13 @@
 # E2E tests for the public setup guides (focus-compass.com/sync-server).
-# Run manually from the Actions tab, or let the weekly cron catch silent
-# breakage of the published image / production install script.
+#
+# Triggers:
+#   - workflow_run: right AFTER "Publish Docker Image" finishes on main, so we
+#     test the exact image that just shipped. Running here (not on `push`)
+#     avoids the race where the test pulls the previous `latest` while the new
+#     one is still building.
+#   - workflow_dispatch: on demand from the Actions tab.
+#   - schedule: weekly safety net for silent rot of the published image or the
+#     external production installer, even when we changed nothing.
 name: guides-e2e
 
 on:
@@ -10,6 +17,10 @@ on:
         description: Installer URL to test
         required: false
         default: https://focus-compass.com/install-sync-server.sh
+  workflow_run:
+    workflows: ["Publish Docker Image"]
+    types: [completed]
+    branches: [main]
   schedule:
     # Weekly: Monday 06:20 UTC
     - cron: "20 6 * * 1"
@@ -19,6 +30,11 @@ jobs:
     name: docker run guide (published image)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # On a workflow_run trigger, only proceed if the image build succeeded; a
+    # failed build has nothing new to test. Manual/scheduled runs always go.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,6 +48,9 @@ jobs:
     name: curl | bash guide (production script)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

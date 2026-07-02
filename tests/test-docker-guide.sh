@@ -221,17 +221,22 @@ if [ -z "${HEAL_PORT}" ]; then
   fail "no free port for the heal check (skipped)"
 else
   # Seed a volume owned by root:root, as an old root image would have left it.
-  if "${DOCKER_BIN}" run --rm --user 0 -v "${HEAL_VOLUME_NAME}:/app/data" "${IMAGE}" \
-      sh -c 'mkdir -p /app/data && chown -R 0:0 /app/data && touch /app/data/root-owned.marker' >/dev/null 2>&1; then
+  # --entrypoint sh bypasses docker-entrypoint.sh (which would otherwise drop to
+  # node and defeat the chown), so the volume really ends up root-owned.
+  if "${DOCKER_BIN}" run --rm --user 0 --entrypoint sh \
+      -v "${HEAL_VOLUME_NAME}:/app/data" "${IMAGE}" \
+      -c 'mkdir -p /app/data && chown -R 0:0 /app/data && touch /app/data/root-owned.marker' >/dev/null 2>&1; then
     if "${DOCKER_BIN}" run -d --name "${HEAL_CONTAINER_NAME}" \
         -p "${HEAL_PORT}:8080" -v "${HEAL_VOLUME_NAME}:/app/data" "${IMAGE}" >/dev/null \
         && wait_for_health "${HEALTH_TIMEOUT_SECONDS}" "http://127.0.0.1:${HEAL_PORT}"; then
-      # Confirm the server actually runs as the unprivileged node user.
-      RUNTIME_UID="$("${DOCKER_BIN}" exec "${HEAL_CONTAINER_NAME}" id -u 2>/dev/null | tr -d '[:space:]' || true)"
-      if [ "${RUNTIME_UID}" = "0" ]; then
-        fail "server recovered the volume but is still running as root (uid 0)"
+      # The server process is PID 1 (entrypoint exec'd it). Read its real UID
+      # from /proc — `docker exec` would report the image USER (root), not the
+      # dropped-to node user the server actually runs as.
+      RUNTIME_UID="$("${DOCKER_BIN}" exec "${HEAL_CONTAINER_NAME}" cat /proc/1/status 2>/dev/null | awk '/^Uid:/{print $2}' | tr -d '[:space:]' || true)"
+      if [ -z "${RUNTIME_UID}" ] || [ "${RUNTIME_UID}" = "0" ]; then
+        fail "server recovered the volume but PID 1 is not the node user (uid='${RUNTIME_UID:-unknown}')"
       else
-        ok "server recovered a root-owned volume and runs as non-root (uid ${RUNTIME_UID:-unknown})"
+        ok "server recovered a root-owned volume and runs as non-root (PID 1 uid ${RUNTIME_UID})"
       fi
     else
       fail "server did not become healthy on a root-owned volume (entrypoint chown/drop failed)"

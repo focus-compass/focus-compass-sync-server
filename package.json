@@ -36,13 +36,11 @@
   },
   "homepage": "https://github.com/focus-compass/focus-compass-sync-server#readme",
   "dependencies": {
-    "@hocuspocus/extension-logger": "^3.4.0",
     "@hocuspocus/extension-sqlite": "^3.4.0",
     "@hocuspocus/server": "^3.4.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "dotenv": "^17.2.3",
     "formidable": "^3.5.4",
-    "y-protocols": "^1.0.6",
     "yjs": "^13.6.27",
     "zod": "^4.3.6"
   },

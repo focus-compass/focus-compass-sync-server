@@ -5,9 +5,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Focus Compass Server</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light;
@@ -2369,15 +2366,7 @@
                     <div class="mcp-prompt-hint">Paste into Claude Code &mdash; it will set up MCP and install the <code>/focus-compass</code> skill.</div>
                     <div class="mcp-prompt-row">
                       <div class="codebox" id="promptClaude">-</div>
-                      <button class="ghost copy-btn" type="button" data-copy="promptClaude" title="Copy prompt" aria-label="Copy prompt">
-                        <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                          <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                          <path d="m20 6-11 11-5-5"></path>
-                        </svg>
-                      </button>
+                      <button class="ghost copy-btn" type="button" data-copy="promptClaude" title="Copy prompt" aria-label="Copy prompt"></button>
                     </div>
                     <details class="mcp-manual">
                       <summary>Alternative: one-liner or manual steps</summary>
@@ -2385,45 +2374,21 @@
                         <div class="mcp-step-label">One-liner install (bash)</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideInstallCmd" style="font-size:11px;">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideInstallCmd" title="Copy command" aria-label="Copy command">
-                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <path d="m20 6-11 11-5-5"></path>
-                            </svg>
-                          </button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideInstallCmd" title="Copy command" aria-label="Copy command"></button>
                         </div>
                       </div>
                       <div class="mcp-step">
                         <div class="mcp-step-label">1. Add MCP server</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideClaudeCmd">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideClaudeCmd" title="Copy command" aria-label="Copy command">
-                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <path d="m20 6-11 11-5-5"></path>
-                            </svg>
-                          </button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideClaudeCmd" title="Copy command" aria-label="Copy command"></button>
                         </div>
                       </div>
                       <div class="mcp-step">
                         <div class="mcp-step-label">2. Install skill</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideSkillCmd" style="font-size:11px; white-space:pre-wrap;">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideSkillCmd" title="Copy command" aria-label="Copy command">
-                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <path d="m20 6-11 11-5-5"></path>
-                            </svg>
-                          </button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideSkillCmd" title="Copy command" aria-label="Copy command"></button>
                         </div>
                       </div>
                     </details>
@@ -2434,15 +2399,7 @@
                     <div class="mcp-prompt-hint">Paste into Codex &mdash; it will configure MCP, persist the token, and install the skill.</div>
                     <div class="mcp-prompt-row">
                       <div class="codebox" id="promptCodex">-</div>
-                      <button class="ghost copy-btn" type="button" data-copy="promptCodex" title="Copy prompt" aria-label="Copy prompt">
-                        <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                          <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                          <path d="m20 6-11 11-5-5"></path>
-                        </svg>
-                      </button>
+                      <button class="ghost copy-btn" type="button" data-copy="promptCodex" title="Copy prompt" aria-label="Copy prompt"></button>
                     </div>
                     <details class="mcp-manual">
                       <summary>Manual config</summary>
@@ -2451,15 +2408,7 @@
                         <div class="hint" style="font-size:12px;">Add to <code>~/.codex/config.toml</code>:</div>
                         <div class="mcp-cmd">
                           <div class="codebox" id="guideCodexToml" style="white-space:pre-wrap;">-</div>
-                          <button class="ghost copy-btn" type="button" data-copy="guideCodexToml" title="Copy config" aria-label="Copy config">
-                            <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <path d="m20 6-11 11-5-5"></path>
-                            </svg>
-                          </button>
+                          <button class="ghost copy-btn" type="button" data-copy="guideCodexToml" title="Copy config" aria-label="Copy config"></button>
                         </div>
                       </div>
                     </details>
@@ -2472,15 +2421,7 @@
                       <div class="hint" style="font-size:12px;">Universal format &mdash; works with Claude Desktop, Cursor, Windsurf, and other MCP clients.</div>
                       <div class="mcp-cmd">
                         <div class="codebox" id="guideDesktopJson" style="white-space:pre-wrap;">-</div>
-                        <button class="ghost copy-btn" type="button" data-copy="guideDesktopJson" title="Copy config" aria-label="Copy config">
-                          <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                          </svg>
-                          <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="m20 6-11 11-5-5"></path>
-                          </svg>
-                        </button>
+                        <button class="ghost copy-btn" type="button" data-copy="guideDesktopJson" title="Copy config" aria-label="Copy config"></button>
                       </div>
                     </div>
                     <div class="mcp-step">
@@ -2719,10 +2660,8 @@
 
   <script>
     const TOKEN_KEY = "focus-compass-token";
-    const ADMIN_TOKEN_KEY = "admin-token";
 
     const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
-    const NEW_TOKEN_RE = /^[A-Za-z0-9_-]+$/;
     const DEFAULT_APP_ROUTE = "dashboard";
     const DETAIL_APP_ROUTES = new Set(["database", "backups", "images"]);
     const APP_ROUTES = new Set([DEFAULT_APP_ROUTE, ...DETAIL_APP_ROUTES]);
@@ -3120,13 +3059,11 @@
       state.token = String(token || "").trim();
       if (!state.token) return;
       localStorage.setItem(TOKEN_KEY, state.token);
-      localStorage.setItem(ADMIN_TOKEN_KEY, state.token);
     }
 
     function clearToken() {
       state.token = "";
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(ADMIN_TOKEN_KEY);
       clearMcpTokenBox();
       setMcpError("");
     }
@@ -4247,6 +4184,7 @@
 
     async function createBackupNow() {
       const btn = $("createBackupBtn");
+      const originalHtml = btn.innerHTML;
       btn.disabled = true;
       btn.textContent = "Creating...";
 
@@ -4263,9 +4201,7 @@
         toast(`Backup failed: ${err.message}`, "error");
       } finally {
         btn.disabled = false;
-        btn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;display:block;flex:0 0 auto;"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
-          " Create Backup Now";
+        btn.innerHTML = originalHtml;
       }
     }
 
@@ -4577,43 +4513,27 @@
       }
     }
 
-    function flashItemCopied(item) {
-      if (!item || !item.classList) return;
-      clearTimeout(item._copiedT);
+    // Replay the "copied" flash animation on any element (item card or button).
+    function flashCopied(el) {
+      if (!el || !el.classList) return;
+      clearTimeout(el._copiedT);
 
-      if (item.classList.contains("copied")) {
-        item.classList.remove("copied");
+      if (el.classList.contains("copied")) {
+        el.classList.remove("copied");
         // Force a reflow so the animation can replay.
-        void item.offsetWidth;
+        void el.offsetWidth;
       }
 
-      item.classList.add("copied");
-
-      item._copiedT = setTimeout(() => {
-        item.classList.remove("copied");
-      }, 1100);
-    }
-
-    function flashButtonCopied(btn) {
-      if (!btn || !btn.classList) return;
-      clearTimeout(btn._copiedT);
-
-      if (btn.classList.contains("copied")) {
-        btn.classList.remove("copied");
-        // Force a reflow so the animation can replay.
-        void btn.offsetWidth;
-      }
-
-      btn.classList.add("copied");
-      btn._copiedT = setTimeout(() => {
-        btn.classList.remove("copied");
+      el.classList.add("copied");
+      el._copiedT = setTimeout(() => {
+        el.classList.remove("copied");
       }, 1100);
     }
 
     async function copyWorkspaceLink(item, txt) {
       try {
         await navigator.clipboard.writeText(txt);
-        flashItemCopied(item);
+        flashCopied(item);
       } catch (err) {
         toast(`Copy failed: ${err.message}`, "error");
       }
@@ -4801,8 +4721,12 @@
         $("mcpGuide").querySelectorAll(".mcp-panel").forEach((p) => p.classList.toggle("active", p.id === `tab-${tabId}`));
       });
 
-      // Copy buttons in guide
+      // Copy buttons in guide — inject the shared icon markup once, then wire copy.
+      const COPY_BTN_ICONS =
+        '<svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
+        + '<svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m20 6-11 11-5-5"></path></svg>';
       document.querySelectorAll(".mcp-guide .copy-btn").forEach((btn) => {
+        if (!btn.querySelector("svg")) btn.innerHTML = COPY_BTN_ICONS;
         btn.addEventListener("click", async () => {
           const targetId = btn.dataset.copy;
           const directText = btn.dataset.copyText;
@@ -4810,7 +4734,7 @@
           if (!text || text === "-") return;
           try {
             await navigator.clipboard.writeText(text);
-            flashButtonCopied(btn);
+            flashCopied(btn);
           } catch (err) {
             toast(`Copy failed: ${String(err?.message || err)}`, "error");
           }
@@ -4835,8 +4759,7 @@
         copyText(docLinkForName(state.token, state.selectedDocName), "Workspace link copied");
       });
 
-      $("docDeleteBtn").addEventListener("click", () => {
-        const name = state.selectedDocName;
+      function promptDeleteWorkspace(name) {
         if (!state.token || !name) return;
         openConfirm({
           title: "Delete workspace",
@@ -4851,7 +4774,7 @@
               });
               toast("Workspace deleted");
               closeConfirm();
-              closeDocModal();
+              if (state.selectedDocName === name) closeDocModal();
               await refreshDbInfo(state.token);
             } catch (err) {
               toast(`Delete failed: ${err.message}`, "error");
@@ -4860,6 +4783,10 @@
             }
           },
         });
+      }
+
+      $("docDeleteBtn").addEventListener("click", () => {
+        promptDeleteWorkspace(state.selectedDocName);
       });
 
       $("confirmCancelBtn").addEventListener("click", closeConfirm);
@@ -4936,7 +4863,7 @@
           return;
         }
 
-        if (!NEW_TOKEN_RE.test(next)) {
+        if (!TOKEN_RE.test(next)) {
           err.textContent = "Master token can only use A-Z, a-z, 0-9, '-', and '_'";
           err.style.display = "block";
           return;
@@ -4993,30 +4920,7 @@
 
         const deleteBtn = e.target.closest("button[data-action='delete-workspace']");
         if (deleteBtn) {
-          const name = deleteBtn.dataset.name;
-          if (!state.token || !name) return;
-          openConfirm({
-            title: "Delete workspace",
-            body: `Delete "${name}" from the database? This can't be undone.`,
-            onConfirm: async () => {
-              const okBtn = $("confirmOkBtn");
-              okBtn.disabled = true;
-              try {
-                await apiJson(`/api/admin/documents/${encodeURIComponent(name)}`, {
-                  method: "DELETE",
-                  token: state.token,
-                });
-                toast("Workspace deleted");
-                closeConfirm();
-                if (state.selectedDocName === name) closeDocModal();
-                await refreshDbInfo(state.token);
-              } catch (err) {
-                toast(`Delete failed: ${err.message}`, "error");
-              } finally {
-                okBtn.disabled = false;
-              }
-            },
-          });
+          promptDeleteWorkspace(deleteBtn.dataset.name);
           return;
         }
 
@@ -5052,7 +4956,7 @@
         (async () => {
           try {
             await navigator.clipboard.writeText(url);
-            flashButtonCopied(btn);
+            flashCopied(btn);
           } catch (err) {
             toast(`Copy failed: ${String(err?.message || err)}`, "error");
           }

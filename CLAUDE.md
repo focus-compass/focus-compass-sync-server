@@ -102,7 +102,7 @@ claude mcp add --transport http focus-compass http://localhost:8080/mcp \
 
 ## Verification
 
-Do NOT start the dev server or take screenshots to verify UI changes. Run `npm run lint` for code quality checks — that is sufficient. The project has no typecheck or test suite.
+Do NOT start the dev server or take screenshots to verify UI changes. Run `npm run lint` for code quality checks (and `node --check <file>` for a quick syntax check) — that is sufficient. There is no typecheck or unit-test suite; the `tests/` directory holds Docker/e2e guide smoke tests that need Docker or a running server, so they are not part of routine verification.
 
 ## Client Connection Example
 

@@ -1,4 +1,4 @@
-# Зависимости
+# Dependencies
 node_modules
 npm-debug.log
 
@@ -11,17 +11,11 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-
-# Документация
+# Documentation
 README.md
 LICENSE
 
-# Данные
+# Data
 data
 *.sqlite
 *.db
@@ -30,7 +24,7 @@ data
 .DS_Store
 Thumbs.db
 
-# Тесты
+# Tests
 test
 tests
 *.test.js

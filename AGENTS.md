@@ -31,12 +31,13 @@ Smoke checks:
 - Admin UI: `http://localhost:8080/`
 
 ### Tests
-- Current state: no tests are configured (no `npm test` script; no test deps).
-- If/when tests exist, prefer Node's built-in test runner (`node:test`):
-  - Run all tests: `node --test`
-  - Run a single test file: `node --test path/to/foo.test.js`
-  - Run one test by name: `node --test --test-name-pattern "my test name"`
-  - Fast syntax check: `node --check src/server.js`
+- No unit-test suite. `tests/` holds integration/e2e smoke tests for the
+  published image and the setup guides; they need Docker and/or a running server:
+  - `npm run test:e2e` — app-equivalent Hocuspocus client against a live server
+  - `npm run test:docker-guide` — pulls and runs the published GHCR image
+  - `npm run test:install-script` — exercises the `curl | bash` installer
+- For a quick local check without Docker: `node --check src/server.js` (syntax)
+  plus `npm run lint`.
 
 ### Linting
 - ESLint v9 flat config in `eslint.config.js` (`@eslint/js` recommended).
@@ -44,7 +45,11 @@ Smoke checks:
 - Lint a single file: `npx eslint src/server.js` (add `--fix` to auto-fix).
 
 ## Repo Layout (high-signal files)
-- `src/server.js`: Hocuspocus server; REST routes; static `/` serving
+- `src/server.js`: entry point — Hocuspocus server + `onRequest` router that
+  dispatches to `src/routes/*`; also sets CORS/security headers and auth hooks
+- `src/routes/*.js`: REST handlers (`auth`, `images`, `admin`, `workspace`, `static`, `mcp`, `mcpAdmin`)
+- `src/lib/*.js`: shared helpers (`auth`, `http`, `responses`, `db`, `fs`, `env`, …)
+- `src/yjs/*.js`: Yjs document decoding/inspection helpers
 - `src/services/backup.js`: `BackupService` used by `onStoreDocument`
 - `src/index.html`: static admin UI served by the server
 - `src/mcp/server.js`: MCP server factory (`createMcpServer`)
@@ -92,16 +97,20 @@ coherent and ESLint-clean.
 - Avoid adding TypeScript without an explicit reason and repo-wide agreement.
 
 ### Error Handling & Control Flow (important)
-`src/server.js` intentionally uses a sentinel throw to exit request handling:
-- `json()`, `text()`, and `noContent()` write the response then `throw null`.
+Response helpers use a named sentinel — `RESPONSE_SENT`, a `Symbol` exported from
+`src/lib/responses.js` — to short-circuit the router chain:
+- `json()`, `text()`, and `noContent()` write the response then `throw RESPONSE_SENT`.
 - After calling them, do not continue execution.
-- In `catch` blocks meant for real errors, rethrow sentinel: `if (err === null) throw null;`
-- Avoid double-writing responses (Node will error if headers are already sent).
+- In `catch` blocks meant for real errors, rethrow the sentinel first:
+  `if (err === RESPONSE_SENT) throw err;`
+- The top-level `onRequest` catch translates `RESPONSE_SENT` into the falsy
+  `throw null` Hocuspocus expects (a truthy throw would crash the process).
+- Avoid double-writing responses (Node errors if headers are already sent).
 
 Practical implications:
 - If you add a `try/catch` around route code, make sure the sentinel still escapes.
-- If you stream a response manually (e.g. `pipeline(createReadStream(...), res)`), end by
-  returning or `throw null` so later routes do not run.
+- If you stream a response manually (e.g. `pipeline(createReadStream(...), res)`),
+  end by `throw RESPONSE_SENT` so later routes do not run.
 
 ### HTTP / REST Conventions
 - All `/api/*` routes require Bearer token auth (see `checkAuth()`).
@@ -120,9 +129,9 @@ Caching in this codebase:
 - Do not trust client-provided MIME types; detect/verify server-side.
 - Avoid logging sensitive values (tokens, raw auth headers, user-provided paths).
 
-Common validation patterns in `src/server.js`:
-- Image IDs must match `IMAGE_ID_RE` before any filesystem access.
-- Document names are decoded with a safe decode helper and length-capped.
+Common validation patterns:
+- Image IDs must match `IMAGE_ID_RE` (`src/routes/images.js`) before any filesystem access.
+- Document names are decoded and length-capped via `decodeDocName()` (`src/lib/db.js`).
 
 ### Filesystem & Data Handling
 - Use `node:fs/promises` and `async` IO; keep operations best-effort when safe.
@@ -147,7 +156,3 @@ When changing Yjs/Hocuspocus behavior:
 - Served as a static file; no bundler and no external dependencies.
 - Keep it self-contained (inline CSS/JS) and avoid adding frameworks.
 - When changing API payload shapes, update both server handlers and this UI.
-
-## Tooling Rules (Cursor/Copilot)
-- No Cursor rules found (`.cursor/rules/`, `.cursorrules` absent).
-- No Copilot rules found (`.github/copilot-instructions.md` absent).

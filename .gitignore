@@ -1,19 +1,19 @@
-# Зависимости
+# Dependencies
 node_modules/
 
-# Переменные окружения
+# Environment
 .env
 .env.local
 .env.*.local
 
-# Данные базы
+# Database data
 data/
 *.sqlite
 *.db
 *.db-shm
 *.db-wal
 
-# Логи
+# Logs
 logs/
 *.log
 npm-debug.log*
@@ -30,12 +30,8 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
-nul
 
-# Docker
-# (dockerignore is handled by Docker itself)
-
-# Временные файлы
+# Temp files
 *.tmp
 tmp/
 temp/

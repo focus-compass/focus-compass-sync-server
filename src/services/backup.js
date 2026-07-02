@@ -226,7 +226,7 @@ export class BackupService {
             if (backupPath) {
                 await this._deleteDatabaseArtifacts(backupPath).catch(() => {});
             }
-            console.error("❌ Backup failed:", error.message);
+            console.error("Backup failed:", error.message);
             throw error;
         } finally {
             this.isBackingUp = false;
@@ -274,7 +274,7 @@ export class BackupService {
         let result = null;
         try {
             const row = db.prepare("PRAGMA integrity_check").get();
-            result = row?.integrity_check ?? row?.["integrity_check"];
+            result = row?.integrity_check;
         } catch (error) {
             integrityError = error;
         } finally {
@@ -401,7 +401,7 @@ export class BackupService {
             const hasDb = await stat(this.dbPath).catch(() => null);
             if (hasDb) {
                 preRestoreBackup = await this._createBackup("backup-pre-restore", { skipCleanup: true });
-                console.log(`✅ Pre-restore snapshot created: ${preRestoreBackup}`);
+                console.log(`Pre-restore snapshot created: ${preRestoreBackup}`);
             }
         } catch (error) {
             throw new Error(`Failed to create pre-restore snapshot: ${error.message}`);
@@ -504,7 +504,7 @@ export class BackupService {
                 }
             }
         } catch (error) {
-            console.error("❌ Cleanup failed:", error.message);
+            console.error("Cleanup failed:", error.message);
         }
     }
 }

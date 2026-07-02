@@ -57,29 +57,26 @@ await ensurePrivateDir(dirname(MCP_AUTH_FILE_PATH));
 await hardenPrivateFileIfExists(AUTH_FILE_PATH);
 await hardenPrivateFileIfExists(MCP_AUTH_FILE_PATH);
 
-const envTokenRaw = normalizeAuthToken(process.env.ACCESS_TOKEN);
-const envToken = envTokenRaw && envTokenRaw.trim() ? envTokenRaw.trim() : "";
-const envManaged = Boolean(envToken);
+// Resolve an auth token from its env var (which takes precedence and marks the
+// token as env-managed) falling back to the value persisted next to the DB.
+const resolveToken = async (envValue, filePath) => {
+  const envToken = normalizeAuthToken(envValue) || "";
+  const persisted = await readJsonOrNull(filePath);
+  const persistedToken = typeof persisted?.token === "string" ? persisted.token.trim() : "";
+  return { token: envToken || persistedToken, envManaged: Boolean(envToken) };
+};
 
-const persistedAuth = await readJsonOrNull(AUTH_FILE_PATH);
-const persistedToken =
-  persistedAuth && typeof persistedAuth.token === "string" ? persistedAuth.token.trim() : "";
+const { token: initialAuthToken, envManaged } = await resolveToken(
+  process.env.ACCESS_TOKEN,
+  AUTH_FILE_PATH,
+);
+let authToken = initialAuthToken;
 
-let authToken = envToken || persistedToken || "";
-
-
-const envMcpTokenRaw = normalizeAuthToken(process.env.MCP_TOKEN);
-const envMcpToken = envMcpTokenRaw && envMcpTokenRaw.trim() ? envMcpTokenRaw.trim() : "";
-const mcpEnvManaged = Boolean(envMcpToken);
-
-const persistedMcpAuth = await readJsonOrNull(MCP_AUTH_FILE_PATH);
-const persistedMcpToken =
-  persistedMcpAuth && typeof persistedMcpAuth.token === "string"
-    ? persistedMcpAuth.token.trim()
-    : "";
-
-let mcpToken = envMcpToken || persistedMcpToken || "";
-
+const { token: initialMcpToken, envManaged: mcpEnvManaged } = await resolveToken(
+  process.env.MCP_TOKEN,
+  MCP_AUTH_FILE_PATH,
+);
+let mcpToken = initialMcpToken;
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
 const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB_PATH), "backup-settings.json");
@@ -165,7 +162,7 @@ const server = new Server({
       throw new Error("Not authorized");
     }
 
-    return { user: { role: "demo" } };
+    return { user: { role: "authenticated" } };
   },
 
   async onStoreDocument({ documentName, document }) {
@@ -318,11 +315,9 @@ if (envManaged) {
   console.log(`Auth: not initialized (open http://localhost:${port}/)`);
 }
 
-console.log("SQLite secure_delete: ON");
-
 try {
   const shutdown = async (signal) => {
-    console.log(`\n🛑 Received ${signal}, shutting down...`);
+    console.log(`\nReceived ${signal}, shutting down...`);
     try {
       if (typeof server.destroy === "function") {
         await server.destroy();
@@ -330,7 +325,7 @@ try {
         await server.close();
       }
     } catch (error) {
-      console.error("❌ Error during shutdown:", error);
+      console.error("Error during shutdown:", error);
     }
     process.exit(0);
   };
@@ -341,6 +336,6 @@ try {
   await server.listen();
   console.log(`Server running at http://localhost:${port}`);
 } catch (error) {
-  console.error("❌ Failed to start server:", error);
+  console.error("Failed to start server:", error);
   process.exit(1);
 }

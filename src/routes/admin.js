@@ -31,6 +31,17 @@ const removeBackupArtifacts = async (filePath) => {
   ]);
 };
 
+// Stat the WAL/SHM/journal sidecars present for a SQLite file at basePath.
+// Returns one { suffix, size } entry per existing sidecar.
+const statSidecars = async (basePath) => {
+  const found = [];
+  for (const suffix of BACKUP_SIDECAR_SUFFIXES) {
+    const stats = await statOrNull(`${basePath}${suffix}`);
+    if (stats?.isFile?.()) found.push({ suffix, size: stats.size });
+  }
+  return found;
+};
+
 const listBackups = async (backupDir) => {
   const names = await readdir(backupDir).catch((error) => {
     if (error?.code === "ENOENT") return [];
@@ -48,29 +59,12 @@ const listBackups = async (backupDir) => {
       continue;
     }
 
-    const sidecars = {
-      wal: 0,
-      shm: 0,
-      journal: 0,
-    };
+    const sidecars = { wal: 0, shm: 0, journal: 0 };
     let totalSizeBytes = stats.size;
 
-    const walStats = await statOrNull(`${fullPath}-wal`);
-    if (walStats?.isFile?.()) {
-      sidecars.wal = walStats.size;
-      totalSizeBytes += walStats.size;
-    }
-
-    const shmStats = await statOrNull(`${fullPath}-shm`);
-    if (shmStats?.isFile?.()) {
-      sidecars.shm = shmStats.size;
-      totalSizeBytes += shmStats.size;
-    }
-
-    const journalStats = await statOrNull(`${fullPath}-journal`);
-    if (journalStats?.isFile?.()) {
-      sidecars.journal = journalStats.size;
-      totalSizeBytes += journalStats.size;
+    for (const { suffix, size } of await statSidecars(fullPath)) {
+      sidecars[suffix.slice(1)] = size;
+      totalSizeBytes += size;
     }
 
     backups.push({
@@ -184,22 +178,9 @@ const handleDbInfo = async ({
     const sidecars = [];
     let dbSidecarsSize = 0;
 
-    const walStats = await statOrNull(`${dbPath}-wal`);
-    if (walStats?.isFile?.()) {
-      sidecars.push({ file: `${basename(dbPath)}-wal`, sizeBytes: walStats.size });
-      dbSidecarsSize += walStats.size;
-    }
-
-    const shmStats = await statOrNull(`${dbPath}-shm`);
-    if (shmStats?.isFile?.()) {
-      sidecars.push({ file: `${basename(dbPath)}-shm`, sizeBytes: shmStats.size });
-      dbSidecarsSize += shmStats.size;
-    }
-
-    const journalStats = await statOrNull(`${dbPath}-journal`);
-    if (journalStats?.isFile?.()) {
-      sidecars.push({ file: `${basename(dbPath)}-journal`, sizeBytes: journalStats.size });
-      dbSidecarsSize += journalStats.size;
+    for (const { suffix, size } of await statSidecars(dbPath)) {
+      sidecars.push({ file: `${basename(dbPath)}${suffix}`, sizeBytes: size });
+      dbSidecarsSize += size;
     }
 
     const dbTotalSize = dbSize + dbSidecarsSize;
@@ -591,18 +572,18 @@ const handleRestoreBackup = async ({
     // This closes all WebSocket connections and releases the SQLite handle,
     // which is required on Windows (EBUSY) and prevents data races on Linux.
     if (hocuspocusServer && typeof hocuspocusServer.destroy === "function") {
-      console.log("🔒 Stopping Hocuspocus before restore...");
+      console.log("Stopping Hocuspocus before restore...");
       await hocuspocusServer.destroy();
       hocuspocusDestroyed = true;
     }
 
     const result = await backupService.restoreBackup(sanitized);
 
-    console.log(`✅ Restore complete: ${result.restoredFrom} (pre-restore: ${result.preRestoreBackup})`);
+    console.log(`Restore complete: ${result.restoredFrom} (pre-restore: ${result.preRestoreBackup})`);
 
     // Exit the process AFTER the HTTP response is fully flushed to the client.
     response.on("finish", () => {
-      console.log("🔄 Restarting server after restore...");
+      console.log("Restarting server after restore...");
       process.exit(RESTORE_EXIT_CODE);
     });
 
@@ -622,7 +603,7 @@ const handleRestoreBackup = async ({
     // Force exit so the process manager restarts it cleanly.
     if (hocuspocusDestroyed) {
       response.on("finish", () => {
-        console.error("🔄 Hocuspocus was destroyed before restore failed — forcing restart.");
+        console.error("Hocuspocus was destroyed before restore failed — forcing restart.");
         process.exit(RESTORE_EXIT_CODE);
       });
     }

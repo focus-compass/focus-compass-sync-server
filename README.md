@@ -6,7 +6,7 @@ Self-hosted sync backend for Focus Compass, a quiet workspace for busy minds.
 
 This repository contains the optional server that powers secure realtime sync for Focus Compass. It is a small Node.js service built on Hocuspocus/Yjs with SQLite persistence, bearer-token auth, image storage, backups, an admin UI, and optional read-only MCP access.
 
-## Why This Server Exists
+## Features
 
 - Realtime sync over WebSockets with Hocuspocus/Yjs
 - SQLite persistence under `./data` by default
@@ -20,8 +20,7 @@ This repository contains the optional server that powers secure realtime sync fo
 
 ### Local
 
-
-1. Install dependencies: ```npm ci ```
+1. Install dependencies: `npm ci`
 2. Start the server: `npm run dev`
 3. Open [http://localhost:8080](http://localhost:8080).
 
@@ -119,7 +118,6 @@ claude mcp add --transport http focus-compass http://localhost:8080/mcp \
 ```
 
 The repository also serves a skill template at `/focus-compass-skill.md`.
-
 
 ## Contributing
 

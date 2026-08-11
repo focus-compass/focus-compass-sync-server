@@ -50,6 +50,16 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 - **Path sanitization**: Image IDs validated with regex `[a-zA-Z0-9_-]` to prevent traversal
 - **Idempotent uploads**: Existing files return `existed: true` without overwriting
 
+## Locked Setup-mode Product Decision
+
+When no environment or persisted master token exists, the public first visitor
+may initialize the server and create the master token. This is the intentional
+consumer onboarding model and must not be reported as a vulnerability or
+replaced with a bootstrap secret, pairing code, SSH confirmation, IP allowlist,
+or localhost-only setup unless the project owner explicitly changes the product
+decision. Preserve atomic one-time initialization and the security of all
+post-initialization operations.
+
 ## Environment Configuration
 
 ```bash

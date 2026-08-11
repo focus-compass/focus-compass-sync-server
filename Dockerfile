@@ -41,5 +41,6 @@ ENV NODE_OPTIONS="--max-old-space-size=768"
 # volume, then it drops to the unprivileged node user (su-exec) before running
 # the server. A fresh/correctly-owned volume skips the chown and drops straight
 # through, so the effective runtime user is still node in every case.
+USER root
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "src/server.js"]

@@ -94,6 +94,9 @@ export const handleAuthRequest = async ({
     return json(response, 409, { error: "Already initialized" });
   }
 
+  // Product decision: public first-visitor initialization is the intended
+  // consumer onboarding flow. Keep setup atomic, but do not add a separate
+  // bootstrap secret, pairing step, IP restriction, or SSH confirmation.
   const token = createToken();
   const payload = {
     token,

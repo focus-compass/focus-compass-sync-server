@@ -17,6 +17,10 @@ on:
         description: Installer URL to test
         required: false
         default: https://focus-compass.com/install-sync-server.sh
+      image:
+        description: Versioned image reference to test
+        required: false
+        default: ghcr.io/focus-compass/focus-compass-sync-server:v0.0.4
   workflow_run:
     workflows: ["Publish Docker Image"]
     types: [completed]
@@ -37,12 +41,26 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - run: npm ci
       - name: Run the Docker guide test
-        run: bash tests/test-docker-guide.sh
+        shell: bash
+        env:
+          MANUAL_IMAGE: ${{ github.event.inputs.image }}
+          PUBLISHED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -n "${PUBLISHED_SHA}" ]; then
+            export IMAGE="ghcr.io/focus-compass/focus-compass-sync-server:sha-${PUBLISHED_SHA:0:7}"
+            export REQUIRE_MULTIARCH=1
+          elif [ -n "${MANUAL_IMAGE}" ]; then
+            export IMAGE="${MANUAL_IMAGE}"
+            export REQUIRE_MULTIARCH=1
+          fi
+          bash tests/test-docker-guide.sh
 
   install-script:
     name: curl | bash guide (production script)
@@ -53,6 +71,8 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24

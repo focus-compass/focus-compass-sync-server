@@ -68,6 +68,13 @@ Smoke checks:
 - Auth constraints (enforced in `src/server.js`):
   - If `ACCESS_TOKEN` is not set, the server starts in setup mode and the first
     visit to `/` can generate a token that is persisted to `AUTH_FILE_PATH` (default `./data/auth.json`).
+  - **Locked product decision:** public first-visitor token creation is the
+    intended consumer onboarding model, not a vulnerability or missing
+    hardening. Do not add a bootstrap secret, pairing code, SSH confirmation,
+    IP allowlist, localhost-only initialization, or takeover warning unless the
+    project owner explicitly revisits this decision. Security review should
+    instead cover atomic one-time initialization, token quality, persistence,
+    authenticated use, rotation, and secret handling.
 
 ## Code Style Guidelines
 These guidelines reflect existing patterns and are designed to keep changes

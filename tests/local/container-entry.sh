@@ -14,7 +14,7 @@ export DEBIAN_FRONTEND=noninteractive
 echo "=== container prep: base packages"
 apt-get update -y >/dev/null
 apt-get install -y --no-install-recommends \
-  ca-certificates curl git gnupg iproute2 >/dev/null
+  ca-certificates curl git gnupg iproute2 openssl >/dev/null
 
 echo "=== container prep: docker from the official repository"
 install -d -m 0755 /etc/apt/keyrings
@@ -34,10 +34,13 @@ fi
 node --version
 
 start_dockerd() {
-  local extra_args="$1"
-  # shellcheck disable=SC2086
-  dockerd ${extra_args} >>/var/log/dockerd.log 2>&1 &
-  for _ in $(seq 1 20); do
+  # vfs is deliberately slower than overlayfs, but it works both in Docker and
+  # in a privileged container hosted by Podman. An overlay daemon can start
+  # successfully in the latter and only fail later while extracting an image,
+  # so a start-time fallback cannot detect the broken combination.
+  dockerd --storage-driver=vfs >>/var/log/dockerd.log 2>&1 &
+  DOCKERD_PID=$!
+  for _ in $(seq 1 45); do
     if docker info >/dev/null 2>&1; then return 0; fi
     sleep 2
   done
@@ -45,15 +48,23 @@ start_dockerd() {
 }
 
 echo "=== container prep: starting dockerd"
-if ! start_dockerd ""; then
-  echo "dockerd with default storage driver failed, retrying with vfs..."
-  pkill dockerd 2>/dev/null || true
-  sleep 2
-  if ! start_dockerd "--storage-driver=vfs"; then
-    echo "[FAIL] dockerd did not start. Log tail:" >&2
-    tail -40 /var/log/dockerd.log >&2 || true
-    exit 1
+DOCKERD_PID=""
+DOCKERD_STARTED=0
+for attempt in 1 2; do
+  if start_dockerd; then
+    DOCKERD_STARTED=1
+    break
   fi
+  echo "dockerd attempt ${attempt} did not become ready; retrying..." >&2
+  [ -n "${DOCKERD_PID}" ] && kill "${DOCKERD_PID}" >/dev/null 2>&1 || true
+  [ -n "${DOCKERD_PID}" ] && wait "${DOCKERD_PID}" >/dev/null 2>&1 || true
+  rm -f /var/run/docker.pid /var/run/docker/containerd/containerd.pid
+  sleep 3
+done
+if [ "${DOCKERD_STARTED}" -ne 1 ]; then
+  echo "[FAIL] dockerd did not start. Log tail:" >&2
+  tail -40 /var/log/dockerd.log >&2 || true
+  exit 1
 fi
 docker info --format 'dockerd up, storage driver: {{.Driver}}'
 

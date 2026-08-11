@@ -1,9 +1,12 @@
 # Self-host / direct-access override.
 #
 # Docker Compose auto-loads this file for a plain `docker compose up` (no -f),
-# which is what the install script and the README Docker quick start run. It
-# publishes the server port on the host so http://<host>:<port> works without a
-# reverse proxy. HOCUSPOCUS_PORT is written to .env by install-sync-server.sh.
+# which is what the README Docker quick start runs. It publishes the server port
+# on the host so http://<host>:<port> works without a reverse proxy. Set
+# HOCUSPOCUS_PORT in .env when the default 8080 is unavailable.
+#
+# The public VPS installer does not use this repository or override file. It
+# generates a separate pinned Compose project with a loopback-only publication.
 #
 # Reverse-proxy deploys (Dokploy/Traefik, etc.) invoke
 # `docker compose -f docker-compose.yml ...` explicitly, which turns OFF

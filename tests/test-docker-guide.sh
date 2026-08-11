@@ -6,7 +6,7 @@
 #     --restart unless-stopped \
 #     -p 8080:8080 \
 #     -v hocuspocus-data:/app/data \
-#     ghcr.io/focus-compass/focus-compass-sync-server:latest
+#     ghcr.io/focus-compass/focus-compass-sync-server:<version>@sha256:<digest>
 #
 # What it verifies:
 #   1. The published image can be pulled anonymously.
@@ -20,9 +20,10 @@
 #   bash tests/test-docker-guide.sh
 #
 # Environment overrides:
-#   IMAGE       image to test (default: ghcr.io/focus-compass/focus-compass-sync-server:latest)
+#   IMAGE       image to test (defaults to the pinned production release)
 #   HOST_PORT   host port to publish (default: first free port from 18090)
 #   DOCKER_BIN  docker | podman (default: docker, falls back to podman)
+#   REQUIRE_MULTIARCH=1  require linux/amd64 + linux/arm64 in the registry index
 #   KEEP=1      keep the container and volume around for debugging
 #
 # Requires: bash, curl, node >= 24 (for the e2e client), docker or podman.
@@ -31,7 +32,7 @@ set -u -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "${SCRIPT_DIR}")"
 
-IMAGE="${IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:latest}"
+IMAGE="${IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.4}"
 RUN_ID="$(date +%s)-$RANDOM"
 CONTAINER_NAME="fc-sync-guide-test-${RUN_ID}"
 VOLUME_NAME="fc-sync-guide-data-${RUN_ID}"
@@ -66,6 +67,13 @@ if ! "${DOCKER_BIN}" info >/dev/null 2>&1; then
   exit 1
 fi
 echo "Using container engine: ${DOCKER_BIN}"
+
+case "${IMAGE}" in
+  *:latest|*:latest@*)
+    echo "[FAIL] Refusing a floating :latest image; pass a versioned tag and/or digest." >&2
+    exit 1
+    ;;
+esac
 
 # --- pick a free host port ----------------------------------------------------
 port_is_free() {
@@ -124,6 +132,20 @@ else
   fail "cannot pull ${IMAGE} — image missing or GHCR package not public"
   echo "RESULT: FAIL (${FAIL_COUNT} failed)"
   exit 1
+fi
+
+if [ "${REQUIRE_MULTIARCH:-0}" = "1" ]; then
+  if ! "${DOCKER_BIN}" buildx version >/dev/null 2>&1; then
+    fail "Docker Buildx is required for the multi-platform manifest check"
+  else
+    MANIFEST_INFO="$("${DOCKER_BIN}" buildx imagetools inspect "${IMAGE}" 2>/dev/null || true)"
+    if printf '%s\n' "${MANIFEST_INFO}" | grep -q 'linux/amd64' \
+      && printf '%s\n' "${MANIFEST_INFO}" | grep -q 'linux/arm64'; then
+      ok "registry index contains linux/amd64 and linux/arm64"
+    else
+      fail "registry index does not contain both linux/amd64 and linux/arm64"
+    fi
+  fi
 fi
 
 # --- 2. run exactly like the guide (parameterized name/port/volume) -----------

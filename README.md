@@ -26,12 +26,17 @@ This repository contains the optional server that powers secure realtime sync fo
 
 The server starts in setup mode and the first visit to `/` can generate a token that is stored next to the database by default.
 
+This public first-visit initialization is intentional: the dashboard is the
+consumer setup boundary, and creating the master token is its primary first-run
+action. It does not require a separate bootstrap secret or pairing step.
+Operators who prefer pre-provisioned credentials can set `ACCESS_TOKEN` instead.
+
 ### Docker
 
 Default container image reference used by this repo:
 
 ```text
-ghcr.io/focus-compass/focus-compass-sync-server
+  ghcr.io/focus-compass/focus-compass-sync-server:v0.0.4
 ```
 
 Start with the included compose file:
@@ -45,9 +50,9 @@ The default `docker-compose.yml` points at the GHCR image reference above and pe
 
 #### Port publishing vs. reverse proxy
 
-- A plain `docker compose up` (the command above, and the one the install
-  script runs) auto-loads `docker-compose.override.yml`, which publishes the
-  server on the host as `${HOCUSPOCUS_PORT:-8080}` for direct
+- A plain `docker compose up` in this repository auto-loads
+  `docker-compose.override.yml`, which publishes the server on the host as
+  `${HOCUSPOCUS_PORT:-8080}` for direct
   `http://<host>:<port>` access.
 - Behind a reverse proxy (Dokploy/Traefik, Caddy, nginx, …) the base
   `docker-compose.yml` only `expose`s the port on the compose network so the
@@ -55,6 +60,11 @@ The default `docker-compose.yml` points at the GHCR image reference above and pe
   `docker compose -f docker-compose.yml ...` explicitly get this automatically
   (an explicit `-f` skips the override). With a bare `docker compose up` behind
   your own proxy, delete `docker-compose.override.yml`.
+
+The public VPS installer does not clone this repository or use its override
+file. It generates a pinned Compose project of its own and always binds the
+backend to `127.0.0.1:18080-18099`; on a clean standalone VPS it additionally
+creates its own Caddy service for ports 80/443.
 
 ## Configuration
 

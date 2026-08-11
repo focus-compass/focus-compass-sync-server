@@ -66,9 +66,11 @@ jobs:
     name: curl | bash guide (production script)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: >-
-      github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success'
+    # The installer is deployed by the app repository after this image has a
+    # stable digest. Testing production during the server-image workflow races
+    # that deployment and exercises the previous installer. Manual and weekly
+    # runs validate the actual public URL after the two-stage release completes.
+    if: github.event_name != 'workflow_run'
     steps:
       - uses: actions/checkout@v4
         with:

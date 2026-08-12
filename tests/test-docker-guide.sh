@@ -32,13 +32,14 @@ set -u -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "${SCRIPT_DIR}")"
 
-IMAGE="${IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.4}"
+IMAGE="${IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.5}"
 RUN_ID="$(date +%s)-$RANDOM"
 CONTAINER_NAME="fc-sync-guide-test-${RUN_ID}"
 VOLUME_NAME="fc-sync-guide-data-${RUN_ID}"
 HEAL_CONTAINER_NAME="fc-sync-heal-test-${RUN_ID}"
 HEAL_VOLUME_NAME="fc-sync-heal-data-${RUN_ID}"
 STATE_FILE="${TMPDIR:-/tmp}/fc-sync-e2e-state-${RUN_ID}.json"
+FONT_FILE="${TMPDIR:-/tmp}/fc-sync-inter-${RUN_ID}.woff2"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-90}"
 STABILITY_WINDOW_SECONDS="${STABILITY_WINDOW_SECONDS:-10}"
 
@@ -107,7 +108,7 @@ cleanup() {
   fi
   "${DOCKER_BIN}" rm -f "${CONTAINER_NAME}" "${HEAL_CONTAINER_NAME}" >/dev/null 2>&1 || true
   "${DOCKER_BIN}" volume rm "${VOLUME_NAME}" "${HEAL_VOLUME_NAME}" >/dev/null 2>&1 || true
-  rm -f "${STATE_FILE}" >/dev/null 2>&1 || true
+  rm -f "${STATE_FILE}" "${FONT_FILE}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -175,8 +176,30 @@ else
   exit 1
 fi
 
-# --- 4. stability window ------------------------------------------------------
-log "Step 4: stability — watch the container for ${STABILITY_WINDOW_SECONDS}s"
+# --- 4. self-hosted admin font -----------------------------------------------
+log "Step 4: admin UI serves its pinned Inter font"
+ADMIN_HTML="$(curl -fsS --max-time 5 "${BASE_URL}/" 2>/dev/null || true)"
+if printf '%s' "${ADMIN_HTML}" | grep -q '@font-face' \
+  && printf '%s' "${ADMIN_HTML}" | grep -q '/assets/fonts/InterVariable-v4.1.woff2'; then
+  ok "admin UI references the self-hosted Inter font"
+else
+  fail "admin UI does not reference the self-hosted Inter font"
+fi
+
+FONT_HEADERS="$(curl -fsS --max-time 10 -D - \
+  -o "${FONT_FILE}" "${BASE_URL}/assets/fonts/InterVariable-v4.1.woff2" 2>/dev/null || true)"
+FONT_MAGIC="$(od -An -tx1 -N4 "${FONT_FILE}" 2>/dev/null | tr -d '[:space:]' || true)"
+FONT_BYTES="$(wc -c < "${FONT_FILE}" 2>/dev/null | tr -d '[:space:]' || true)"
+if [ "${FONT_MAGIC}" = "774f4632" ] \
+  && [ "${FONT_BYTES:-0}" -gt 100000 ] \
+  && printf '%s' "${FONT_HEADERS}" | grep -Eqi '^Content-Type: font/woff2'; then
+  ok "self-hosted Inter is a valid WOFF2 response (${FONT_BYTES} bytes)"
+else
+  fail "self-hosted Inter response is missing, truncated, or has the wrong content type"
+fi
+
+# --- 5. stability window ------------------------------------------------------
+log "Step 5: stability — watch the container for ${STABILITY_WINDOW_SECONDS}s"
 sleep "${STABILITY_WINDOW_SECONDS}"
 STATE="$("${DOCKER_BIN}" inspect --format '{{.State.Status}} restarts={{.RestartCount}}' "${CONTAINER_NAME}" 2>/dev/null || echo missing)"
 case "${STATE}" in
@@ -199,16 +222,16 @@ else
   fail "/health stopped answering after repeated requests (crash on HTTP request?)"
 fi
 
-# --- 5. app-level e2e ---------------------------------------------------------
-log "Step 5: app-equivalent client e2e (write + read back + REST)"
+# --- 6. app-level e2e ---------------------------------------------------------
+log "Step 6: app-equivalent client e2e (write + read back + REST)"
 if (cd "${REPO_ROOT}" && node tests/e2e-client.mjs --server "${BASE_URL}" --state-file "${STATE_FILE}"); then
   ok "e2e client passed"
 else
   fail "e2e client failed"
 fi
 
-# --- 6. restart persistence ---------------------------------------------------
-log "Step 6: docker restart — data must survive"
+# --- 7. restart persistence ---------------------------------------------------
+log "Step 7: docker restart — data must survive"
 if "${DOCKER_BIN}" restart "${CONTAINER_NAME}" >/dev/null 2>&1 && wait_for_health "${HEALTH_TIMEOUT_SECONDS}"; then
   if (cd "${REPO_ROOT}" && node tests/e2e-client.mjs --phase verify --server "${BASE_URL}" --state-file "${STATE_FILE}"); then
     ok "data survived docker restart"
@@ -219,8 +242,8 @@ else
   fail "container did not come back after docker restart"
 fi
 
-# --- 7. full stop/start persistence (host reboot simulation) ------------------
-log "Step 7: docker stop + start — data must survive"
+# --- 8. full stop/start persistence (host reboot simulation) ------------------
+log "Step 8: docker stop + start — data must survive"
 if "${DOCKER_BIN}" stop "${CONTAINER_NAME}" >/dev/null 2>&1 \
   && "${DOCKER_BIN}" start "${CONTAINER_NAME}" >/dev/null 2>&1 \
   && wait_for_health "${HEALTH_TIMEOUT_SECONDS}"; then
@@ -233,12 +256,12 @@ else
   fail "container did not come back after stop/start"
 fi
 
-# --- 8. root-owned volume upgrade path ----------------------------------------
+# --- 9. root-owned volume upgrade path ----------------------------------------
 # Reproduces the real Dokploy failure: a data volume created by an older
 # root-based image stays owned by root, and the current node-user image must
 # still start (the entrypoint takes ownership and drops to node). Without the
 # entrypoint this is EACCES on ./data/images.
-log "Step 8: server recovers a root-owned data volume (upgrade path)"
+log "Step 9: server recovers a root-owned data volume (upgrade path)"
 if [ -z "${HEAL_PORT}" ]; then
   fail "no free port for the heal check (skipped)"
 else

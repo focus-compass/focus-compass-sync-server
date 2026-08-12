@@ -30,6 +30,12 @@ import { getDocMetaFromYDoc } from "./yjs/inspect.js";
 const port = readNumberEnv("PORT", 8080);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const indexFilePath = join(__dirname, "index.html");
+const interFontFilePath = join(
+  __dirname,
+  "assets",
+  "fonts",
+  "InterVariable-v4.1.woff2",
+);
 const mcpSkillFilePath = join(__dirname, "focus-compass-skill.md");
 
 const packageJsonPath = join(__dirname, "..", "package.json");
@@ -275,6 +281,7 @@ const server = new Server({
         pathname,
         url,
         indexFilePath,
+        interFontFilePath,
         mcpSkillFilePath,
       });
     } catch (err) {

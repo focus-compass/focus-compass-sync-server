@@ -21,6 +21,17 @@ const serveTextFile = async (response, filePath, contentType = "text/plain") => 
   throw RESPONSE_SENT;
 };
 
+const serveImmutableFile = async (response, filePath, contentType) => {
+  const content = await readFile(filePath);
+  response.writeHead(200, {
+    "Content-Type": contentType,
+    "Content-Length": content.length,
+    "Cache-Control": "public, max-age=31536000, immutable",
+  });
+  response.end(content);
+  throw RESPONSE_SENT;
+};
+
 /** Escape a value for safe inclusion inside double-quoted bash strings. */
 const escapeForBashDoubleQuote = (value) =>
   String(value).replace(/[\\"$`!]/g, "\\$&");
@@ -69,6 +80,7 @@ export const handleStaticRequest = async ({
   pathname,
   url,
   indexFilePath,
+  interFontFilePath,
   mcpSkillFilePath,
 }) => {
   // --- Static pages ---
@@ -83,6 +95,10 @@ export const handleStaticRequest = async ({
 
     if (pathname === "/focus-compass-skill.md") {
       await serveTextFile(response, mcpSkillFilePath, "text/markdown");
+    }
+
+    if (pathname === "/assets/fonts/InterVariable-v4.1.woff2") {
+      await serveImmutableFile(response, interFontFilePath, "font/woff2");
     }
 
     if (pathname === "/install.sh") {

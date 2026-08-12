@@ -179,8 +179,8 @@ fi
 # --- 4. self-hosted admin font -----------------------------------------------
 log "Step 4: admin UI serves its pinned Inter font"
 ADMIN_HTML="$(curl -fsS --max-time 5 "${BASE_URL}/" 2>/dev/null || true)"
-if printf '%s' "${ADMIN_HTML}" | grep -q '@font-face' \
-  && printf '%s' "${ADMIN_HTML}" | grep -q '/assets/fonts/InterVariable-v4.1.woff2'; then
+if [[ "${ADMIN_HTML}" == *"@font-face"* \
+  && "${ADMIN_HTML}" == *"/assets/fonts/InterVariable-v4.1.woff2"* ]]; then
   ok "admin UI references the self-hosted Inter font"
 else
   fail "admin UI does not reference the self-hosted Inter font"

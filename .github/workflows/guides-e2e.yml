@@ -20,7 +20,7 @@ on:
       image:
         description: Versioned image reference to test
         required: false
-        default: ghcr.io/focus-compass/focus-compass-sync-server:v0.0.5
+        default: ghcr.io/focus-compass/focus-compass-sync-server:v0.0.6
   workflow_run:
     workflows: ["Publish Docker Image"]
     types: [completed]

@@ -3,7 +3,7 @@ FROM node:24-alpine AS deps
 
 WORKDIR /app
 
-# Build deps for native modules (e.g. sqlite3)
+# Build deps for native modules (notably better-sqlite3 when no prebuild exists)
 RUN apk add --no-cache python3 make g++ py3-setuptools
 
 

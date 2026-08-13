@@ -32,7 +32,7 @@ set -u -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "${SCRIPT_DIR}")"
 
-IMAGE="${IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.6}"
+IMAGE="${IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.7}"
 RUN_ID="$(date +%s)-$RANDOM"
 CONTAINER_NAME="fc-sync-guide-test-${RUN_ID}"
 VOLUME_NAME="fc-sync-guide-data-${RUN_ID}"

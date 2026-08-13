@@ -35,6 +35,7 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 const parseArgs = (argv) => {
   const options = {
     server: process.env.E2E_SERVER_URL || "http://127.0.0.1:8080",
+    serverWasProvided: Boolean(process.env.E2E_SERVER_URL),
     token: process.env.E2E_TOKEN || "",
     doc: process.env.E2E_DOC_NAME || "",
     phase: "full",
@@ -52,7 +53,10 @@ const parseArgs = (argv) => {
     };
 
     switch (arg) {
-      case "--server": options.server = next(); break;
+      case "--server":
+        options.server = next();
+        options.serverWasProvided = true;
+        break;
       case "--token": options.token = next(); break;
       case "--doc": options.doc = next(); break;
       case "--phase": options.phase = next(); break;
@@ -433,7 +437,7 @@ const runVerifyPhase = async (options) => {
   }
 
   const state = JSON.parse(await readFile(options.stateFile, "utf8"));
-  const serverUrl = options.server !== "http://127.0.0.1:8080" || !state.serverUrl
+  const serverUrl = options.serverWasProvided || !state.serverUrl
     ? options.server
     : state.serverUrl;
   const httpUrl = toHttpUrl(serverUrl);

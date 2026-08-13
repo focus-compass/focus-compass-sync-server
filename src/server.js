@@ -5,7 +5,8 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkAuth, normalizeAuthToken, safeEqual } from "./lib/auth.js";
-import { readBoolEnv, readNumberEnv } from "./lib/env.js";
+import { MAX_DOC_NAME_LENGTH } from "./lib/db.js";
+import { readBoolEnv, readNumberEnv, readPositiveIntegerEnv } from "./lib/env.js";
 import { readJsonOrNull } from "./lib/fs.js";
 import {
   createCorsPolicy,
@@ -89,6 +90,20 @@ const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB
 
 const MAX_UPLOAD_BYTES = readNumberEnv("MAX_UPLOAD_BYTES", 10 * 1024 * 1024);
 const MAX_DOC_DECODE_BYTES = readNumberEnv("MAX_DOC_DECODE_BYTES", 128 * 1024 * 1024);
+const HOCUSPOCUS_TIMEOUT_MS = readPositiveIntegerEnv("HOCUSPOCUS_TIMEOUT_MS", 30_000);
+const MAX_WEBSOCKET_MESSAGE_BYTES = readPositiveIntegerEnv(
+  "MAX_WEBSOCKET_MESSAGE_BYTES",
+  16 * 1024 * 1024,
+);
+const MAX_UNAUTHENTICATED_QUEUE_BYTES = readPositiveIntegerEnv(
+  "MAX_UNAUTHENTICATED_QUEUE_BYTES",
+  256 * 1024,
+);
+const MAX_UNAUTHENTICATED_QUEUE_MESSAGES = readPositiveIntegerEnv(
+  "MAX_UNAUTHENTICATED_QUEUE_MESSAGES",
+  32,
+);
+const MAX_PENDING_DOCUMENTS = readPositiveIntegerEnv("MAX_PENDING_DOCUMENTS", 8);
 
 const YJS_GC = readBoolEnv("YJS_GC", true);
 
@@ -133,15 +148,27 @@ const backupService = new BackupService({
 
 const server = new Server({
   port,
-  timeout: 30000,
+  stopOnSignals: false,
+  timeout: HOCUSPOCUS_TIMEOUT_MS,
   debounce: 2000,
   maxDebounce: 10000,
+  maxUnauthenticatedQueueSize: MAX_UNAUTHENTICATED_QUEUE_BYTES,
+  maxUnauthenticatedQueueMessages: MAX_UNAUTHENTICATED_QUEUE_MESSAGES,
+  maxPendingDocuments: MAX_PENDING_DOCUMENTS,
+  websocketOptions: {
+    maxPayload: MAX_WEBSOCKET_MESSAGE_BYTES,
+    perMessageDeflate: false,
+  },
   yDocOptions: {
     gc: YJS_GC,
   },
   extensions: [new FocusCompassSQLite({ database: DB_PATH })],
 
-  async onAuthenticate({ token, request, requestParameters }) {
+  async onAuthenticate({ documentName, token, request, requestParameters }) {
+    if (documentName.length > MAX_DOC_NAME_LENGTH) {
+      throw new Error("Invalid document name");
+    }
+
     const expected = getAuthToken();
     if (!expected) {
       throw new Error("Not authorized");
@@ -322,23 +349,28 @@ if (envManaged) {
   console.log(`Auth: not initialized (open http://localhost:${port}/)`);
 }
 
-try {
-  const shutdown = async (signal) => {
-    console.log(`\nReceived ${signal}, shutting down...`);
-    try {
-      if (typeof server.destroy === "function") {
-        await server.destroy();
-      } else if (typeof server.close === "function") {
-        await server.close();
-      }
-    } catch (error) {
-      console.error("Error during shutdown:", error);
+let shuttingDown = false;
+const shutdown = async (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\nReceived ${signal}, shutting down...`);
+  try {
+    if (typeof server.destroy === "function") {
+      await server.destroy();
+    } else if (typeof server.close === "function") {
+      await server.close();
     }
-    process.exit(0);
-  };
+  } catch (error) {
+    console.error("Error during shutdown:", error);
+  }
+  process.exit(0);
+};
 
-  process.once("SIGINT", () => void shutdown("SIGINT"));
-  process.once("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("SIGINT", () => void shutdown("SIGINT"));
+process.once("SIGQUIT", () => void shutdown("SIGQUIT"));
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
+
+try {
 
   await server.listen();
   console.log(`Server running at http://localhost:${port}`);

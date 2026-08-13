@@ -1,6 +1,6 @@
 services:
   focus-compass:
-    image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.6}
+    image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.7}
     pull_policy: always
     restart: unless-stopped
     # Base file is reverse-proxy friendly (Dokploy/Traefik, Caddy, nginx):
@@ -24,6 +24,11 @@ services:
       BACKUP_DIR: ${BACKUP_DIR:-./data/backups}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-10485760}
       MAX_DOC_DECODE_BYTES: ${MAX_DOC_DECODE_BYTES:-134217728}
+      MAX_WEBSOCKET_MESSAGE_BYTES: ${MAX_WEBSOCKET_MESSAGE_BYTES:-16777216}
+      MAX_UNAUTHENTICATED_QUEUE_BYTES: ${MAX_UNAUTHENTICATED_QUEUE_BYTES:-262144}
+      MAX_UNAUTHENTICATED_QUEUE_MESSAGES: ${MAX_UNAUTHENTICATED_QUEUE_MESSAGES:-32}
+      MAX_PENDING_DOCUMENTS: ${MAX_PENDING_DOCUMENTS:-8}
+      HOCUSPOCUS_TIMEOUT_MS: ${HOCUSPOCUS_TIMEOUT_MS:-30000}
       CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
       YJS_GC: ${YJS_GC:-true}
     volumes:

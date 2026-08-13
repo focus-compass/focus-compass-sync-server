@@ -69,6 +69,11 @@ DB_PATH=./data/db.sqlite            # SQLite database path
 IMAGES_DIR=./data/images            # Image storage directory
 BACKUP_DIR=./data/backups           # Backup directory
 MAX_UPLOAD_BYTES=10485760           # Upload limit (bytes)
+MAX_WEBSOCKET_MESSAGE_BYTES=16777216 # Max complete WS/Yjs message (16 MiB)
+MAX_UNAUTHENTICATED_QUEUE_BYTES=262144 # Per-connection pre-auth buffer (256 KiB)
+MAX_UNAUTHENTICATED_QUEUE_MESSAGES=32 # Per-connection pre-auth message count
+MAX_PENDING_DOCUMENTS=8             # Pending document auths per connection
+HOCUSPOCUS_TIMEOUT_MS=30000         # Pre-auth deadline + authenticated idle timeout
 CORS_ALLOW_ORIGINS=*                # CORS allowlist (comma-separated) or '*'
 YJS_GC=true                         # Default: true (smaller docs, no full Yjs history)
 ```

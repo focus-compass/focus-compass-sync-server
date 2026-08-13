@@ -1,6 +1,6 @@
 {
   "name": "focus-compass-server",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "WebSocket server for real-time collaboration based on Hocuspocus (CRDT/Yjs) with SQLite persistence",
   "main": "src/server.js",
   "type": "module",
@@ -12,6 +12,8 @@
     "dev": "node --watch src/server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:migration": "node --test --test-concurrency=1 tests/migration.test.mjs",
     "test:e2e": "node tests/e2e-client.mjs",
     "test:docker-guide": "bash tests/test-docker-guide.sh",
     "test:install-script": "bash tests/test-install-script.sh"
@@ -36,8 +38,8 @@
   },
   "homepage": "https://github.com/focus-compass/focus-compass-sync-server#readme",
   "dependencies": {
-    "@hocuspocus/extension-sqlite": "^3.4.0",
-    "@hocuspocus/server": "^3.4.0",
+    "@hocuspocus/extension-sqlite": "4.6.0",
+    "@hocuspocus/server": "4.6.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "dotenv": "^17.2.3",
     "formidable": "^3.5.4",
@@ -46,8 +48,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.6.0",
-    "@hocuspocus/provider": "^3.4.3",
+    "@hocuspocus/provider": "4.6.0",
+    "@hocuspocus/provider-v3": "npm:@hocuspocus/provider@3.4.4",
     "eslint": "^9.6.0",
-    "globals": "^17.1.0"
+    "globals": "^17.1.0",
+    "ws": "8.21.3"
   }
 }

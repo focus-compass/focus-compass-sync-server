@@ -3,8 +3,8 @@
 # Triggers:
 #   - workflow_run: right AFTER "Publish Docker Image" finishes on main, so we
 #     test the exact image that just shipped. Running here (not on `push`)
-#     avoids the race where the test pulls the previous `latest` while the new
-#     one is still building.
+#     avoids the race where the test pulls an earlier image while the new one
+#     is still building. The completed workflow's immutable `sha-*` tag is used.
 #   - workflow_dispatch: on demand from the Actions tab.
 #   - schedule: weekly safety net for silent rot of the published image or the
 #     external production installer, even when we changed nothing.
@@ -20,7 +20,7 @@ on:
       image:
         description: Versioned image reference to test
         required: false
-        default: ghcr.io/focus-compass/focus-compass-sync-server:v0.0.6
+        default: ghcr.io/focus-compass/focus-compass-sync-server:v0.0.7
   workflow_run:
     workflows: ["Publish Docker Image"]
     types: [completed]

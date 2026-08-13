@@ -36,7 +36,7 @@ Operators who prefer pre-provisioned credentials can set `ACCESS_TOKEN` instead.
 Default container image reference used by this repo:
 
 ```text
-  ghcr.io/focus-compass/focus-compass-sync-server:v0.0.6
+  ghcr.io/focus-compass/focus-compass-sync-server:v0.0.7
 ```
 
 Start with the included compose file:
@@ -78,8 +78,17 @@ Use [.env.example](.env.example) as the source of truth for environment variable
 | `DB_PATH` | `./data/db.sqlite` | SQLite database path |
 | `IMAGES_DIR` | `./data/images` | Image storage directory |
 | `BACKUP_DIR` | `./data/backups` | Backup storage directory |
+| `MAX_WEBSOCKET_MESSAGE_BYTES` | `16777216` | Maximum complete WebSocket/Yjs message after frame reassembly (16 MiB) |
+| `MAX_UNAUTHENTICATED_QUEUE_BYTES` | `262144` | Maximum data buffered by one connection before authentication (256 KiB) |
+| `MAX_UNAUTHENTICATED_QUEUE_MESSAGES` | `32` | Maximum messages buffered by one connection before authentication |
+| `MAX_PENDING_DOCUMENTS` | `8` | Maximum document handshakes pending on one unauthenticated connection |
+| `HOCUSPOCUS_TIMEOUT_MS` | `30000` | Absolute pre-authentication deadline and authenticated idle timeout |
 
 Backup interval and retention are managed from the admin UI and stored in `backup-settings.json` next to the database.
+
+See [docs/hocuspocus-4-migration.md](docs/hocuspocus-4-migration.md) for the
+Hocuspocus 4 compatibility record, security limits, release procedure, and
+immutable-image rollback plan.
 
 ## API Overview
 

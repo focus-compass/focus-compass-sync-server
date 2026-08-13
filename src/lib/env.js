@@ -5,6 +5,11 @@ export const readNumberEnv = (name, fallback) => {
   return Number.isFinite(value) ? value : fallback;
 };
 
+export const readPositiveIntegerEnv = (name, fallback) => {
+  const value = readNumberEnv(name, fallback);
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+};
+
 // Reads a boolean environment variable. Strict on purpose: only the literal
 // strings "true"/"false" override the fallback, so a typo never silently flips a flag.
 export const readBoolEnv = (name, fallback = false) => {

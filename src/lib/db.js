@@ -4,7 +4,7 @@ import { statOrNull } from "./fs.js";
 import { safeDecodeURIComponent } from "./http.js";
 import { enableSecureDelete } from "./sqlite.js";
 
-const MAX_DOC_NAME_LENGTH = 512;
+export const MAX_DOC_NAME_LENGTH = 512;
 
 export const requireAuth = (request, response, checkAuth) => {
   if (!checkAuth(request)) {

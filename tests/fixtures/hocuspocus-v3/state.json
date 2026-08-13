@@ -1,0 +1,24 @@
+{
+  "serverUrl": "http://127.0.0.1:63429",
+  "token": "c0I2vsn00s7y5WdGXVU76qudyauOcUly",
+  "docName": "legacy-v3-workspace",
+  "runId": "msrn4ds5-cb55c6",
+  "expected": {
+    "workspaceName": "E2E Workspace msrn4ds5-cb55c6",
+    "workspaceId": "e2e-ws-msrn4ds5-cb55c6",
+    "marker": "e2e-marker-msrn4ds5-cb55c6",
+    "projects": [
+      {
+        "id": "e2e-project-a-msrn4ds5-cb55c6",
+        "title": "E2E Project Alpha msrn4ds5-cb55c6",
+        "description": "Created by e2e-client (alpha)"
+      },
+      {
+        "id": "e2e-project-b-msrn4ds5-cb55c6",
+        "title": "E2E Project Beta msrn4ds5-cb55c6",
+        "description": "Created by e2e-client (beta)"
+      }
+    ]
+  },
+  "writtenAt": "2026-08-13T14:55:40.561Z"
+}

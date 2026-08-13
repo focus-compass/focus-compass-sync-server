@@ -186,6 +186,7 @@ const connectProvider = ({
   };
 
   const timer = setTimeout(() => finish(() => {
+    provider?.configuration?.websocketProvider?.setConfiguration?.({ autoConnect: false });
     provider?.destroy();
     doc.destroy();
     reject(new Error(`provider did not sync ${docName}`));
@@ -196,8 +197,17 @@ const connectProvider = ({
     name: docName,
     token,
     document: doc,
+    // Test connections target an already-healthy local server. Bound retry
+    // attempts so deliberate authentication/protocol failures cannot leave
+    // @lifeomic/attempt backoff timers running after provider teardown.
+    delay: 10,
+    minDelay: 10,
+    maxDelay: 10,
+    maxAttempts: 2,
+    jitter: false,
     onSynced: () => finish(() => resolve({ doc, provider })),
     onAuthenticationFailed: ({ reason }) => finish(() => {
+      provider.configuration.websocketProvider.setConfiguration({ autoConnect: false });
       provider.destroy();
       doc.destroy();
       reject(new Error(`authentication failed: ${reason || "unknown"}`));
@@ -209,7 +219,14 @@ const expectAuthenticationFailure = async (options) => {
   await assert.rejects(connectProvider(options), /authentication failed/i);
 };
 
+const disableReconnect = (client) => {
+  client?.provider?.configuration?.websocketProvider?.setConfiguration?.({
+    autoConnect: false,
+  });
+};
+
 const destroyClient = (client) => {
+  try { disableReconnect(client); } catch { /* already closed */ }
   try { client?.provider?.destroy(); } catch { /* already closed */ }
   try { client?.doc?.destroy(); } catch { /* already closed */ }
 };
@@ -546,6 +563,10 @@ test("Hocuspocus 4 migration", { concurrency: 1 }, async (t) => {
           { message: "server did not apply the pre-shutdown update" },
         );
 
+        // The server is intentionally stopped while both clients are live.
+        // Prevent that expected close from starting provider reconnect loops.
+        disableReconnect(writer);
+        disableReconnect(observer);
         await stopServer(server);
         destroyClient(writer);
         destroyClient(observer);

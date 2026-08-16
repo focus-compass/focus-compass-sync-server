@@ -36,7 +36,7 @@ Operators who prefer pre-provisioned credentials can set `ACCESS_TOKEN` instead.
 Default container image reference used by this repo:
 
 ```text
-  ghcr.io/focus-compass/focus-compass-sync-server:v0.0.7
+  ghcr.io/focus-compass/focus-compass-sync-server:v0.0.8
 ```
 
 Start with the included compose file:

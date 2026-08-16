@@ -1,6 +1,6 @@
 services:
   focus-compass:
-    image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.7}
+    image: ${FOCUS_COMPASS_IMAGE:-ghcr.io/focus-compass/focus-compass-sync-server:v0.0.8}
     pull_policy: always
     restart: unless-stopped
     # Base file is reverse-proxy friendly (Dokploy/Traefik, Caddy, nginx):

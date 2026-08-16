@@ -612,6 +612,40 @@
       color: var(--danger);
     }
 
+    .update-guide {
+      margin-top: 8px;
+    }
+
+    .update-guide[hidden] {
+      display: none;
+    }
+
+    .update-guide .code-row {
+      align-items: stretch;
+    }
+
+    .update-guide .codebox {
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 12px;
+      word-break: break-word;
+    }
+
+    .update-guide-note {
+      margin-top: 8px;
+    }
+
+    @media (max-width: 640px) {
+      .update-guide .code-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .update-guide .code-row button {
+        width: 100%;
+      }
+    }
+
     .info-note {
       margin-top: 10px;
     }
@@ -2153,6 +2187,19 @@
 
     <main>
       <div class="container" role="main" aria-live="polite">
+        <aside class="alert warn update-guide" id="updateGuide" role="status" hidden>
+          <div class="alert-title" id="updateGuideTitle">Update available</div>
+          <div>For a standard installation, open a terminal for this VPS and run:</div>
+          <div class="code-row">
+            <code class="codebox" id="updateCommand">curl -fsSL https://focus-compass.com/install-sync-server.sh | bash</code>
+            <button class="ghost small" id="copyUpdateCommandBtn" type="button">Copy command</button>
+          </div>
+          <div class="update-guide-note">
+            Your data and master token stay in place. Refresh this page when the command finishes.
+            If you originally used a custom <code>--dir</code>, rerun your original command with the same option.
+          </div>
+        </aside>
+
         <section class="step active" id="step-loading">
             <div class="hint">Checking server status…</div>
           </section>
@@ -3327,6 +3374,8 @@
       if (!versionPill) return;
       const versionIndicator = $("versionIndicator");
       const versionStatusText = $("versionStatusText");
+      const updateGuide = $("updateGuide");
+      const updateGuideTitle = $("updateGuideTitle");
 
       const v = normalizeVersion(state.appVersion);
       const versionText = v ? `v${v}` : "v-";
@@ -3368,6 +3417,13 @@
         // idle state - not yet checked
         versionPill.className = "pill";
         versionPill.title = "Click to check for updates";
+      }
+
+      const isUpdateAvailable = u.status === "outdated";
+      if (updateGuide) updateGuide.hidden = !isUpdateAvailable;
+      if (updateGuideTitle && isUpdateAvailable) {
+        const latestTag = u.latestTag || (u.latestVersion ? `v${u.latestVersion}` : "");
+        updateGuideTitle.textContent = latestTag ? `Update available: ${latestTag}` : "Update available";
       }
 
       if (versionIndicator) {
@@ -4550,6 +4606,11 @@
     function wire() {
       $("versionPill")?.addEventListener("click", () => {
         void checkUpdates("manual");
+      });
+
+      $("copyUpdateCommandBtn")?.addEventListener("click", () => {
+        const command = String($("updateCommand")?.textContent || "").trim();
+        if (command) void copyText(command, "Update command copied");
       });
 
       $("setupBtn").addEventListener("click", async () => {

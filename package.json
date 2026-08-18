@@ -16,7 +16,8 @@
     "test:migration": "node --test --test-concurrency=1 tests/migration.test.mjs",
     "test:e2e": "node tests/e2e-client.mjs",
     "test:docker-guide": "bash tests/test-docker-guide.sh",
-    "test:install-script": "bash tests/test-install-script.sh"
+    "test:install-script": "bash tests/test-install-script.sh",
+    "test:install-script:local": "node tests/local/run-install-test-in-container.mjs --local ../focus-compass-app/public/install-sync-server.sh"
   },
   "repository": {
     "type": "git",

@@ -36,6 +36,7 @@ Smoke checks:
   - `npm run test:e2e` — app-equivalent Hocuspocus client against a live server
   - `npm run test:docker-guide` — pulls and runs the published GHCR image
   - `npm run test:install-script` — exercises the `curl | bash` installer
+  - `npm run test:install-script:local` — same guide test inside a disposable Podman/Docker container against the sibling app installer (Windows-safe Node launcher; rootless Podman uses a user firewall drop-in so compose can publish 127.0.0.1:PORT)
 - For a quick local check without Docker: `node --check src/server.js` (syntax)
   plus `npm run lint`.
 

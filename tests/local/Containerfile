@@ -1,0 +1,49 @@
+# Disposable Linux host for the curl|bash installer E2E.
+# Preinstalls Docker Engine + Compose + Node so the runtime container only
+# has to start dockerd. That keeps the nested-Docker path viable on a
+# 2–4 GiB Podman machine.
+FROM docker.io/library/ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      gnupg \
+      iproute2 \
+      openssl \
+      xz-utils \
+ && install -d -m 0755 /etc/apt/keyrings \
+ && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
+ && chmod a+r /etc/apt/keyrings/docker.asc \
+ && . /etc/os-release \
+ && printf 'deb [arch=%s signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu %s stable\n' \
+      "$(dpkg --print-architecture)" "${VERSION_CODENAME}" \
+      > /etc/apt/sources.list.d/docker.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+      docker-ce \
+      docker-ce-cli \
+      containerd.io \
+      docker-compose-plugin \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG NODE_VERSION=24.8.0
+RUN arch="$(dpkg --print-architecture)" \
+ && case "${arch}" in \
+      amd64) node_arch=x64 ;; \
+      arm64) node_arch=arm64 ;; \
+      *) echo "unsupported arch: ${arch}" >&2; exit 1 ;; \
+    esac \
+ && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" \
+      | tar -xJ -C /usr/local --strip-components=1 \
+ && node --version \
+ && npm --version
+
+WORKDIR /opt/fc-e2e
+# Keep provider peers (y-protocols). --omit=peer breaks e2e-client.mjs at runtime.
+RUN npm install yjs@13.6.27 @hocuspocus/provider@4.6.0 \
+ && node --input-type=module -e "import('yjs'); import('@hocuspocus/provider'); import('y-protocols/sync')"
+COPY e2e-client.mjs /opt/fc-e2e/tests/e2e-client.mjs

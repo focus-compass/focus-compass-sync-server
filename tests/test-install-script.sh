@@ -25,6 +25,7 @@ REPO_ROOT="$(dirname "${SCRIPT_DIR}")"
 
 INSTALLER_URL="${INSTALLER_URL:-https://focus-compass.com/install-sync-server.sh}"
 INSTALLER_FILE="${INSTALLER_FILE:-}"
+E2E_ROOT="${E2E_ROOT:-${REPO_ROOT}}"
 RUN_ID="$(date +%s)-$RANDOM"
 INSTALL_DIR="${INSTALL_DIR:-${HOME}/fc-sync-install-test-${RUN_ID}}"
 SECOND_DIR="${INSTALL_DIR}-ownership-clash"
@@ -38,6 +39,10 @@ CA_CERT="${PROXY_DIR}/ca.crt"
 CA_BUNDLE="${PROXY_DIR}/ca-bundle.crt"
 INSTALL_TIMEOUT_SECONDS="${INSTALL_TIMEOUT_SECONDS:-900}"
 VERIFY_DOMAIN="${VERIFY_DOMAIN:-sync.127-0-0-1.sslip.io}"
+# host = documented host nginx → 127.0.0.1:PORT path. Required on rootless
+# Podman, which cannot publish :80/:443 through netavark.
+# bridge = previous docker-network join to focus-compass-sync-server:8080.
+PROXY_NETWORK_MODE="${PROXY_NETWORK_MODE:-host}"
 
 BACKEND_CONTAINER="focus-compass-sync-server"
 DATA_VOLUME="focus_compass_sync_server_hocuspocus-data"
@@ -248,6 +253,22 @@ http {
     server_name ${VERIFY_DOMAIN};
     ssl_certificate /etc/nginx/test-certs/server.crt;
     ssl_certificate_key /etc/nginx/test-certs/server.key;
+EOF
+if [ "${PROXY_NETWORK_MODE}" = "host" ]; then
+  cat >> "${PROXY_DIR}/nginx.conf" <<EOF
+
+    location / {
+      proxy_pass http://127.0.0.1:${HOST_PORT};
+      proxy_http_version 1.1;
+      proxy_set_header Host \$host;
+      proxy_set_header Upgrade \$http_upgrade;
+      proxy_set_header Connection \$connection_upgrade;
+      proxy_read_timeout 1d;
+      proxy_send_timeout 1d;
+    }
+EOF
+else
+  cat >> "${PROXY_DIR}/nginx.conf" <<EOF
 
     resolver 127.0.0.11 ipv6=off valid=5s;
     set \$focus_compass_upstream focus-compass-sync-server:8080;
@@ -261,19 +282,29 @@ http {
       proxy_read_timeout 1d;
       proxy_send_timeout 1d;
     }
+EOF
+fi
+cat >> "${PROXY_DIR}/nginx.conf" <<'EOF'
   }
 }
 EOF
 
 export CURL_CA_BUNDLE="${CA_BUNDLE}"
-if docker run -d --name "${PROXY_NAME}" \
-    -p 80:80 -p 443:443 \
-    -v "${PROXY_DIR}/nginx.conf:/etc/nginx/nginx.conf:ro" \
-    -v "${PROXY_DIR}:/etc/nginx/test-certs:ro" \
-    "${PROXY_IMAGE}" >/dev/null; then
+PROXY_RUN=(run -d --name "${PROXY_NAME}")
+if [ "${PROXY_NETWORK_MODE}" = "host" ]; then
+  PROXY_RUN+=(--network host)
+else
+  PROXY_RUN+=(-p 80:80 -p 443:443)
+fi
+PROXY_RUN+=(
+  -v "${PROXY_DIR}/nginx.conf:/etc/nginx/nginx.conf:ro"
+  -v "${PROXY_DIR}:/etc/nginx/test-certs:ro"
+  "${PROXY_IMAGE}"
+)
+if docker "${PROXY_RUN[@]}" >/dev/null; then
   PROXY_BASELINE="$(proxy_snapshot)"
   PROXY_FILES_BASELINE="$(proxy_files_snapshot)"
-  ok "existing proxy sentinel is running"
+  ok "existing proxy sentinel is running (${PROXY_NETWORK_MODE} network)"
 else
   fail "could not start proxy sentinel"
   exit 1
@@ -365,21 +396,29 @@ assert_proxy_unchanged "after install"
 
 log "Step 6: --verify against a real TLS nginx WebSocket proxy"
 FILES_BEFORE="$(sha256sum "${INSTALL_DIR}/docker-compose.yml" "${INSTALL_DIR}/.env" "${INSTALL_DIR}/${METADATA_FILE}")"
-if run_installer --verify --dir "${INSTALL_DIR}" --domain "${VERIFY_DOMAIN}" >"${INSTALL_LOG}.verify-broken" 2>&1; then
-  fail "--verify produced a false positive before nginx could reach the backend"
-elif grep -q 'WebSocket upgrade did not reach' "${INSTALL_LOG}.verify-broken"; then
-  ok "--verify failure reached the real HTTPS/WebSocket checks"
+if [ "${PROXY_NETWORK_MODE}" = "host" ]; then
+  if wait_for_public_health 30; then
+    ok "host nginx reaches the backend on 127.0.0.1:${HOST_PORT}"
+  else
+    fail "host nginx could not reach the loopback backend"
+  fi
 else
-  fail "--verify failed before exercising the HTTPS/WebSocket route"
-  tail -30 "${INSTALL_LOG}.verify-broken" >&2 || true
-fi
-assert_proxy_unchanged "after failed --verify"
+  if run_installer --verify --dir "${INSTALL_DIR}" --domain "${VERIFY_DOMAIN}" >"${INSTALL_LOG}.verify-broken" 2>&1; then
+    fail "--verify produced a false positive before nginx could reach the backend"
+  elif grep -q 'WebSocket upgrade did not reach' "${INSTALL_LOG}.verify-broken"; then
+    ok "--verify failure reached the real HTTPS/WebSocket checks"
+  else
+    fail "--verify failed before exercising the HTTPS/WebSocket route"
+    tail -30 "${INSTALL_LOG}.verify-broken" >&2 || true
+  fi
+  assert_proxy_unchanged "after failed --verify"
 
-if docker network connect "${NETWORK_NAME}" "${PROXY_NAME}" \
-  && wait_for_public_health 30; then
-  ok "test nginx reaches the backend over the managed Docker network"
-else
-  fail "test nginx could not reach the managed backend"
+  if docker network connect "${NETWORK_NAME}" "${PROXY_NAME}" \
+    && wait_for_public_health 30; then
+    ok "test nginx reaches the backend over the managed Docker network"
+  else
+    fail "test nginx could not reach the managed backend"
+  fi
 fi
 if run_installer --verify --dir "${INSTALL_DIR}" --domain "${VERIFY_DOMAIN}" >"${INSTALL_LOG}.verify" 2>&1; then
   ok "--verify accepted real HTTPS health and RFC 6455 upgrade responses"
@@ -397,12 +436,12 @@ assert_proxy_unchanged "after successful --verify"
 
 log "Step 7: app-equivalent HTTPS/WSS setup, auth, sync, and persistence"
 E2E_AVAILABLE=0
-if node_is_usable && [ -f "${REPO_ROOT}/tests/e2e-client.mjs" ] \
-  && [ -d "${REPO_ROOT}/node_modules/@hocuspocus/provider" ]; then
+if node_is_usable && [ -f "${E2E_ROOT}/tests/e2e-client.mjs" ] \
+  && [ -d "${E2E_ROOT}/node_modules/@hocuspocus/provider" ]; then
   E2E_AVAILABLE=1
 fi
 if [ "${E2E_AVAILABLE}" = "1" ]; then
-  if (cd "${REPO_ROOT}" && NODE_EXTRA_CA_CERTS="${CA_CERT}" \
+  if (cd "${E2E_ROOT}" && NODE_EXTRA_CA_CERTS="${CA_CERT}" \
       node tests/e2e-client.mjs --server "${PUBLIC_BASE_URL}" --state-file "${STATE_FILE}"); then
     ok "app-equivalent HTTPS/WSS E2E passed through nginx"
   else
@@ -428,7 +467,7 @@ else
   fail "re-run changed or lost the persisted port"
 fi
 if [ "${E2E_AVAILABLE}" = "1" ] && [ -f "${STATE_FILE}" ]; then
-  if (cd "${REPO_ROOT}" && NODE_EXTRA_CA_CERTS="${CA_CERT}" \
+  if (cd "${E2E_ROOT}" && NODE_EXTRA_CA_CERTS="${CA_CERT}" \
       node tests/e2e-client.mjs --phase verify --server "${PUBLIC_BASE_URL}" --state-file "${STATE_FILE}"); then
     ok "data survived installer re-run"
   else
@@ -438,15 +477,21 @@ fi
 assert_proxy_unchanged "after re-run"
 
 log "Step 9: compose down/up preserves the Docker volume"
-if docker network disconnect "${NETWORK_NAME}" "${PROXY_NAME}" >/dev/null 2>&1 \
+reconnect_proxy() {
+  if [ "${PROXY_NETWORK_MODE}" = "host" ]; then
+    return 0
+  fi
+  docker network connect "${NETWORK_NAME}" "${PROXY_NAME}" >/dev/null 2>&1
+}
+if { [ "${PROXY_NETWORK_MODE}" = "host" ] || docker network disconnect "${NETWORK_NAME}" "${PROXY_NAME}" >/dev/null 2>&1; } \
   && compose_in "${INSTALL_DIR}" down >/dev/null 2>&1 \
   && docker volume inspect "${DATA_VOLUME}" >/dev/null 2>&1 \
   && compose_in "${INSTALL_DIR}" up -d >/dev/null 2>&1 \
-  && docker network connect "${NETWORK_NAME}" "${PROXY_NAME}" >/dev/null 2>&1 \
+  && reconnect_proxy \
   && wait_for_health 60 \
   && wait_for_public_health 30; then
   if [ "${E2E_AVAILABLE}" = "1" ] && [ -f "${STATE_FILE}" ]; then
-    if (cd "${REPO_ROOT}" && NODE_EXTRA_CA_CERTS="${CA_CERT}" \
+    if (cd "${E2E_ROOT}" && NODE_EXTRA_CA_CERTS="${CA_CERT}" \
         node tests/e2e-client.mjs --phase verify --server "${PUBLIC_BASE_URL}" --state-file "${STATE_FILE}"); then
       ok "data volume survived compose down/up"
     else

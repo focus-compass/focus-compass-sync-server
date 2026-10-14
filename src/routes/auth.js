@@ -1,24 +1,14 @@
-import { randomBytes } from "node:crypto";
+import { getBearerToken } from "../lib/auth.js";
 import { badRequest, internalServerError, unauthorized } from "../lib/api.js";
-import { readJsonOrNull } from "../lib/fs.js";
 import { readJsonBody } from "../lib/http.js";
-import { writePrivateJsonFile } from "../lib/privateFiles.js";
+import { normalizeTokenName, MAX_TOKEN_NAME_LENGTH, TOKEN_RE } from "../lib/tokenStore.js";
 import { json } from "../lib/responses.js";
-
-const createToken = () => {
-  // 24 bytes -> 32 base64url chars (no padding)
-  return randomBytes(24).toString("base64url");
-};
-
-const NEW_TOKEN_RE = /^[A-Za-z0-9_-]+$/;
 
 export const handleAuthRequest = async ({
   request,
   response,
   pathname,
-  authFilePath,
-  getToken,
-  setToken,
+  tokenStore,
   checkAuth,
   envManaged,
   appVersion = "",
@@ -26,98 +16,80 @@ export const handleAuthRequest = async ({
 }) => {
   if (request.method === "GET" && pathname === "/api/auth/status") {
     return json(response, 200, {
-      initialized: Boolean(getToken()),
+      initialized: tokenStore.initialized,
       envManaged: Boolean(envManaged),
       version: String(appVersion || "").trim(),
       updateRepo: String(updateRepo || "").trim(),
     });
   }
 
-  if (pathname === "/api/auth/rotate") {
+  if (pathname === "/api/auth/setup") {
+    if (request.method !== "POST") {
+      return json(response, 405, { error: "Method Not Allowed" });
+    }
+    // Product decision: public first-visitor initialization is the intended
+    // consumer onboarding flow. The initialized check and the in-memory insert
+    // in tokenStore.create() run in the same tick, so setup stays one-time.
+    if (tokenStore.initialized) {
+      return json(response, 409, { error: "Already initialized" });
+    }
+    try {
+      const created = await tokenStore.create({ name: "Default" });
+      return json(response, 200, { token: created.token, item: created.item });
+    } catch (err) {
+      console.error("Auth setup error:", err);
+      return json(response, 500, { error: "Failed to initialize" });
+    }
+  }
+
+  if (pathname === "/api/auth/tokens") {
+    if (request.method === "GET") {
+      if (!tokenStore.initialized) return json(response, 409, { error: "Not initialized" });
+      if (!checkAuth || !checkAuth(request)) return unauthorized(response);
+      const current = tokenStore.verify(getBearerToken(request));
+      return json(response, 200, { tokens: tokenStore.list(), currentId: current?.id ?? null });
+    }
+
     if (request.method !== "POST") {
       return json(response, 405, { error: "Method Not Allowed" });
     }
 
-    if (envManaged) {
-      return json(response, 409, { error: "Token is managed by environment" });
-    }
-
-    if (!getToken()) {
-      return json(response, 409, { error: "Not initialized" });
-    }
-
-    if (!checkAuth || !checkAuth(request)) {
-      return unauthorized(response);
-    }
-
     const body = await readJsonBody(request, response);
-    const next = typeof body?.token === "string" ? body.token.trim() : "";
-    if (!next) {
-      return badRequest(response, "Token required");
+    const rawName = typeof body?.name === "string" ? body.name : "";
+    if (normalizeTokenName(rawName).length > MAX_TOKEN_NAME_LENGTH) {
+      return badRequest(response, `Name must be ${MAX_TOKEN_NAME_LENGTH} characters or fewer`);
     }
 
-    if (!NEW_TOKEN_RE.test(next)) {
-      return badRequest(response, "Invalid token");
-    }
-
-    const nowIso = new Date().toISOString();
-    const existing = await readJsonOrNull(authFilePath);
-    const createdAt = existing && typeof existing.createdAt === "string" ? existing.createdAt : nowIso;
-    const payload = {
-      token: next,
-      createdAt,
-      rotatedAt: nowIso,
-    };
+    if (!tokenStore.initialized) return json(response, 409, { error: "Not initialized" });
+    if (!checkAuth || !checkAuth(request)) return unauthorized(response);
 
     try {
-      await writePrivateJsonFile(authFilePath, payload);
+      const created = await tokenStore.create({ name: rawName });
+      return json(response, 201, { token: created.token, item: created.item });
     } catch (err) {
-      console.error("Auth rotate error:", err);
-      return internalServerError(response, "Failed to update token");
+      console.error("Token create error:", err);
+      return internalServerError(response, "Failed to create token");
     }
-
-    setToken(next);
-    return json(response, 200, { token: next });
   }
 
-  if (pathname !== "/api/auth/setup") return;
-
-  if (request.method !== "POST") {
-    return json(response, 405, { error: "Method Not Allowed" });
-  }
-
-  if (envManaged) {
-    return json(response, 409, { error: "Token is managed by environment" });
-  }
-
-  if (getToken()) {
-    return json(response, 409, { error: "Already initialized" });
-  }
-
-  // Product decision: public first-visitor initialization is the intended
-  // consumer onboarding flow. Keep setup atomic, but do not add a separate
-  // bootstrap secret, pairing step, IP restriction, or SSH confirmation.
-  const token = createToken();
-  const payload = {
-    token,
-    createdAt: new Date().toISOString(),
-  };
-
-  try {
-    await writePrivateJsonFile(authFilePath, payload, { flag: "wx" });
-  } catch (err) {
-    if (err?.code === "EEXIST") {
-      const existing = await readJsonOrNull(authFilePath);
-      if (existing && typeof existing.token === "string" && existing.token.trim()) {
-        setToken(existing.token.trim());
-      }
-      return json(response, 409, { error: "Already initialized" });
+  const revokeMatch = pathname.match(/^\/api\/auth\/tokens\/([A-Za-z0-9_-]+)$/);
+  if (revokeMatch) {
+    if (request.method !== "DELETE") {
+      return json(response, 405, { error: "Method Not Allowed" });
     }
+    if (!tokenStore.initialized) return json(response, 409, { error: "Not initialized" });
+    if (!checkAuth || !checkAuth(request)) return unauthorized(response);
 
-    console.error("Auth setup error:", err);
-    return json(response, 500, { error: "Failed to initialize" });
+    const id = revokeMatch[1];
+    if (!TOKEN_RE.test(id)) return badRequest(response, "Invalid token id");
+
+    try {
+      const revoked = await tokenStore.revoke(id);
+      if (!revoked) return json(response, 404, { error: "Token not found" });
+    } catch (err) {
+      console.error("Token revoke error:", err);
+      return internalServerError(response, "Failed to revoke token");
+    }
+    return json(response, 200, { revoked: true });
   }
-
-  setToken(token);
-  return json(response, 200, { token });
 };

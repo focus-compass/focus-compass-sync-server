@@ -99,7 +99,7 @@ const startServer = async ({ dataDir, extraEnv = {} }) => {
       DB_PATH: join(dataDir, "db.sqlite"),
       IMAGES_DIR: join(dataDir, "images"),
       BACKUP_DIR: join(dataDir, "backups"),
-      AUTH_FILE_PATH: join(dataDir, "auth.json"),
+      TOKENS_FILE_PATH: join(dataDir, "tokens.json"),
       MCP_AUTH_FILE_PATH: join(dataDir, "mcp-auth.json"),
       ...extraEnv,
     },
@@ -301,11 +301,11 @@ const assertHealthy = async (httpUrl) => {
 };
 
 test("Hocuspocus 4 migration", { concurrency: 1 }, async (t) => {
-  await t.test("setup, auth, v3/v4 sync, persistence, and token rotation", async () => {
+  await t.test("setup, auth, v3/v4 sync, persistence, and multi-token issue/revoke", async () => {
     const root = await mkdtemp(join(os.tmpdir(), "focus-compass-v4-core-"));
     const dataDir = join(root, "data");
     const dbPath = join(dataDir, "db.sqlite");
-    const authPath = join(dataDir, "auth.json");
+    const authPath = join(dataDir, "tokens.json");
     let server = await startServer({ dataDir });
     let writer;
     let reader;
@@ -319,6 +319,8 @@ test("Hocuspocus 4 migration", { concurrency: 1 }, async (t) => {
 
       const setup = await fetchJson(`${server.httpUrl}/api/auth/setup`, { method: "POST" });
       assert.match(setup.token, /^[A-Za-z0-9_-]{32}$/);
+      assert.equal(setup.item.name, "Default");
+      assert.equal((await readFile(authPath, "utf8")).includes(setup.token), false, "plaintext token persisted");
       const originalAuth = await readFile(authPath, "utf8");
 
       await fetchJson(`${server.httpUrl}/api/auth/setup`, {
@@ -397,30 +399,74 @@ test("Hocuspocus 4 migration", { concurrency: 1 }, async (t) => {
       destroyClient(reader);
       reader = null;
 
-      const nextToken = "replacement-token-for-migration-test";
-      const rotated = await fetchJson(`${server.httpUrl}/api/auth/rotate`, {
+      await fetchJson(`${server.httpUrl}/api/auth/tokens`, { expectedStatus: 401 });
+      await fetchJson(`${server.httpUrl}/api/auth/tokens`, {
+        method: "POST",
+        jsonBody: { name: "nope" },
+        expectedStatus: 401,
+      });
+
+      const named = await fetchJson(`${server.httpUrl}/api/auth/tokens`, {
         method: "POST",
         token: setup.token,
-        jsonBody: { token: nextToken },
+        jsonBody: { name: "  Laptop  " },
+        expectedStatus: 201,
       });
-      assert.equal(rotated.token, nextToken);
+      assert.equal(named.item.name, "Laptop");
+      assert.match(named.token, /^[A-Za-z0-9_-]{32}$/);
+      assert.equal(named.item.prefix, named.token.slice(0, 6));
 
+      const unnamed = await fetchJson(`${server.httpUrl}/api/auth/tokens`, {
+        method: "POST",
+        token: named.token,
+        jsonBody: {},
+        expectedStatus: 201,
+      });
+      assert.equal(unnamed.item.name, "Token 3");
+
+      const listed = await fetchJson(`${server.httpUrl}/api/auth/tokens`, { token: unnamed.token });
+      assert.deepEqual(listed.tokens.map((t) => t.name), ["Default", "Laptop", "Token 3"]);
+      assert.ok(listed.tokens.every((t) => !("hash" in t) && !("token" in t)));
+      assert.ok(listed.tokens[0].lastUsedAt, "lastUsedAt not tracked");
+      assert.equal(listed.currentId, unnamed.item.id);
+
+      // Every non-revoked token works for REST and WebSocket.
+      const namedClient = await connectProvider({
+        wsUrl: server.wsUrl,
+        docName: "named-token-connects",
+        token: named.token,
+      });
+      destroyClient(namedClient);
+
+      await fetchJson(`${server.httpUrl}/api/auth/tokens/${setup.item.id}`, {
+        method: "DELETE",
+        token: named.token,
+      });
+      await fetchJson(`${server.httpUrl}/api/auth/tokens/${setup.item.id}`, {
+        method: "DELETE",
+        token: named.token,
+        expectedStatus: 404,
+      });
+      await fetchJson(`${server.httpUrl}/api/auth/tokens`, { token: setup.token, expectedStatus: 401 });
       await expectAuthenticationFailure({
         wsUrl: server.wsUrl,
         docName: "revoked-token-must-not-connect",
         token: setup.token,
       });
-      const rotatedClient = await connectProvider({
-        wsUrl: server.wsUrl,
-        docName: "rotated-token-connects",
-        token: nextToken,
-      });
-      destroyClient(rotatedClient);
       assert.equal(
         readDocumentNames(dbPath).includes("revoked-token-must-not-connect"),
         false,
       );
-      assert.equal(server.logs().includes(nextToken), false, "rotated token appeared in logs");
+
+      // Revocation and remaining tokens survive a restart.
+      await stopServer(server);
+      server = await startServer({ dataDir });
+      await fetchJson(`${server.httpUrl}/api/auth/tokens`, { token: setup.token, expectedStatus: 401 });
+      const afterRestart = await fetchJson(`${server.httpUrl}/api/auth/tokens`, { token: unnamed.token });
+      assert.deepEqual(afterRestart.tokens.map((t) => t.name), ["Laptop", "Token 3"]);
+      for (const secret of [named.token, unnamed.token]) {
+        assert.equal(server.logs().includes(secret), false, "token appeared in logs");
+      }
     } finally {
       destroyClient(legacyClient);
       destroyClient(reader);
@@ -436,7 +482,9 @@ test("Hocuspocus 4 migration", { concurrency: 1 }, async (t) => {
     const state = JSON.parse(await readFile(join(dataDir, "state.json"), "utf8"));
     const authPath = join(dataDir, "auth.json");
     const authBefore = createHash("sha256").update(await readFile(authPath)).digest("hex");
-    let server = await startServer({ dataDir });
+    // auth.json is no longer read (breaking change in 0.1.0); pass the
+    // fixture token through ACCESS_TOKEN instead.
+    let server = await startServer({ dataDir, extraEnv: { ACCESS_TOKEN: state.token } });
     let v3Client;
     let v4Client;
 
@@ -468,7 +516,7 @@ test("Hocuspocus 4 migration", { concurrency: 1 }, async (t) => {
       await delay(2_500);
 
       await stopServer(server);
-      server = await startServer({ dataDir });
+      server = await startServer({ dataDir, extraEnv: { ACCESS_TOKEN: state.token } });
       v4Client = await connectProvider({
         wsUrl: server.wsUrl,
         docName: state.docName,

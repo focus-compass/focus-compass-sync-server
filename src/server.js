@@ -4,7 +4,8 @@ import { Server } from "@hocuspocus/server";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkAuth, normalizeAuthToken, safeEqual } from "./lib/auth.js";
+import { checkAuth, getBearerToken, normalizeAuthToken } from "./lib/auth.js";
+import { TokenStore } from "./lib/tokenStore.js";
 import { MAX_DOC_NAME_LENGTH } from "./lib/db.js";
 import { readBoolEnv, readNumberEnv, readPositiveIntegerEnv } from "./lib/env.js";
 import { readJsonOrNull } from "./lib/fs.js";
@@ -53,15 +54,15 @@ const DB_PATH = process.env.DB_PATH ?? "./data/db.sqlite";
 const IMAGES_DIR = process.env.IMAGES_DIR ?? "./data/images";
 const UPLOAD_TMP_DIR = join(IMAGES_DIR, ".tmp");
 
-const AUTH_FILE_PATH =
-  process.env.AUTH_FILE_PATH ?? join(dirname(DB_PATH), "auth.json");
+const TOKENS_FILE_PATH =
+  process.env.TOKENS_FILE_PATH ?? join(dirname(DB_PATH), "tokens.json");
 
 const MCP_AUTH_FILE_PATH =
   process.env.MCP_AUTH_FILE_PATH ?? join(dirname(DB_PATH), "mcp-auth.json");
 
-await ensurePrivateDir(dirname(AUTH_FILE_PATH));
+await ensurePrivateDir(dirname(TOKENS_FILE_PATH));
 await ensurePrivateDir(dirname(MCP_AUTH_FILE_PATH));
-await hardenPrivateFileIfExists(AUTH_FILE_PATH);
+await hardenPrivateFileIfExists(TOKENS_FILE_PATH);
 await hardenPrivateFileIfExists(MCP_AUTH_FILE_PATH);
 
 // Resolve an auth token from its env var (which takes precedence and marks the
@@ -73,11 +74,14 @@ const resolveToken = async (envValue, filePath) => {
   return { token: envToken || persistedToken, envManaged: Boolean(envToken) };
 };
 
-const { token: initialAuthToken, envManaged } = await resolveToken(
-  process.env.ACCESS_TOKEN,
-  AUTH_FILE_PATH,
-);
-let authToken = initialAuthToken;
+// Access tokens: any number of named, revocable tokens persisted (hashed) in
+// TOKENS_FILE_PATH, plus an optional non-revocable ACCESS_TOKEN from env.
+const envAccessToken = normalizeAuthToken(process.env.ACCESS_TOKEN) || "";
+const envManaged = Boolean(envAccessToken);
+const tokenStore = await new TokenStore({
+  filePath: TOKENS_FILE_PATH,
+  envToken: envAccessToken,
+}).load();
 
 const { token: initialMcpToken, envManaged: mcpEnvManaged } = await resolveToken(
   process.env.MCP_TOKEN,
@@ -107,21 +111,13 @@ const MAX_PENDING_DOCUMENTS = readPositiveIntegerEnv("MAX_PENDING_DOCUMENTS", 8)
 
 const YJS_GC = readBoolEnv("YJS_GC", true);
 
-const getAuthToken = () => authToken;
-const setAuthToken = (token) => {
-  authToken = typeof token === "string" ? token.trim() : "";
-};
 
 const getMcpToken = () => mcpToken;
 const setMcpToken = (token) => {
   mcpToken = typeof token === "string" ? token.trim() : "";
 };
 
-const isAuthed = (req) => {
-  const expected = getAuthToken();
-  if (!expected) return false;
-  return checkAuth(req, expected);
-};
+const isAuthed = (req) => Boolean(tokenStore.verify(getBearerToken(req)));
 
 const isMcpAuthed = (req) => {
   const expected = getMcpToken();
@@ -169,11 +165,6 @@ const server = new Server({
       throw new Error("Invalid document name");
     }
 
-    const expected = getAuthToken();
-    if (!expected) {
-      throw new Error("Not authorized");
-    }
-
     let candidate = normalizeAuthToken(token);
 
     if (!candidate && requestParameters && typeof requestParameters.get === "function") {
@@ -191,7 +182,7 @@ const server = new Server({
       if (firstSeg) candidate = firstSeg;
     }
 
-    if (!candidate || !safeEqual(candidate, expected)) {
+    if (!candidate || !tokenStore.verify(candidate)) {
       throw new Error("Not authorized");
     }
 
@@ -234,9 +225,7 @@ const server = new Server({
         request,
         response,
         pathname,
-        authFilePath: AUTH_FILE_PATH,
-        getToken: getAuthToken,
-        setToken: setAuthToken,
+        tokenStore,
         checkAuth: isAuthed,
         envManaged,
         appVersion,
@@ -250,7 +239,7 @@ const server = new Server({
         mcpAuthFilePath: MCP_AUTH_FILE_PATH,
         getMcpToken,
         setMcpToken,
-        getMasterToken: getAuthToken,
+        getMasterToken: () => tokenStore.initialized,
         checkMasterAuth: isAuthed,
         envManaged: mcpEnvManaged,
       });
@@ -343,8 +332,8 @@ console.log(`Hocuspocus server starting on port ${port}...`);
 
 if (envManaged) {
   console.log("Auth: env token is set");
-} else if (getAuthToken()) {
-  console.log("Auth: token loaded from disk");
+} else if (tokenStore.initialized) {
+  console.log(`Auth: ${tokenStore.list().length} token(s) loaded from disk`);
 } else {
   console.log(`Auth: not initialized (open http://localhost:${port}/)`);
 }

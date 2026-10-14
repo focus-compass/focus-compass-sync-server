@@ -8,7 +8,9 @@ Hocuspocus/Yjs with SQLite persistence.
 - Entrypoint: `src/server.js`
 - Persistence: SQLite file at `DB_PATH` (default `./data/db.sqlite`)
 - Images: files under `IMAGES_DIR` (default `./data/images`) plus `*.meta.json`
-- Auth: Bearer token (`ACCESS_TOKEN`) for WebSocket + all REST endpoints
+- Auth: Bearer access tokens for WebSocket + all REST endpoints. Multiple named,
+  revocable tokens stored hashed in `TOKENS_FILE_PATH` (default `./data/tokens.json`,
+  see `src/lib/tokenStore.js`); optional extra env token `ACCESS_TOKEN`
 
 ## Commands
 Local (no build step; plain Node runtime):
@@ -68,7 +70,7 @@ Smoke checks:
 - Do not commit runtime data: `data/`, `*.sqlite`, backups, images are ignored.
 - Auth constraints (enforced in `src/server.js`):
   - If `ACCESS_TOKEN` is not set, the server starts in setup mode and the first
-    visit to `/` can generate a token that is persisted to `AUTH_FILE_PATH` (default `./data/auth.json`).
+    visit to `/` can generate the first token ("Default"), persisted hashed to `TOKENS_FILE_PATH`.
   - **Locked product decision:** public first-visitor token creation is the
     intended consumer onboarding model, not a vulnerability or missing
     hardening. Do not add a bootstrap secret, pairing code, SSH confirmation,

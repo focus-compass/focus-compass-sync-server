@@ -27,7 +27,7 @@ This repository contains the optional server that powers secure realtime sync fo
 The server starts in setup mode and the first visit to `/` can generate a token that is stored next to the database by default.
 
 This public first-visit initialization is intentional: the dashboard is the
-consumer setup boundary, and creating the master token is its primary first-run
+consumer setup boundary, and creating the first access token is its primary first-run
 action. It does not require a separate bootstrap secret or pairing step.
 Operators who prefer pre-provisioned credentials can set `ACCESS_TOKEN` instead.
 
@@ -36,7 +36,7 @@ Operators who prefer pre-provisioned credentials can set `ACCESS_TOKEN` instead.
 Default container image reference used by this repo:
 
 ```text
-  ghcr.io/focus-compass/focus-compass-sync-server:v0.0.8
+  ghcr.io/focus-compass/focus-compass-sync-server:v0.1.0
 ```
 
 Start with the included compose file:
@@ -73,7 +73,8 @@ Use [.env.example](.env.example) as the source of truth for environment variable
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP and WebSocket port |
-| `ACCESS_TOKEN` | empty | Master token for REST and WebSocket auth |
+| `ACCESS_TOKEN` | empty | Optional pre-provisioned access token (listed as env-managed, not revocable from the UI) |
+| `TOKENS_FILE_PATH` | `./data/tokens.json` | Hashed access-token store |
 | `MCP_TOKEN` | empty | Optional token for read-only MCP access |
 | `DB_PATH` | `./data/db.sqlite` | SQLite database path |
 | `IMAGES_DIR` | `./data/images` | Image storage directory |
@@ -94,13 +95,16 @@ immutable-image rollback plan.
 
 - `GET /health` - health check
 - `GET /` - admin UI
-- `POST /api/auth/setup` - initialize a token when running in setup mode
+- `POST /api/auth/setup` - create the first access token ("Default") when running in setup mode
+- `GET /api/auth/tokens` - list access tokens (id, name, masked prefix, created/last-used dates; never the secret)
+- `POST /api/auth/tokens` - issue a token; body `{ "name": "Laptop" }` (optional, auto-named `Token N` when empty). The secret is returned once
+- `DELETE /api/auth/tokens/:id` - revoke a token
 - `GET /api/workspace/:document` - read a workspace snapshot
 - `GET /api/images` - list images
 - `POST /api/upload` - upload an image
 - `POST /mcp` - optional read-only MCP endpoint
 
-Most `/api/*` routes require `Authorization: Bearer <token>`. Public exceptions are `GET /api/auth/status`, `POST /api/auth/setup` while the server is not initialized, and `GET /api/mcp/status`. WebSocket connections use the same master token. MCP uses a separate token.
+Most `/api/*` routes require `Authorization: Bearer <token>`. Public exceptions are `GET /api/auth/status`, `POST /api/auth/setup` while the server is not initialized, and `GET /api/mcp/status`. WebSocket connections accept any non-revoked access token. MCP uses a separate token.
 
 ## Client Example
 

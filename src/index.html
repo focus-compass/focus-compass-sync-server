@@ -535,19 +535,6 @@
       max-width: 620px;
     }
 
-    #tokenNewInput {
-      font-family:
-        ui-monospace,
-        SFMono-Regular,
-        Menlo,
-        Monaco,
-        Consolas,
-        "Liberation Mono",
-        "Courier New",
-        monospace;
-      font-variant-numeric: tabular-nums;
-    }
-
     @media (max-width: 720px) {
       .setup-panel {
         max-width: none;
@@ -643,6 +630,91 @@
 
       .update-guide .code-row button {
         width: 100%;
+      }
+    }
+
+    .token-create {
+      display: flex;
+      gap: 8px;
+    }
+
+    .token-create input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .token-created-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .token-created-value {
+      margin-top: 8px;
+      word-break: break-all;
+      color: var(--text);
+    }
+
+    .token-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .token-list:empty {
+      display: none;
+    }
+
+    .token-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+    }
+
+    .token-item + .token-item {
+      border-top: 1px solid var(--border);
+    }
+
+    .token-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .token-name {
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .token-badge {
+      margin-left: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 1px 7px;
+    }
+
+    .token-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .token-meta code {
+      font-family: var(--code);
+    }
+
+    @media (max-width: 640px) {
+      .token-create {
+        flex-direction: column;
       }
     }
 
@@ -2195,7 +2267,7 @@
             <button class="ghost small" id="copyUpdateCommandBtn" type="button">Copy command</button>
           </div>
           <div class="update-guide-note">
-            Your data and master token stay in place. Refresh this page when the command finishes.
+            Your data and access token stay in place. Refresh this page when the command finishes.
             If you originally used a custom <code>--dir</code>, rerun your original command with the same option.
           </div>
         </aside>
@@ -2213,9 +2285,9 @@
                 <div class="panel-body setup-body">
                   <div class="setup-layout">
                     <div class="setup-copy">
-                      <div class="hint">To get started, generate a master token for your server.</div>
+                      <div class="hint">To get started, generate an access token for your server.</div>
                       <div class="setup-actions">
-                        <button id="setupBtn">Generate master token</button>
+                        <button id="setupBtn">Generate access token</button>
                       </div>
                     </div>
                   </div>
@@ -2230,12 +2302,12 @@
               <div class="panel">
                 <div class="panel-head">
                   <h2>Sign in</h2>
-                  <div class="panel-sub">Master token required</div>
+                  <div class="panel-sub">Access token required</div>
                 </div>
                 <div class="panel-body">
                   <div class="field">
-                    <label for="tokenInput">Master token / connection link</label>
-                    <input type="text" id="tokenInput" placeholder="Paste master token or connection link" autocomplete="off" />
+                    <label for="tokenInput">Access token / connection link</label>
+                    <input type="text" id="tokenInput" placeholder="Paste access token or connection link" autocomplete="off" />
                   </div>
                   <div class="btn-row">
                     <button id="loginBtn">Continue</button>
@@ -2271,7 +2343,7 @@
                     <div class="code-row">
                       <div class="codebox ws-field">
                         <span id="wsUrl">-</span>
-                        <button id="revealBtn" class="icon-plain icon-toggle" type="button" aria-label="Reveal master token" title="Reveal master token" aria-pressed="false">
+                        <button id="revealBtn" class="icon-plain icon-toggle" type="button" aria-label="Reveal access token" title="Reveal access token" aria-pressed="false">
                           <svg class="eye eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a21.77 21.77 0 0 1 5.06-5.94" />
                             <path d="M9.9 4.24A11.19 11.19 0 0 1 12 4c6.5 0 10 8 10 8a21.82 21.82 0 0 1-2.16 3.19" />
@@ -2299,10 +2371,9 @@
                         Copy Connection Link
                       </button>
 
-                      <button id="changeTokenBtn" class="ghost" type="button">Change master token</button>
                     </div>
                     <div class="alert info info-note">
-                      <strong>Important:</strong> Copy and use this connection link to connect your local workspace to the cloud. Don't share it with anyone - it contains your server master token.
+                      <strong>Important:</strong> Copy and use this connection link to connect your local workspace to the cloud. Don't share it with anyone - it contains a server access token.
                     </div>
                   </div>
 
@@ -2366,6 +2437,40 @@
               </div>
             </div>
 
+            <div class="panel" id="tokensPanel">
+              <div class="panel-head">
+                <h2>Access tokens</h2>
+                <div class="panel-sub" id="tokensSub">-</div>
+              </div>
+              <div class="panel-body">
+                <div class="hint" style="margin:0;">
+                  Every token has full access to this server. Issue one per device or integration and revoke it when it is no longer needed.
+                </div>
+
+                <form class="token-create" id="tokenCreateForm" autocomplete="off">
+                  <input type="text" id="tokenNameInput" maxlength="64" placeholder="Name (optional), e.g. Laptop" aria-label="Token name" />
+                  <button id="tokenCreateBtn" type="submit">Create token</button>
+                </form>
+
+                <div class="alert info" id="tokenCreatedAlert" style="display:none;">
+                  <div class="token-created-head">
+                    <div>
+                      <div style="font-weight:700; margin-bottom:2px;" id="tokenCreatedTitle">New token</div>
+                      <div class="hint" style="margin:0; font-size:12px;">Copy it now. It will not be shown again.</div>
+                    </div>
+                    <div class="btn-row" style="margin:0;">
+                      <button id="tokenCreatedCopyBtn" class="ghost small" type="button">Copy token</button>
+                      <button id="tokenCreatedDismissBtn" class="ghost small" type="button">Done</button>
+                    </div>
+                  </div>
+                  <div class="codebox token-created-value" id="tokenCreatedValue">-</div>
+                </div>
+
+                <ul class="token-list" id="tokenList" aria-label="Access tokens"></ul>
+                <div class="alert error" id="tokensError" style="display:none;"></div>
+              </div>
+            </div>
+
             <div class="panel">
               <div class="panel-head">
                 <h2>MCP Access</h2>
@@ -2384,7 +2489,7 @@
                 </div>
 
                 <div class="hint">
-                  Read-only access for Claude Code and other MCP clients. Uses a separate token (not master).
+                  Read-only access for Claude Code and other MCP clients. Uses a separate MCP token, not an access token.
                 </div>
 
                 <!-- Token revealed after enable / rotate -->
@@ -2683,25 +2788,6 @@
     </div>
   </div>
 
-  <div class="confirm" id="tokenModal" role="dialog" aria-modal="true" aria-labelledby="tokenTitle">
-    <div class="confirm-card">
-      <div class="confirm-title" id="tokenTitle">Change master token</div>
-      <div class="confirm-body">
-        Use a strong, random master token. Anyone with it can access your server.
-      </div>
-      <div class="field">
-        <label for="tokenNewInput">New master token</label>
-        <input type="text" id="tokenNewInput" placeholder="A-Z, a-z, 0-9, -, _" autocomplete="off" />
-      </div>
-      <div class="alert error" id="tokenError" style="display: none;"></div>
-      <div class="confirm-actions">
-        <button class="ghost" id="tokenCancelBtn" type="button">Cancel</button>
-        <button class="ghost" id="tokenGenerateBtn" type="button">Generate</button>
-        <button id="tokenSaveBtn" type="button">Save</button>
-      </div>
-    </div>
-  </div>
-
   <div class="confirm" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
     <div class="confirm-card">
       <div class="confirm-title" id="confirmTitle">Confirm</div>
@@ -2762,6 +2848,9 @@
       selectedDocData: null,
       mcp: { enabled: false, envManaged: false },
       mcpLastToken: "",
+      tokens: [],
+      currentTokenId: "",
+      createdToken: "",
       confirm: { open: false, title: "", body: "", onConfirm: null },
     };
 
@@ -2858,7 +2947,6 @@
     function closeTransientUi() {
       closeConfirm();
       closeDocModal();
-      if (isTokenModalOpen()) closeTokenModal();
     }
 
     function setStep(name) {
@@ -2889,53 +2977,6 @@
       collapseCurl();
       $("docApiBlock").style.display = "none";
       setDocModalVisible(false);
-    }
-
-    function isTokenModalOpen() {
-      return $("tokenModal")?.classList?.contains("visible") ?? false;
-    }
-
-    function setTokenModalVisible(visible) {
-      $("tokenModal").classList.toggle("visible", Boolean(visible));
-      document.body.style.overflow = visible ? "hidden" : "";
-    }
-
-    function closeTokenModal() {
-      const err = $("tokenError");
-      err.textContent = "";
-      err.style.display = "none";
-      $("tokenNewInput").value = "";
-      $("tokenNewInput").disabled = false;
-      $("tokenGenerateBtn").disabled = false;
-      $("tokenSaveBtn").disabled = false;
-      setTokenModalVisible(false);
-    }
-
-    function openTokenModal() {
-      const err = $("tokenError");
-      err.textContent = "";
-      err.style.display = "none";
-      $("tokenNewInput").value = state.token || "";
-
-      if (state.envManaged) {
-        err.textContent = "Master token is managed by environment (ACCESS_TOKEN). Change it there and restart.";
-        err.style.display = "block";
-        $("tokenNewInput").disabled = true;
-        $("tokenGenerateBtn").disabled = true;
-        $("tokenSaveBtn").disabled = true;
-      } else {
-        $("tokenNewInput").disabled = false;
-        $("tokenGenerateBtn").disabled = false;
-        $("tokenSaveBtn").disabled = false;
-      }
-
-      setTokenModalVisible(true);
-      try {
-        $("tokenNewInput").focus();
-        $("tokenNewInput").select();
-      } catch {
-        // ignore
-      }
     }
 
     function openConfirm({ title, body, onConfirm, okText = "Delete", okClass = "danger" }) {
@@ -3136,7 +3177,7 @@
 
     function tokenFromInput(raw) {
       const val = String(raw || "").trim();
-      if (!val) return { token: "", error: "Master token required" };
+      if (!val) return { token: "", error: "Access token required" };
       if (TOKEN_RE.test(val)) return { token: val, error: "" };
 
       const lower = val.toLowerCase();
@@ -3146,7 +3187,7 @@
         lower.startsWith("http://") ||
         lower.startsWith("https://");
 
-      if (!isUrl) return { token: "", error: "Invalid master token" };
+      if (!isUrl) return { token: "", error: "Invalid access token" };
 
       let url;
       try {
@@ -3164,31 +3205,15 @@
 
       const token = (hashParts[0] || pathParts[0] || "").trim();
 
-      if (!token) return { token: "", error: "No master token found in link" };
+      if (!token) return { token: "", error: "No access token found in link" };
       if (token.includes("*")) {
         return {
           token: "",
-          error: "Link contains a masked master token (***). Please use the full link.",
+          error: "Link contains a masked access token (***). Please use the full link.",
         };
       }
-      if (!TOKEN_RE.test(token)) return { token: "", error: "Invalid master token in link" };
+      if (!TOKEN_RE.test(token)) return { token: "", error: "Invalid access token in link" };
       return { token, error: "" };
-    }
-
-    function generateNewToken() {
-      if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== "function") {
-        throw new Error("Secure random is not available");
-      }
-
-      // 24 bytes -> 32 base64 chars (no padding)
-      const bytes = new Uint8Array(24);
-
-      globalThis.crypto.getRandomValues(bytes);
-      let bin = "";
-      for (const b of bytes) bin += String.fromCharCode(b);
-      const b64 = btoa(bin);
-      const token = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-      return token;
     }
 
     function wsUrlForToken(token, revealToken) {
@@ -3597,8 +3622,8 @@
       if (!btn) return;
       btn.classList.toggle("on", state.showToken);
       btn.setAttribute("aria-pressed", state.showToken ? "true" : "false");
-      btn.title = state.showToken ? "Hide master token" : "Reveal master token";
-      btn.setAttribute("aria-label", state.showToken ? "Hide master token" : "Reveal master token");
+      btn.title = state.showToken ? "Hide access token" : "Reveal access token";
+      btn.setAttribute("aria-label", state.showToken ? "Hide access token" : "Reveal access token");
     }
 
     function renderDashboard() {
@@ -3608,14 +3633,161 @@
       $("wsUrl").textContent = wsUrl;
       renderRevealButtons();
 
-      const changeBtn = $("changeTokenBtn");
-      if (changeBtn) {
-        const disabled = state.envManaged || !state.token;
-        changeBtn.disabled = disabled;
-        changeBtn.title = state.envManaged
-          ? "Master token is managed by environment"
-          : "Replace the server master token";
+      void loadTokens();
+    }
+
+    // --- Access tokens ---------------------------------------------------
+    function setTokensError(message) {
+      const el = $("tokensError");
+      const msg = String(message || "").trim();
+      el.textContent = msg;
+      el.style.display = msg ? "block" : "none";
+    }
+
+    function formatTokenDate(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function formatRelative(iso) {
+      if (!iso) return "never";
+      const ms = Date.now() - new Date(iso).getTime();
+      if (!Number.isFinite(ms)) return "never";
+      const min = Math.round(ms / 60000);
+      if (min < 2) return "just now";
+      if (min < 60) return `${min} min ago`;
+      const h = Math.round(min / 60);
+      if (h < 24) return `${h} h ago`;
+      return formatTokenDate(iso);
+    }
+
+    function isCurrentToken(item) {
+      return Boolean(state.currentTokenId) && state.currentTokenId === item.id;
+    }
+
+    function renderTokens() {
+      const list = $("tokenList");
+      const items = Array.isArray(state.tokens) ? state.tokens : [];
+      $("tokensSub").textContent = items.length === 1 ? "1 active" : `${items.length} active`;
+      list.replaceChildren();
+      for (const item of items) {
+        const li = document.createElement("li");
+        li.className = "token-item";
+
+        const main = document.createElement("div");
+        main.className = "token-main";
+        const name = document.createElement("div");
+        name.className = "token-name";
+        name.textContent = item.name || "Unnamed";
+        name.title = item.name || "";
+        if (isCurrentToken(item)) {
+          const badge = document.createElement("span");
+          badge.className = "token-badge";
+          badge.textContent = "this browser";
+          name.appendChild(badge);
+        }
+        if (item.envManaged) {
+          const badge = document.createElement("span");
+          badge.className = "token-badge";
+          badge.textContent = "env";
+          name.appendChild(badge);
+        }
+        const meta = document.createElement("div");
+        meta.className = "token-meta";
+        const code = document.createElement("code");
+        code.textContent = `${item.prefix || ""}••••`;
+        meta.appendChild(code);
+        const parts = [];
+        if (item.createdAt) parts.push(`created ${formatTokenDate(item.createdAt)}`);
+        parts.push(`last used ${formatRelative(item.lastUsedAt)}`);
+        meta.appendChild(document.createTextNode(` · ${parts.join(" · ")}`));
+        main.append(name, meta);
+        li.appendChild(main);
+
+        if (!item.envManaged) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "ghost small";
+          btn.textContent = "Revoke";
+          btn.addEventListener("click", () => confirmRevokeToken(item));
+          li.appendChild(btn);
+        } else {
+          li.title = "Set via ACCESS_TOKEN. Remove it from the environment and restart to revoke.";
+        }
+        list.appendChild(li);
       }
+    }
+
+    async function loadTokens() {
+      if (!state.token) return;
+      try {
+        const res = await apiJson("/api/auth/tokens", { token: state.token });
+        state.tokens = Array.isArray(res?.tokens) ? res.tokens : [];
+        state.currentTokenId = typeof res?.currentId === "string" ? res.currentId : "";
+        setTokensError("");
+        renderTokens();
+      } catch (err) {
+        setTokensError(`Failed to load tokens: ${err.message}`);
+      }
+    }
+
+    function hideCreatedToken() {
+      state.createdToken = "";
+      $("tokenCreatedValue").textContent = "-";
+      $("tokenCreatedAlert").style.display = "none";
+    }
+
+    async function createToken() {
+      const input = $("tokenNameInput");
+      const btn = $("tokenCreateBtn");
+      btn.disabled = true;
+      setTokensError("");
+      try {
+        const res = await apiJson("/api/auth/tokens", {
+          method: "POST",
+          token: state.token,
+          body: { name: input.value },
+        });
+        input.value = "";
+        state.createdToken = res.token;
+        $("tokenCreatedTitle").textContent = `New token: ${res.item?.name || ""}`;
+        $("tokenCreatedValue").textContent = res.token;
+        $("tokenCreatedAlert").style.display = "block";
+        await loadTokens();
+      } catch (err) {
+        setTokensError(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function confirmRevokeToken(item) {
+      const current = isCurrentToken(item);
+      openConfirm({
+        title: `Revoke “${item.name}”?`,
+        body: current
+          ? "This browser is signed in with this token. Revoking it signs you out here and disconnects every client that uses it. This cannot be undone."
+          : "Clients using this token will be disconnected and can no longer access the server. This cannot be undone.",
+        okText: "Revoke",
+        onConfirm: async () => {
+          try {
+            await apiJson(`/api/auth/tokens/${encodeURIComponent(item.id)}`, {
+              method: "DELETE",
+              token: state.token,
+            });
+            toast("Token revoked");
+            if (current) {
+              $("topLogoutBtn").click();
+              return;
+            }
+            await loadTokens();
+          } catch (err) {
+            setTokensError(err.message);
+          }
+        },
+      });
     }
 
     function setMcpError(message) {
@@ -4559,7 +4731,7 @@
         const isAuth = msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("not authorized");
         if (isAuth) {
           await goLogin(
-            "Saved master token was rejected. Paste the correct master token or open /#<master-token>."
+            "Saved access token was rejected. Paste the correct access token or open /#<access-token>."
           );
         } else {
           state.docs = [];
@@ -4619,7 +4791,7 @@
           const res = await apiJson("/api/auth/setup", { method: "POST" });
           saveToken(res.token);
           state.showToken = false;
-          toast("Master token generated");
+          toast("Access token generated");
           await refreshStatus();
           try {
             await tryLoadDashboardData(res.token);
@@ -4643,7 +4815,7 @@
         const parsed = tokenFromInput($("tokenInput").value);
         const token = parsed.token;
         if (!token) {
-          $("loginError").textContent = parsed.error || "Master token required";
+          $("loginError").textContent = parsed.error || "Access token required";
           $("loginError").style.display = "block";
           return;
         }
@@ -4668,7 +4840,17 @@
         if (e.key === "Enter") $("loginBtn").click();
       });
 
+      $("tokenCreateForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        void createToken();
+      });
+      $("tokenCreatedCopyBtn").addEventListener("click", () => {
+        if (state.createdToken) void copyText(state.createdToken, "Token copied");
+      });
+      $("tokenCreatedDismissBtn").addEventListener("click", hideCreatedToken);
+
       $("topLogoutBtn").addEventListener("click", () => {
+        hideCreatedToken();
         clearToken();
         state.signedIn = false;
         setTopLogoutVisible(false);
@@ -4880,95 +5062,8 @@
         }
       });
 
-      $("tokenCancelBtn").addEventListener("click", closeTokenModal);
-      $("tokenModal").addEventListener("click", (e) => {
-        if (e.target === $("tokenModal")) closeTokenModal();
-      });
-
-      $("tokenGenerateBtn").addEventListener("click", () => {
-        const err = $("tokenError");
-        err.textContent = "";
-        err.style.display = "none";
-
-        try {
-          $("tokenNewInput").value = generateNewToken();
-          $("tokenNewInput").focus();
-          $("tokenNewInput").select();
-        } catch (e) {
-          err.textContent = e.message;
-          err.style.display = "block";
-        }
-      });
-
-      $("tokenNewInput").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          $("tokenSaveBtn").click();
-        }
-      });
-
-      $("tokenSaveBtn").addEventListener("click", async () => {
-        const err = $("tokenError");
-        err.textContent = "";
-        err.style.display = "none";
-
-        if (!state.token) {
-          err.textContent = "Not signed in";
-          err.style.display = "block";
-          return;
-        }
-        if (state.envManaged) {
-          err.textContent = "Master token is managed by environment";
-          err.style.display = "block";
-          return;
-        }
-
-        const parsed = tokenFromInput($("tokenNewInput").value);
-        const next = parsed.token;
-
-        if (!next) {
-          err.textContent = parsed.error || "Master token required";
-          err.style.display = "block";
-          return;
-        }
-
-        if (!TOKEN_RE.test(next)) {
-          err.textContent = "Master token can only use A-Z, a-z, 0-9, '-', and '_'";
-          err.style.display = "block";
-          return;
-        }
-
-        const saveBtn = $("tokenSaveBtn");
-        saveBtn.disabled = true;
-
-        try {
-          const res = await apiJson("/api/auth/rotate", {
-            method: "POST",
-            token: state.token,
-            body: { token: next },
-          });
-
-          const saved = res && typeof res.token === "string" ? res.token.trim() : next;
-          saveToken(saved);
-          state.showToken = false;
-          closeTokenModal();
-          toast("Master token updated");
-          await tryLoadDashboardData(saved);
-          await openRequestedRoute({ history: "none" });
-        } catch (e) {
-          err.textContent = e.message;
-          err.style.display = "block";
-        } finally {
-          saveBtn.disabled = false;
-        }
-      });
-
       document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape") return;
-        if (isTokenModalOpen()) {
-          closeTokenModal();
-          return;
-        }
         if ($("confirmModal").classList.contains("visible")) {
           closeConfirm();
           return;
@@ -5030,10 +5125,6 @@
             toast(`Copy failed: ${String(err?.message || err)}`, "error");
           }
         })();
-      });
-
-      $("changeTokenBtn").addEventListener("click", () => {
-        openTokenModal();
       });
 
       $("revealBtn").addEventListener("click", () => {

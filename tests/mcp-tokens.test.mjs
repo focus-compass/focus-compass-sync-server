@@ -120,9 +120,9 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
   await t.test("issues tokens with auto and custom names", async () => {
     first = await api(server, "/api/mcp/tokens", { method: "POST", body: {} });
     assert.equal(first.status, 201);
-    assert.match(first.body.token, /^fcmcp_[A-Za-z0-9_-]{43}$/);
+    assert.match(first.body.token, /^mcp_focus_[A-Za-z0-9_-]{43}$/);
     assert.equal(first.body.tokenInfo.name, "Token 1");
-    assert.equal(first.body.tokenInfo.prefix, first.body.token.slice(0, 12));
+    assert.equal(first.body.tokenInfo.prefix, first.body.token.slice(0, 16));
     assert.equal(first.body.tokenInfo.lastUsedAt, null);
 
     second = await api(server, "/api/mcp/tokens", { method: "POST", body: { name: "  Claude   Code  " } });
@@ -211,7 +211,7 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
       assert.ok(Array.isArray(payload.result.tools));
     }
     assert.equal((await mcpList(server, MASTER)).status, 401);
-    assert.equal((await mcpList(server, "fcmcp_nope")).status, 401);
+    assert.equal((await mcpList(server, "mcp_focus_nope")).status, 401);
 
     const list = await api(server, "/api/mcp/tokens");
     for (const x of list.body.tokens) assert.ok(x.lastUsedAt, `${x.name} has lastUsedAt`);

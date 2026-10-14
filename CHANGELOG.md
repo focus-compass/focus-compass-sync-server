@@ -26,9 +26,11 @@ All notable changes to the Focus Compass sync server are documented here.
   - `DELETE /api/mcp/tokens/{id}` revokes a token.
 - `POST /mcp` accepts any active MCP token. MCP is disabled while no token is
   active.
+- MCP tokens have the form `mcp_focus_<43 random chars>`; the admin UI and
+  API show only the first 16 characters.
 - Only SHA-256 hashes of MCP tokens are stored, in a separate SQLite file
   (`MCP_TOKENS_DB_PATH`, default `mcp-tokens.sqlite` next to the database), so
   restoring a document backup cannot bring back a revoked token.
-- Admin UI: the MCP Access section has a token list with create (optional
-  name), a one-time token reveal with a copy button, and revoke with
-  confirmation.
+- Admin UI: the MCP Access section has a token list, a "Create MCP token"
+  button that opens a dialog for an optional name, a one-time token reveal
+  with a copy button, and revoke with confirmation.

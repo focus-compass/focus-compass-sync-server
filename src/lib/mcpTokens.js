@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { enableSecureDelete } from "./sqlite.js";
 
 /** Public prefix that makes MCP tokens recognizable (e.g. by secret scanners). */
-export const MCP_TOKEN_PREFIX = "fcmcp_";
+export const MCP_TOKEN_PREFIX = "mcp_focus_";
 /** Characters of the full token kept in the DB and shown in the admin UI. */
 export const MCP_TOKEN_DISPLAY_LENGTH = MCP_TOKEN_PREFIX.length + 6;
 export const MAX_MCP_TOKEN_NAME_LENGTH = 64;

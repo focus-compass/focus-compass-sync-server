@@ -2082,41 +2082,9 @@
       margin-bottom: 4px;
     }
 
-    .mcp-token-missing {
-      padding: 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--warn-a35);
-      background: var(--warn-a10);
-      color: var(--warn-ink);
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .mcp-token-missing button {
-      padding: 6px 12px;
-      min-height: 28px;
-      font-size: 12px;
-    }
-
     .mcp-create {
       display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .mcp-create input[type="text"] {
-      flex: 1;
-      min-width: 0;
-      font-family: var(--ui);
-      padding: 8px 12px;
-    }
-
-    .mcp-create button {
-      flex: 0 0 auto;
-      min-height: 38px;
+      justify-content: flex-start;
     }
 
     .mcp-new-token .code-row {
@@ -2202,13 +2170,6 @@
       font-size: 13px;
       color: var(--muted);
       padding: 10px 0 2px;
-    }
-
-    @media (max-width: 640px) {
-      .mcp-create {
-        flex-direction: column;
-        align-items: stretch;
-      }
     }
 
     .mcp-detail-row {
@@ -2487,10 +2448,9 @@
                   separate from the master token. Revoke a token to cut off just that client.
                 </div>
 
-                <form class="mcp-create" id="mcpCreateForm" autocomplete="off">
-                  <input type="text" id="mcpTokenName" maxlength="64" placeholder="Token name (optional), e.g. Claude Code on laptop" aria-label="Token name (optional)" />
-                  <button id="mcpCreateBtn" type="submit">Create token</button>
-                </form>
+                <div class="mcp-create">
+                  <button id="mcpCreateBtn" type="button">Create MCP token</button>
+                </div>
 
                 <!-- Full token, shown once right after it is issued -->
                 <div class="alert info mcp-new-token" id="mcpTokenAlert" role="status" style="display:none;">
@@ -2511,10 +2471,6 @@
 
                 <!-- Inline setup guide -->
                 <div class="mcp-guide" id="mcpGuide">
-                  <div class="mcp-token-missing" id="guideTokenMissing" style="display:none;">
-                    Commands below use the placeholder <code>YOUR_MCP_TOKEN</code>. Create a new token to fill it in.
-                  </div>
-
                   <div class="mcp-tabs" id="mcpTabs">
                     <button class="mcp-tab active" data-tab="claude-code">Claude Code</button>
                     <button class="mcp-tab" data-tab="codex">Codex</button>
@@ -2807,6 +2763,22 @@
     </div>
   </div>
 
+  <div class="confirm" id="mcpCreateModal" role="dialog" aria-modal="true" aria-labelledby="mcpCreateTitle">
+    <form class="confirm-card" id="mcpCreateForm" autocomplete="off">
+      <div class="confirm-title" id="mcpCreateTitle">Create MCP token</div>
+      <div class="field">
+        <label for="mcpTokenName">Name (optional)</label>
+        <input type="text" id="mcpTokenName" maxlength="64" placeholder="e.g. Claude Code on laptop" style="font-family: var(--ui);" />
+      </div>
+      <div class="confirm-body" style="font-size:13px;">Leave empty to name it automatically (Token N). The token is shown only once after creation.</div>
+      <div class="alert error" id="mcpCreateError" style="display: none;"></div>
+      <div class="confirm-actions">
+        <button class="ghost" id="mcpCreateCancelBtn" type="button">Cancel</button>
+        <button id="mcpCreateSubmitBtn" type="submit">Create</button>
+      </div>
+    </form>
+  </div>
+
   <div class="confirm" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
     <div class="confirm-card">
       <div class="confirm-title" id="confirmTitle">Confirm</div>
@@ -2964,6 +2936,7 @@
 
     function closeTransientUi() {
       closeConfirm();
+      closeMcpCreateModal();
       closeDocModal();
       if (isTokenModalOpen()) closeTokenModal();
     }
@@ -3865,10 +3838,6 @@
 
       guide.classList.toggle("visible", enabled);
 
-      // Single token-missing note above tabs
-      const tw = $("guideTokenMissing");
-      if (tw) tw.style.display = enabled && !hasToken ? "flex" : "none";
-
       const token = hasToken ? state.mcpLastToken : "YOUR_MCP_TOKEN";
 
       // Claude Code
@@ -3990,7 +3959,7 @@
       }
 
       const createBtn = $("mcpCreateBtn");
-      if (createBtn && !createBtn.classList.contains("busy")) createBtn.disabled = !state.token;
+      if (createBtn) createBtn.disabled = !state.token;
 
       renderMcpTokenList();
       renderMcpGuide();
@@ -4017,14 +3986,31 @@
       renderMcpPanel();
     }
 
+    function isMcpCreateModalOpen() {
+      return $("mcpCreateModal").classList.contains("visible");
+    }
+
+    function openMcpCreateModal() {
+      if (!state.token) return;
+      $("mcpTokenName").value = "";
+      $("mcpCreateError").style.display = "none";
+      $("mcpCreateModal").classList.add("visible");
+      setTimeout(() => $("mcpTokenName").focus(), 0);
+    }
+
+    function closeMcpCreateModal() {
+      $("mcpCreateModal").classList.remove("visible");
+    }
+
     async function createMcpToken() {
-      const btn = $("mcpCreateBtn");
-      if (!state.token || btn.classList.contains("busy")) return;
+      const btn = $("mcpCreateSubmitBtn");
+      if (!state.token || btn.disabled) return;
       const input = $("mcpTokenName");
+      const errEl = $("mcpCreateError");
       const name = String(input?.value || "").trim();
+      errEl.style.display = "none";
       setMcpError("");
       btn.disabled = true;
-      btn.classList.add("busy");
       try {
         const res = await apiJson("/api/mcp/tokens", {
           method: "POST",
@@ -4033,15 +4019,15 @@
         });
         const token = res && typeof res.token === "string" ? res.token.trim() : "";
         if (!token) throw new Error("Server did not return the new token");
+        closeMcpCreateModal();
         showMcpTokenBox(token, res?.tokenInfo);
-        if (input) input.value = "";
         toast("MCP token created");
         await refreshMcpStatus();
       } catch (err) {
-        setMcpError(String(err?.message || err));
-        toast(`Create MCP token failed: ${String(err?.message || err)}`, "error");
+        errEl.textContent = String(err?.message || err);
+        errEl.style.display = "block";
       } finally {
-        btn.classList.remove("busy");
+        btn.disabled = false;
         renderMcpPanel();
       }
     }
@@ -4909,6 +4895,11 @@
       });
 
       // MCP token create
+      $("mcpCreateBtn").addEventListener("click", openMcpCreateModal);
+      $("mcpCreateCancelBtn").addEventListener("click", closeMcpCreateModal);
+      $("mcpCreateModal").addEventListener("click", (e) => {
+        if (e.target === $("mcpCreateModal")) closeMcpCreateModal();
+      });
       $("mcpCreateForm").addEventListener("submit", (e) => {
         e.preventDefault();
         void createMcpToken();
@@ -5105,6 +5096,10 @@
 
       document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape") return;
+        if (isMcpCreateModalOpen()) {
+          closeMcpCreateModal();
+          return;
+        }
         if (isTokenModalOpen()) {
           closeTokenModal();
           return;

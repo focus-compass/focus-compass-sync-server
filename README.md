@@ -74,10 +74,10 @@ Use [.env.example](.env.example) as the source of truth for environment variable
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP and WebSocket port |
 | `ACCESS_TOKEN` | empty | Master token for REST and WebSocket auth |
-| `MCP_TOKEN` | empty | Optional token for read-only MCP access |
 | `DB_PATH` | `./data/db.sqlite` | SQLite database path |
 | `IMAGES_DIR` | `./data/images` | Image storage directory |
 | `BACKUP_DIR` | `./data/backups` | Backup storage directory |
+| `MCP_TOKENS_DB_PATH` | `./data/mcp-tokens.sqlite` | MCP token hashes (managed from the admin UI) |
 | `MAX_WEBSOCKET_MESSAGE_BYTES` | `16777216` | Maximum complete WebSocket/Yjs message after frame reassembly (16 MiB) |
 | `MAX_UNAUTHENTICATED_QUEUE_BYTES` | `262144` | Maximum data buffered by one connection before authentication (256 KiB) |
 | `MAX_UNAUTHENTICATED_QUEUE_MESSAGES` | `32` | Maximum messages buffered by one connection before authentication |
@@ -98,9 +98,10 @@ immutable-image rollback plan.
 - `GET /api/workspace/:document` - read a workspace snapshot
 - `GET /api/images` - list images
 - `POST /api/upload` - upload an image
+- `GET /api/mcp/tokens`, `POST /api/mcp/tokens`, `DELETE /api/mcp/tokens/:id` - manage MCP tokens (master token)
 - `POST /mcp` - optional read-only MCP endpoint
 
-Most `/api/*` routes require `Authorization: Bearer <token>`. Public exceptions are `GET /api/auth/status`, `POST /api/auth/setup` while the server is not initialized, and `GET /api/mcp/status`. WebSocket connections use the same master token. MCP uses a separate token.
+Most `/api/*` routes require `Authorization: Bearer <token>`. Public exceptions are `GET /api/auth/status`, `POST /api/auth/setup` while the server is not initialized, and `GET /api/mcp/status`. WebSocket connections use the same master token. MCP uses its own tokens.
 
 ## Client Example
 
@@ -120,7 +121,7 @@ const provider = new HocuspocusProvider({
 
 ## MCP
 
-When MCP is enabled, either with `MCP_TOKEN` or an admin-generated persisted token, the server exposes a read-only Model Context Protocol endpoint at `POST /mcp`. This is useful for AI clients that need structured access to Focus Compass data without direct database access.
+MCP is off until you create an MCP token in the admin UI (`/`, MCP Access). You can create one token per client, optionally named (otherwise "Token N"), and revoke each one separately; the list shows the token prefix, creation date, and last use. The full token is shown only once, and the server stores only its SHA-256 hash. While at least one token is active, the server exposes a read-only Model Context Protocol endpoint at `POST /mcp`. This is useful for AI clients that need structured access to Focus Compass data without direct database access.
 
 Available tools:
 

@@ -4,7 +4,7 @@ import { Server } from "@hocuspocus/server";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkAuth, normalizeAuthToken, safeEqual } from "./lib/auth.js";
+import { checkAuth, getBearerToken, normalizeAuthToken, safeEqual } from "./lib/auth.js";
 import { MAX_DOC_NAME_LENGTH } from "./lib/db.js";
 import { readBoolEnv, readNumberEnv, readPositiveIntegerEnv } from "./lib/env.js";
 import { readJsonOrNull } from "./lib/fs.js";
@@ -15,6 +15,7 @@ import {
   setSecurityHeaders,
 } from "./lib/http.js";
 import { FocusCompassSQLite } from "./lib/hocuspocusSqlite.js";
+import { McpTokenStore } from "./lib/mcpTokens.js";
 import { ensurePrivateDir, hardenPrivateFileIfExists } from "./lib/privateFiles.js";
 import { json, noContent, RESPONSE_SENT } from "./lib/responses.js";
 import { handleAdminRequest } from "./routes/admin.js";
@@ -56,13 +57,15 @@ const UPLOAD_TMP_DIR = join(IMAGES_DIR, ".tmp");
 const AUTH_FILE_PATH =
   process.env.AUTH_FILE_PATH ?? join(dirname(DB_PATH), "auth.json");
 
-const MCP_AUTH_FILE_PATH =
-  process.env.MCP_AUTH_FILE_PATH ?? join(dirname(DB_PATH), "mcp-auth.json");
+// MCP access tokens live in their own SQLite file (hashes only) so that
+// restoring a document backup can never bring a revoked token back.
+const MCP_TOKENS_DB_PATH =
+  process.env.MCP_TOKENS_DB_PATH ?? join(dirname(DB_PATH), "mcp-tokens.sqlite");
 
 await ensurePrivateDir(dirname(AUTH_FILE_PATH));
-await ensurePrivateDir(dirname(MCP_AUTH_FILE_PATH));
+await ensurePrivateDir(dirname(MCP_TOKENS_DB_PATH));
 await hardenPrivateFileIfExists(AUTH_FILE_PATH);
-await hardenPrivateFileIfExists(MCP_AUTH_FILE_PATH);
+await hardenPrivateFileIfExists(MCP_TOKENS_DB_PATH);
 
 // Resolve an auth token from its env var (which takes precedence and marks the
 // token as env-managed) falling back to the value persisted next to the DB.
@@ -79,11 +82,13 @@ const { token: initialAuthToken, envManaged } = await resolveToken(
 );
 let authToken = initialAuthToken;
 
-const { token: initialMcpToken, envManaged: mcpEnvManaged } = await resolveToken(
-  process.env.MCP_TOKEN,
-  MCP_AUTH_FILE_PATH,
-);
-let mcpToken = initialMcpToken;
+const mcpTokens = new McpTokenStore({ dbPath: MCP_TOKENS_DB_PATH });
+await hardenPrivateFileIfExists(MCP_TOKENS_DB_PATH);
+if (String(process.env.MCP_TOKEN ?? "").trim()) {
+  console.warn(
+    "MCP_TOKEN is no longer supported and is ignored. Issue MCP tokens from the admin UI (/).",
+  );
+}
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
 const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB_PATH), "backup-settings.json");
@@ -112,10 +117,6 @@ const setAuthToken = (token) => {
   authToken = typeof token === "string" ? token.trim() : "";
 };
 
-const getMcpToken = () => mcpToken;
-const setMcpToken = (token) => {
-  mcpToken = typeof token === "string" ? token.trim() : "";
-};
 
 const isAuthed = (req) => {
   const expected = getAuthToken();
@@ -124,9 +125,9 @@ const isAuthed = (req) => {
 };
 
 const isMcpAuthed = (req) => {
-  const expected = getMcpToken();
-  if (!expected) return false;
-  return checkAuth(req, expected);
+  const token = getBearerToken(req);
+  if (!token) return false;
+  return mcpTokens.verify(token);
 };
 
 const corsPolicy = createCorsPolicy(process.env.CORS_ALLOW_ORIGINS ?? "*");
@@ -247,12 +248,9 @@ const server = new Server({
         request,
         response,
         pathname,
-        mcpAuthFilePath: MCP_AUTH_FILE_PATH,
-        getMcpToken,
-        setMcpToken,
+        mcpTokens,
         getMasterToken: getAuthToken,
         checkMasterAuth: isAuthed,
-        envManaged: mcpEnvManaged,
       });
 
       await handleImagesRequest({
@@ -298,7 +296,7 @@ const server = new Server({
         appVersion,
         maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
         docMetaCache,
-        getToken: getMcpToken,
+        hasActiveTokens: () => mcpTokens.hasActive(),
         checkAuth: isMcpAuthed,
       });
 
@@ -362,6 +360,11 @@ const shutdown = async (signal) => {
     }
   } catch (error) {
     console.error("Error during shutdown:", error);
+  }
+  try {
+    mcpTokens.close();
+  } catch (error) {
+    console.error("Error closing MCP token store:", error);
   }
   process.exit(0);
 };

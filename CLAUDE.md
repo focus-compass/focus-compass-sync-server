@@ -30,10 +30,10 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 - `POST /api/upload` - Image upload with idempotency (skips existing files)
 - `GET /api/images` - List all images
 - `GET /api/images/{id}` - Retrieve image with MIME type
-- `GET /api/mcp/status` - MCP enabled/env-managed status (no auth required)
-- `POST /api/mcp/enable` - Generate and enable MCP token (master token required)
-- `POST /api/mcp/rotate` - Rotate MCP token (master token required)
-- `POST /api/mcp/disable` - Disable MCP and revoke token (master token required)
+- `GET /api/mcp/status` - `{ enabled }`: true when at least one MCP token is active (no auth required)
+- `GET /api/mcp/tokens` - List active MCP tokens: id, name, prefix, createdAt, lastUsedAt (master token required)
+- `POST /api/mcp/tokens` - Issue an MCP token; body `{ name? }`, empty name becomes "Token N"; returns the full token once (master token required)
+- `DELETE /api/mcp/tokens/{id}` - Revoke an MCP token (master token required)
 
 **Static Routes**:
 - `/` or `/index.html` - Admin UI (see `src/index.html`)
@@ -97,8 +97,8 @@ Notes:
 - The Streamable HTTP transport expects `Accept: application/json, text/event-stream` and `Content-Type: application/json`.
 - The server replies with JSON (no SSE streaming), but clients still send the Accept header above.
 - Request body is limited to 1 MiB.
-- MCP uses a separate token (`MCP_TOKEN`) and is disabled by default unless configured.
-- Enable/rotate/disable MCP from the admin UI (`/`) or via `/api/mcp/*` endpoints (master token required).
+- MCP uses its own tokens, separate from the master token. Any number can be issued and revoked individually from the admin UI (`/`) or via `/api/mcp/tokens` (master token required). MCP is disabled while no token is active.
+- Only SHA-256 hashes of MCP tokens are stored, in `MCP_TOKENS_DB_PATH` (default `mcp-tokens.sqlite` next to the DB, kept out of document backups so a restore cannot revive a revoked token). The full token is shown once at issue time. `MCP_TOKEN` / `mcp-auth.json` are no longer supported.
 - MCP setup guide is integrated into the admin UI (`/`).
 
 **MCP Tools** (read-only):

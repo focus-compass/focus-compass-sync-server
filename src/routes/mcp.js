@@ -95,13 +95,12 @@ export const handleMcpRequest = async ({
   appVersion,
   maxDocDecodeBytes,
   docMetaCache,
-  getToken,
+  hasActiveTokens,
   checkAuth,
 }) => {
   if (pathname !== "/mcp") return;
 
-  const enabledToken = typeof getToken === "function" ? String(getToken() || "").trim() : "";
-  if (!enabledToken) {
+  if (!hasActiveTokens()) {
     jsonRpcError(response, 404, -32000, "MCP is disabled");
   }
 

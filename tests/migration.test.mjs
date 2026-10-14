@@ -100,7 +100,7 @@ const startServer = async ({ dataDir, extraEnv = {} }) => {
       IMAGES_DIR: join(dataDir, "images"),
       BACKUP_DIR: join(dataDir, "backups"),
       AUTH_FILE_PATH: join(dataDir, "auth.json"),
-      MCP_AUTH_FILE_PATH: join(dataDir, "mcp-auth.json"),
+      MCP_TOKENS_DB_PATH: join(dataDir, "mcp-tokens.sqlite"),
       ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],

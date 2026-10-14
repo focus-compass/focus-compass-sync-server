@@ -24,8 +24,8 @@ Known error codes and what to tell the user:
 | Error | User-facing message |
 |-------|-------------------|
 | Connection refused / timeout | "Focus Compass server is not running. Start it and try again." |
-| "MCP is disabled" | "MCP is disabled on the server. Enable it in the admin UI." |
-| "Unauthorized" or 401 | "MCP token is invalid. Rotate it in the admin UI and update your Claude MCP config." |
+| "MCP is disabled" | "MCP is disabled on the server. Create an MCP token in the admin UI." |
+| "Unauthorized" or 401 | "MCP token is invalid or revoked. Create a new token in the admin UI and update your MCP client config." |
 | `SQLITE_CANTOPEN` or "Database not found" | "Database not found. Sync data from the Focus Compass app first." |
 | `SQLITE_BUSY` / `retryable: true` | Retry the call once. If it fails again, tell the user: "Database is busy. Try again in a few seconds." |
 | `DOC_TOO_LARGE` | "Workspace is too large to decode (**SIZE** bytes, limit is **LIMIT** bytes). Increase `MAX_DOC_DECODE_BYTES` on the server and restart." Then try the fallback: call `list_projects` to get project IDs, and use `get_project` for each one individually. |

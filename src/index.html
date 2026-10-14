@@ -2082,23 +2082,94 @@
       margin-bottom: 4px;
     }
 
-    .mcp-token-missing {
-      padding: 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--warn-a35);
-      background: var(--warn-a10);
-      color: var(--warn-ink);
-      font-size: 13px;
+    .mcp-create {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+      justify-content: flex-start;
     }
 
-    .mcp-token-missing button {
-      padding: 6px 12px;
-      min-height: 28px;
+    .mcp-new-token .code-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .mcp-new-token .codebox {
+      flex: 1;
+      min-width: 0;
       font-size: 12px;
+      word-break: break-all;
+    }
+
+    .mcp-new-token-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .mcp-token-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .mcp-token-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+
+    .mcp-token-item.fresh {
+      border-color: var(--ok-a35);
+    }
+
+    .mcp-token-main {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+    }
+
+    .mcp-token-title {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .mcp-token-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mcp-token-prefix {
+      font-family: var(--code);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .mcp-token-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mcp-token-item button.revoke {
+      color: var(--danger);
+    }
+
+    .mcp-empty {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 10px 0 2px;
     }
 
     .mcp-detail-row {
@@ -2372,44 +2443,34 @@
                 <div class="panel-sub" id="mcpSub">-</div>
               </div>
               <div class="panel-body">
-                <div class="toggle-row">
-                  <label class="toggle-switch" id="mcpToggle" title="Enable or disable MCP">
-                    <input type="checkbox" id="mcpToggleInput" />
-                    <span class="toggle-track"></span>
-                    <span class="toggle-thumb"></span>
-                  </label>
-                  <span class="toggle-label" id="mcpToggleLabel">Disabled</span>
-                  <span style="flex:1;"></span>
-                  <button id="mcpRotateBtn" class="ghost small" type="button" style="display:none;">Rotate token</button>
-                </div>
-
                 <div class="hint">
-                  Read-only access for Claude Code and other MCP clients. Uses a separate token (not master).
+                  Read-only access for Claude Code and other MCP clients. Each client can have its own token,
+                  separate from the master token. Revoke a token to cut off just that client.
                 </div>
 
-                <!-- Token revealed after enable / rotate -->
-                <div class="alert info" id="mcpTokenAlert" style="display:none;">
-                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <div class="mcp-create">
+                  <button id="mcpCreateBtn" type="button">Create MCP token</button>
+                </div>
+
+                <!-- Full token, shown once right after it is issued -->
+                <div class="alert info mcp-new-token" id="mcpTokenAlert" role="status" style="display:none;">
+                  <div class="mcp-new-token-head">
                     <div>
-                      <div style="font-weight:700; margin-bottom:2px;">MCP Token</div>
-                      <div class="hint" style="margin:0; font-size:12px;">Copy it now. If you lose it, rotate the token.</div>
+                      <div style="font-weight:700; margin-bottom:2px;" id="mcpNewTokenTitle">New MCP token</div>
+                      <div class="hint" style="margin:0; font-size:12px;">Copy it now. It won&rsquo;t be shown again.</div>
                     </div>
-                    <button id="mcpCopyTokenBtn" class="ghost small" type="button">Copy token</button>
+                    <button id="mcpDismissTokenBtn" class="ghost small" type="button">Done</button>
                   </div>
-                  <div class="code-row" style="margin-top:8px;">
-                    <div class="codebox ws-field" style="font-size:12px;">
-                      <span id="mcpTokenValue">-</span>
-                    </div>
+                  <div class="code-row">
+                    <div class="codebox ws-field"><span id="mcpTokenValue">-</span></div>
+                    <button id="mcpCopyTokenBtn" class="ghost small" type="button">Copy</button>
                   </div>
                 </div>
+
+                <div class="mcp-token-list" id="mcpTokenList" aria-label="MCP tokens"></div>
 
                 <!-- Inline setup guide -->
                 <div class="mcp-guide" id="mcpGuide">
-                  <div class="mcp-token-missing" id="guideTokenMissing" style="display:none;">
-                    Token hidden after page reload.
-                    <button id="guideRotateBtn" class="ghost" type="button">Rotate to reveal</button>
-                  </div>
-
                   <div class="mcp-tabs" id="mcpTabs">
                     <button class="mcp-tab active" data-tab="claude-code">Claude Code</button>
                     <button class="mcp-tab" data-tab="codex">Codex</button>
@@ -2702,6 +2763,22 @@
     </div>
   </div>
 
+  <div class="confirm" id="mcpCreateModal" role="dialog" aria-modal="true" aria-labelledby="mcpCreateTitle">
+    <form class="confirm-card" id="mcpCreateForm" autocomplete="off">
+      <div class="confirm-title" id="mcpCreateTitle">Create MCP token</div>
+      <div class="field">
+        <label for="mcpTokenName">Name (optional)</label>
+        <input type="text" id="mcpTokenName" maxlength="64" placeholder="e.g. Claude Code on laptop" style="font-family: var(--ui);" />
+      </div>
+      <div class="confirm-body" style="font-size:13px;">Leave empty to name it automatically (Token N). The token is shown only once after creation.</div>
+      <div class="alert error" id="mcpCreateError" style="display: none;"></div>
+      <div class="confirm-actions">
+        <button class="ghost" id="mcpCreateCancelBtn" type="button">Cancel</button>
+        <button id="mcpCreateSubmitBtn" type="submit">Create</button>
+      </div>
+    </form>
+  </div>
+
   <div class="confirm" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
     <div class="confirm-card">
       <div class="confirm-title" id="confirmTitle">Confirm</div>
@@ -2760,8 +2837,10 @@
       appRoute: DEFAULT_APP_ROUTE,
       selectedDocName: "",
       selectedDocData: null,
-      mcp: { enabled: false, envManaged: false },
+      mcpTokens: [],
+      mcpTokensLoaded: false,
       mcpLastToken: "",
+      mcpLastTokenId: null,
       confirm: { open: false, title: "", body: "", onConfirm: null },
     };
 
@@ -2857,6 +2936,7 @@
 
     function closeTransientUi() {
       closeConfirm();
+      closeMcpCreateModal();
       closeDocModal();
       if (isTokenModalOpen()) closeTokenModal();
     }
@@ -3628,6 +3708,7 @@
 
     function clearMcpTokenBox() {
       state.mcpLastToken = "";
+      state.mcpLastTokenId = null;
       const alert = $("mcpTokenAlert");
       if (alert) alert.style.display = "none";
       const tokenEl = $("mcpTokenValue");
@@ -3704,7 +3785,7 @@
         `   - \`http_headers = { "Accept" = "application/json, text/event-stream", "Content-Type" = "application/json" }\``,
         `   - \`enabled_tools = ["list_documents", "get_workspace", "list_projects", "get_project"]\``,
         ``,
-        `2. If \`FOCUS_COMPASS_MCP_TOKEN\` is not already persisted as a user-level environment variable, persist it with:`,
+        `2. Persist \`FOCUS_COMPASS_MCP_TOKEN\` as a user-level environment variable (replace any existing value) with:`,
         `   - ${token}`,
         ``,
         `3. Create or update the user skill at \`$HOME/.agents/skills/focus-compass/SKILL.md\`.`,
@@ -3727,13 +3808,17 @@
       ].join("\n");
     }
 
-    function showMcpTokenBox(token) {
+    function showMcpTokenBox(token, info) {
       const t = String(token || "").trim();
       if (!t) return;
       state.mcpLastToken = t;
+      state.mcpLastTokenId = info?.id ?? null;
 
       const tokenEl = $("mcpTokenValue");
       if (tokenEl) tokenEl.textContent = t;
+
+      const titleEl = $("mcpNewTokenTitle");
+      if (titleEl) titleEl.textContent = info?.name ? `New token: ${info.name}` : "New MCP token";
 
       const alert = $("mcpTokenAlert");
       if (alert) alert.style.display = "block";
@@ -3741,17 +3826,17 @@
       renderMcpGuide();
     }
 
+    function hasActiveMcpTokens() {
+      return state.mcpTokens.length > 0;
+    }
+
     function renderMcpGuide() {
-      const enabled = Boolean(state.mcp?.enabled);
+      const enabled = hasActiveMcpTokens() || Boolean(state.mcpLastToken);
       const hasToken = Boolean(state.mcpLastToken);
       const guide = $("mcpGuide");
       if (!guide) return;
 
       guide.classList.toggle("visible", enabled);
-
-      // Single token-missing warning above tabs
-      const tw = $("guideTokenMissing");
-      if (tw) tw.style.display = enabled && !hasToken ? "flex" : "none";
 
       const token = hasToken ? state.mcpLastToken : "YOUR_MCP_TOKEN";
 
@@ -3786,67 +3871,194 @@
       if (authEl) authEl.textContent = `Authorization: Bearer ${token}`;
     }
 
-    function renderMcpPanel() {
-      const enabled = Boolean(state.mcp?.enabled);
-      const envManaged = Boolean(state.mcp?.envManaged);
+    function formatRelativeTime(isoString) {
+      const t = Date.parse(isoString || "");
+      if (!Number.isFinite(t)) return "";
+      const diffSec = Math.round((t - Date.now()) / 1000);
+      const abs = Math.abs(diffSec);
+      const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+      if (abs < 45) return "just now";
+      if (abs < 3600) return rtf.format(Math.round(diffSec / 60), "minute");
+      if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), "hour");
+      if (abs < 86400 * 30) return rtf.format(Math.round(diffSec / 86400), "day");
+      return new Date(t).toLocaleDateString();
+    }
 
+    function formatTokenDate(isoString) {
+      const t = Date.parse(isoString || "");
+      if (!Number.isFinite(t)) return "";
+      return new Date(t).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function renderMcpTokenList() {
+      const list = $("mcpTokenList");
+      if (!list) return;
+      list.innerHTML = "";
+
+      if (!state.mcpTokensLoaded) return;
+
+      if (!hasActiveMcpTokens()) {
+        const empty = document.createElement("div");
+        empty.className = "mcp-empty";
+        empty.textContent = "No active tokens. MCP is off until you create one.";
+        list.appendChild(empty);
+        return;
+      }
+
+      for (const t of state.mcpTokens) {
+        const item = document.createElement("div");
+        item.className = "mcp-token-item";
+        if (t.id === state.mcpLastTokenId) item.classList.add("fresh");
+
+        const main = document.createElement("div");
+        main.className = "mcp-token-main";
+
+        const title = document.createElement("div");
+        title.className = "mcp-token-title";
+        const nameEl = document.createElement("span");
+        nameEl.className = "mcp-token-name";
+        nameEl.textContent = t.name;
+        nameEl.title = t.name;
+        const prefixEl = document.createElement("span");
+        prefixEl.className = "mcp-token-prefix";
+        prefixEl.textContent = `${t.prefix}\u2026`;
+        title.append(nameEl, prefixEl);
+
+        const meta = document.createElement("div");
+        meta.className = "mcp-token-meta";
+        const lastUsed = t.lastUsedAt ? `Last used ${formatRelativeTime(t.lastUsedAt)}` : "Never used";
+        meta.textContent = `Created ${formatTokenDate(t.createdAt)} \u00b7 ${lastUsed}`;
+        meta.title = [
+          `Created: ${formatLocalDateTime(t.createdAt)}`,
+          `Last used: ${t.lastUsedAt ? formatLocalDateTime(t.lastUsedAt) : "never"}`,
+        ].join("\n");
+
+        main.append(title, meta);
+
+        const revokeBtn = document.createElement("button");
+        revokeBtn.className = "ghost small revoke";
+        revokeBtn.type = "button";
+        revokeBtn.textContent = "Revoke";
+        revokeBtn.setAttribute("aria-label", `Revoke ${t.name}`);
+        revokeBtn.addEventListener("click", () => confirmRevokeMcpToken(t));
+
+        item.append(main, revokeBtn);
+        list.appendChild(item);
+      }
+    }
+
+    function renderMcpPanel() {
       const sub = $("mcpSub");
       if (sub) {
-        sub.textContent = envManaged
-          ? "Enabled (env managed)"
-          : enabled
-            ? "Enabled"
+        const n = state.mcpTokens.length;
+        sub.textContent = !state.mcpTokensLoaded
+          ? "-"
+          : n
+            ? `${n} active token${n === 1 ? "" : "s"}`
             : "Disabled";
       }
 
-      // Toggle switch
-      const toggle = $("mcpToggle");
-      const input = $("mcpToggleInput");
-      const label = $("mcpToggleLabel");
+      const createBtn = $("mcpCreateBtn");
+      if (createBtn) createBtn.disabled = !state.token;
 
-      if (input) {
-        input.checked = enabled;
-        input.disabled = envManaged || !state.token;
-      }
-      if (toggle) {
-        toggle.classList.toggle("busy", false);
-        toggle.title = envManaged
-          ? "MCP is managed by environment"
-          : !state.token
-            ? "Sign in first"
-            : enabled
-              ? "Click to disable MCP"
-              : "Click to enable MCP";
-      }
-      if (label) {
-        label.textContent = enabled ? "Enabled" : "Disabled";
-        label.classList.toggle("on", enabled);
-      }
-
-      // Rotate button
-      const rotateBtn = $("mcpRotateBtn");
-      if (rotateBtn) {
-        rotateBtn.style.display = enabled ? "inline-flex" : "none";
-        rotateBtn.disabled = !enabled || envManaged || !state.token;
-      }
-
-      // Guide
+      renderMcpTokenList();
       renderMcpGuide();
     }
 
     async function refreshMcpStatus() {
+      if (!state.token) {
+        state.mcpTokens = [];
+        state.mcpTokensLoaded = false;
+        renderMcpPanel();
+        return;
+      }
       try {
-        const status = await apiJson("/api/mcp/status");
-        state.mcp = {
-          enabled: Boolean(status?.enabled),
-          envManaged: Boolean(status?.envManaged),
-        };
+        const res = await apiJson("/api/mcp/tokens", { token: state.token });
+        state.mcpTokens = Array.isArray(res?.tokens) ? res.tokens : [];
+        state.mcpTokensLoaded = true;
         setMcpError("");
       } catch (err) {
-        state.mcp = { enabled: false, envManaged: false };
-        setMcpError(`Failed to load MCP status: ${String(err?.message || err)}`);
+        // Don't keep showing a possibly stale list (e.g. tokens revoked elsewhere).
+        state.mcpTokens = [];
+        state.mcpTokensLoaded = false;
+        setMcpError(`Failed to load MCP tokens: ${String(err?.message || err)}`);
       }
       renderMcpPanel();
+    }
+
+    function isMcpCreateModalOpen() {
+      return $("mcpCreateModal").classList.contains("visible");
+    }
+
+    function openMcpCreateModal() {
+      if (!state.token) return;
+      $("mcpTokenName").value = "";
+      $("mcpCreateError").style.display = "none";
+      $("mcpCreateModal").classList.add("visible");
+      setTimeout(() => $("mcpTokenName").focus(), 0);
+    }
+
+    function closeMcpCreateModal() {
+      $("mcpCreateModal").classList.remove("visible");
+    }
+
+    async function createMcpToken() {
+      const btn = $("mcpCreateSubmitBtn");
+      if (!state.token || btn.disabled) return;
+      const input = $("mcpTokenName");
+      const errEl = $("mcpCreateError");
+      const name = String(input?.value || "").trim();
+      errEl.style.display = "none";
+      setMcpError("");
+      btn.disabled = true;
+      try {
+        const res = await apiJson("/api/mcp/tokens", {
+          method: "POST",
+          token: state.token,
+          body: { name },
+        });
+        const token = res && typeof res.token === "string" ? res.token.trim() : "";
+        if (!token) throw new Error("Server did not return the new token");
+        closeMcpCreateModal();
+        showMcpTokenBox(token, res?.tokenInfo);
+        toast("MCP token created");
+        await refreshMcpStatus();
+      } catch (err) {
+        errEl.textContent = String(err?.message || err);
+        errEl.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        renderMcpPanel();
+      }
+    }
+
+    function confirmRevokeMcpToken(t) {
+      const isLast = state.mcpTokens.length === 1;
+      openConfirm({
+        title: "Revoke MCP token",
+        body: `Revoke \u201c${t.name}\u201d (${t.prefix}\u2026)? Clients using it will lose access immediately. This can\u2019t be undone.`
+          + (isLast ? "\n\nThis is the last active token, so MCP will be turned off." : ""),
+        okText: "Revoke",
+        onConfirm: async () => {
+          const okBtn = $("confirmOkBtn");
+          okBtn.disabled = true;
+          try {
+            await apiJson(`/api/mcp/tokens/${encodeURIComponent(t.id)}`, {
+              method: "DELETE",
+              token: state.token,
+            });
+            if (state.mcpLastTokenId === t.id) clearMcpTokenBox();
+            closeConfirm();
+            toast("MCP token revoked");
+            await refreshMcpStatus();
+          } catch (err) {
+            setMcpError(String(err?.message || err));
+            toast(`Revoke failed: ${String(err?.message || err)}`, "error");
+          } finally {
+            okBtn.disabled = false;
+          }
+        },
+      });
     }
 
     async function refreshDbInfo(token) {
@@ -4682,96 +4894,20 @@
         void openRequestedRoute({ history: "none" });
       });
 
-      // MCP toggle switch
-      $("mcpToggleInput").addEventListener("change", async () => {
-        const input = $("mcpToggleInput");
-        const wantEnabled = input.checked;
-        const toggle = $("mcpToggle");
-
-        if (!state.token) {
-          input.checked = !wantEnabled;
-          return;
-        }
-
-        setMcpError("");
-
-        if (wantEnabled) {
-          // Enable MCP
-          toggle.classList.add("busy");
-          input.disabled = true;
-          try {
-            const res = await apiJson("/api/mcp/enable", {
-              method: "POST",
-              token: state.token,
-            });
-            const token = res && typeof res.token === "string" ? res.token.trim() : "";
-            showMcpTokenBox(token);
-            toast("MCP enabled");
-            await refreshMcpStatus();
-          } catch (err) {
-            input.checked = false;
-            setMcpError(String(err?.message || err));
-            toast(`Enable MCP failed: ${String(err?.message || err)}`, "error");
-          } finally {
-            input.disabled = false;
-            toggle.classList.remove("busy");
-            renderMcpPanel();
-          }
-        } else {
-          // Disable MCP — revert toggle until confirmed
-          input.checked = true;
-          openConfirm({
-            title: "Disable MCP",
-            body: "Disable MCP and revoke the token? All MCP clients will lose access.",
-            okText: "Disable",
-            onConfirm: async () => {
-              const okBtn = $("confirmOkBtn");
-              okBtn.disabled = true;
-              try {
-                await apiJson("/api/mcp/disable", {
-                  method: "POST",
-                  token: state.token,
-                });
-                toast("MCP disabled");
-                closeConfirm();
-                clearMcpTokenBox();
-                await refreshMcpStatus();
-              } catch (err) {
-                setMcpError(String(err?.message || err));
-                toast(`Disable MCP failed: ${String(err?.message || err)}`, "error");
-              } finally {
-                okBtn.disabled = false;
-                renderMcpPanel();
-              }
-            },
-          });
-        }
+      // MCP token create
+      $("mcpCreateBtn").addEventListener("click", openMcpCreateModal);
+      $("mcpCreateCancelBtn").addEventListener("click", closeMcpCreateModal);
+      $("mcpCreateModal").addEventListener("click", (e) => {
+        if (e.target === $("mcpCreateModal")) closeMcpCreateModal();
+      });
+      $("mcpCreateForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        void createMcpToken();
       });
 
-      // MCP rotate
-      $("mcpRotateBtn").addEventListener("click", async () => {
-        if (!state.token) return;
-        setMcpError("");
+      $("mcpDismissTokenBtn").addEventListener("click", () => {
         clearMcpTokenBox();
-
-        const btn = $("mcpRotateBtn");
-        btn.disabled = true;
-        try {
-          const res = await apiJson("/api/mcp/rotate", {
-            method: "POST",
-            token: state.token,
-          });
-          const token = res && typeof res.token === "string" ? res.token.trim() : "";
-          showMcpTokenBox(token);
-          toast("MCP token rotated");
-          await refreshMcpStatus();
-        } catch (err) {
-          setMcpError(String(err?.message || err));
-          toast(`Rotate MCP token failed: ${String(err?.message || err)}`, "error");
-        } finally {
-          btn.disabled = false;
-          renderMcpPanel();
-        }
+        renderMcpPanel();
       });
 
       // MCP copy token
@@ -4808,11 +4944,6 @@
             toast(`Copy failed: ${String(err?.message || err)}`, "error");
           }
         });
-      });
-
-      // Guide rotate button (in token-missing warning)
-      $("guideRotateBtn")?.addEventListener("click", () => {
-        $("mcpRotateBtn").click();
       });
 
       $("docCloseBtn").addEventListener("click", () => {
@@ -4965,6 +5096,10 @@
 
       document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape") return;
+        if (isMcpCreateModalOpen()) {
+          closeMcpCreateModal();
+          return;
+        }
         if (isTokenModalOpen()) {
           closeTokenModal();
           return;

@@ -95,7 +95,6 @@ const startServer = async ({ dataDir, extraEnv = {} }) => {
       NODE_ENV: "test",
       PORT: String(port),
       ACCESS_TOKEN: "",
-      MCP_TOKEN: "",
       DB_PATH: join(dataDir, "db.sqlite"),
       IMAGES_DIR: join(dataDir, "images"),
       BACKUP_DIR: join(dataDir, "backups"),

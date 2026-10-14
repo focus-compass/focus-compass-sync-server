@@ -100,7 +100,14 @@ export const handleMcpRequest = async ({
 }) => {
   if (pathname !== "/mcp") return;
 
-  if (!hasActiveTokens()) {
+  let isEnabled;
+  try {
+    isEnabled = hasActiveTokens();
+  } catch (err) {
+    console.error("MCP token store error:", err?.message || err);
+    jsonRpcError(response, 500, -32603, "Internal error");
+  }
+  if (!isEnabled) {
     jsonRpcError(response, 404, -32000, "MCP is disabled");
   }
 

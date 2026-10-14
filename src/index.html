@@ -4009,14 +4009,17 @@
         state.mcpTokensLoaded = true;
         setMcpError("");
       } catch (err) {
+        // Don't keep showing a possibly stale list (e.g. tokens revoked elsewhere).
+        state.mcpTokens = [];
+        state.mcpTokensLoaded = false;
         setMcpError(`Failed to load MCP tokens: ${String(err?.message || err)}`);
       }
       renderMcpPanel();
     }
 
     async function createMcpToken() {
-      if (!state.token) return;
       const btn = $("mcpCreateBtn");
+      if (!state.token || btn.classList.contains("busy")) return;
       const input = $("mcpTokenName");
       const name = String(input?.value || "").trim();
       setMcpError("");
@@ -4029,6 +4032,7 @@
           body: { name },
         });
         const token = res && typeof res.token === "string" ? res.token.trim() : "";
+        if (!token) throw new Error("Server did not return the new token");
         showMcpTokenBox(token, res?.tokenInfo);
         if (input) input.value = "";
         toast("MCP token created");

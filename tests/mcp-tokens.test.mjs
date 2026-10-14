@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import { dirname, join } from "node:path";
@@ -100,6 +100,7 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
   });
 
   await t.test("starts disabled, legacy token is not accepted", async () => {
+    assert.match(server.logs(), /Legacy MCP token file .*mcp-auth\.json is ignored/);
     const status = await api(server, "/api/mcp/status", { token: "" });
     assert.deepEqual(status.body, { enabled: false });
     const res = await mcpList(server, "legacyTokenValue123");
@@ -134,6 +135,32 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
     assert.notEqual(first.body.token, third.body.token);
   });
 
+  await t.test("name edge cases", async () => {
+    const max = await api(server, "/api/mcp/tokens", { method: "POST", body: { name: "y".repeat(64) } });
+    assert.equal(max.status, 201);
+    assert.equal(max.body.tokenInfo.name, "y".repeat(64));
+    const blank = await api(server, "/api/mcp/tokens", { method: "POST", body: { name: " \t\n " } });
+    assert.equal(blank.body.tokenInfo.name, "Token 5");
+    const ctrl = await api(server, "/api/mcp/tokens", { method: "POST", body: { name: "a\u0000b\nc" } });
+    assert.equal(ctrl.body.tokenInfo.name, "a b c");
+    for (const x of [max, blank, ctrl]) {
+      assert.equal((await api(server, `/api/mcp/tokens/${x.body.tokenInfo.id}`, { method: "DELETE" })).status, 200);
+    }
+  });
+
+  await t.test("wrong methods get 405 with Allow", async () => {
+    const cases = [
+      ["PUT", "/api/mcp/tokens", "GET, POST"],
+      ["POST", "/api/mcp/status", "GET"],
+      ["GET", "/api/mcp/tokens/1", "DELETE"],
+    ];
+    for (const [method, path, allow] of cases) {
+      const res = await fetch(`${server.url}${path}`, { method, headers: { Authorization: `Bearer ${MASTER}` } });
+      assert.equal(res.status, 405, `${method} ${path}`);
+      assert.equal(res.headers.get("allow"), allow);
+    }
+  });
+
   await t.test("rejects invalid names", async () => {
     const long = await api(server, "/api/mcp/tokens", { method: "POST", body: { name: "x".repeat(65) } });
     assert.equal(long.status, 400);
@@ -157,7 +184,7 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
   await t.test("database stores only hashes", async () => {
     const db = new DatabaseSync(join(dataDir, "mcp-tokens.sqlite"), { readOnly: true });
     try {
-      const rows = db.prepare("SELECT * FROM mcp_tokens").all();
+      const rows = db.prepare("SELECT * FROM mcp_tokens WHERE revoked_at IS NULL").all();
       assert.equal(rows.length, 3);
       const dump = JSON.stringify(rows);
       for (const issued of [first, second, third]) {
@@ -170,6 +197,10 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
     if (process.platform !== "win32") {
       const mode = (await stat(join(dataDir, "mcp-tokens.sqlite"))).mode & 0o777;
       assert.equal(mode, 0o600);
+    }
+    // No WAL: no side files holding token data outside the 0600 main file.
+    for (const suffix of ["-wal", "-shm"]) {
+      await assert.rejects(access(join(dataDir, `mcp-tokens.sqlite${suffix}`)));
     }
   });
 
@@ -192,7 +223,9 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
     assert.equal((await api(server, `/api/mcp/tokens/${id}`, { method: "DELETE" })).status, 200);
     assert.equal((await api(server, `/api/mcp/tokens/${id}`, { method: "DELETE" })).status, 404);
     assert.equal((await api(server, "/api/mcp/tokens/999", { method: "DELETE" })).status, 404);
-    assert.equal((await api(server, "/api/mcp/tokens/abc", { method: "DELETE" })).status, 404);
+    for (const bad of ["abc", "0", "01", "-1", "1.5", "9007199254740993", "1234567890"]) {
+      assert.equal((await api(server, `/api/mcp/tokens/${bad}`, { method: "DELETE" })).status, 404, bad);
+    }
     assert.equal((await mcpList(server, second.body.token)).status, 401);
     assert.equal((await mcpList(server, first.body.token)).status, 200);
     const list = await api(server, "/api/mcp/tokens");
@@ -201,7 +234,7 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
 
   await t.test("auto names keep counting after revoke", async () => {
     const next = await api(server, "/api/mcp/tokens", { method: "POST", body: {} });
-    assert.equal(next.body.tokenInfo.name, "Token 4");
+    assert.equal(next.body.tokenInfo.name, "Token 7");
     await api(server, `/api/mcp/tokens/${next.body.tokenInfo.id}`, { method: "DELETE" });
   });
 
@@ -228,4 +261,16 @@ test("MCP tokens: issue, list, use, revoke", async (t) => {
       assert.equal(res.status, 404, path);
     }
   });
+});
+
+test("MCP token DB must not be the document DB", async () => {
+  const dataDir = await mkdtemp(join(os.tmpdir(), "fc-mcp-same-"));
+  try {
+    await assert.rejects(
+      startServer(dataDir, { MCP_TOKENS_DB_PATH: join(dataDir, "db.sqlite") }),
+      /MCP_TOKENS_DB_PATH must not point at DB_PATH/,
+    );
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
 });

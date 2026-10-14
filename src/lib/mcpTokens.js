@@ -63,7 +63,9 @@ export class McpTokenStore {
   constructor({ dbPath }) {
     this.db = new DatabaseSync(dbPath);
     this.db.exec("PRAGMA busy_timeout = 5000");
-    this.db.exec("PRAGMA journal_mode = WAL");
+    // Default rollback journal on purpose (no WAL): the store is tiny and
+    // written rarely, and no long-lived -wal/-shm side files (which would hold
+    // token hashes outside the 0600 main file) are left next to it.
     enableSecureDelete(this.db);
     this.db.exec(SCHEMA);
     this.lastUsedWrites = new Map();
@@ -121,7 +123,13 @@ export class McpTokenStore {
         .get(result.lastInsertRowid);
       return { token, record: toPublic(row) };
     } catch (err) {
-      this.db.exec("ROLLBACK");
+      if (this.db.isTransaction) {
+        try {
+          this.db.exec("ROLLBACK");
+        } catch {
+          // Keep the original error.
+        }
+      }
       throw err;
     }
   }
@@ -158,11 +166,11 @@ export class McpTokenStore {
     const now = Date.now();
     const last = this.lastUsedWrites.get(id) ?? 0;
     if (now - last < LAST_USED_WRITE_INTERVAL_MS) return;
-    this.lastUsedWrites.set(id, now);
     try {
       this.db
         .prepare("UPDATE mcp_tokens SET last_used_at = ? WHERE id = ? AND revoked_at IS NULL")
         .run(new Date(now).toISOString(), id);
+      this.lastUsedWrites.set(id, now);
     } catch (err) {
       console.warn("Failed to record MCP token use:", err?.message || err);
     }

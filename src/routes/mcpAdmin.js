@@ -3,7 +3,7 @@ import { readJsonBody } from "../lib/http.js";
 import { MAX_MCP_TOKEN_NAME_LENGTH, normalizeMcpTokenName } from "../lib/mcpTokens.js";
 import { json } from "../lib/responses.js";
 
-const TOKEN_ITEM_RE = /^\/api\/mcp\/tokens\/([1-9][0-9]{0,15})$/;
+const TOKEN_ITEM_RE = /^\/api\/mcp\/tokens\/([1-9][0-9]{0,8})$/;
 
 const methodNotAllowed = (response, allow) =>
   json(response, 405, { error: "Method Not Allowed" }, { Allow: allow });

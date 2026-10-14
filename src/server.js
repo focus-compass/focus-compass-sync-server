@@ -2,12 +2,12 @@ import "dotenv/config";
 
 import { Server } from "@hocuspocus/server";
 import { mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkAuth, getBearerToken, normalizeAuthToken, safeEqual } from "./lib/auth.js";
 import { MAX_DOC_NAME_LENGTH } from "./lib/db.js";
 import { readBoolEnv, readNumberEnv, readPositiveIntegerEnv } from "./lib/env.js";
-import { readJsonOrNull } from "./lib/fs.js";
+import { readJsonOrNull, statOrNull } from "./lib/fs.js";
 import {
   createCorsPolicy,
   parseRequestUrl,
@@ -61,6 +61,10 @@ const AUTH_FILE_PATH =
 // restoring a document backup can never bring a revoked token back.
 const MCP_TOKENS_DB_PATH =
   process.env.MCP_TOKENS_DB_PATH ?? join(dirname(DB_PATH), "mcp-tokens.sqlite");
+if (resolve(MCP_TOKENS_DB_PATH) === resolve(DB_PATH)) {
+  console.error("MCP_TOKENS_DB_PATH must not point at DB_PATH (backups would include MCP tokens).");
+  process.exit(1);
+}
 
 await ensurePrivateDir(dirname(AUTH_FILE_PATH));
 await ensurePrivateDir(dirname(MCP_TOKENS_DB_PATH));
@@ -84,6 +88,13 @@ let authToken = initialAuthToken;
 
 const mcpTokens = new McpTokenStore({ dbPath: MCP_TOKENS_DB_PATH });
 await hardenPrivateFileIfExists(MCP_TOKENS_DB_PATH);
+const LEGACY_MCP_AUTH_FILE_PATH =
+  process.env.MCP_AUTH_FILE_PATH ?? join(dirname(DB_PATH), "mcp-auth.json");
+if (await statOrNull(LEGACY_MCP_AUTH_FILE_PATH)) {
+  console.warn(
+    `Legacy MCP token file ${LEGACY_MCP_AUTH_FILE_PATH} is ignored. Issue MCP tokens from the admin UI (/); the file can be deleted.`,
+  );
+}
 if (String(process.env.MCP_TOKEN ?? "").trim()) {
   console.warn(
     "MCP_TOKEN is no longer supported and is ignored. Issue MCP tokens from the admin UI (/).",

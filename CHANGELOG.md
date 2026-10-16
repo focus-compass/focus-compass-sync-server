@@ -2,7 +2,7 @@
 
 All notable changes to the Focus Compass sync server are documented here.
 
-## 0.0.9 - Unreleased
+## 0.0.9 - 2026-10-17
 
 ### Breaking
 

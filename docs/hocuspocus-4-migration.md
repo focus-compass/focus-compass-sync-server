@@ -111,6 +111,10 @@ Before release, run a v4 -> v0.0.6 -> v4 cycle on the same disposable volume.
 
 ## Release and rollback runbook
 
+> Current releases use `scripts/release.sh` (see `AGENTS.md`, "Releasing"):
+> the tag image is published and verified before `main` is fast-forwarded.
+> The steps below are the historical v0.0.7 record.
+
 The next server version is `0.0.7`. Do not change the app installer until the
 multi-architecture manifest exists and all commands below pass.
 The server Compose file is prepared for the matching v0.0.7 tag. The app

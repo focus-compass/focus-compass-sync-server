@@ -62,6 +62,37 @@ Smoke checks:
 - `docker-compose.yml`, `Dockerfile`: production containerization
 - `CLAUDE.md`: repository-specific operational notes (keep consistent)
 
+## Releasing
+Dokploy and other consumers follow `main` / the pinned image tag, so `main` must
+never reference an image that is not on GHCR yet. Always release with:
+
+```sh
+scripts/release.sh 0.0.10 --dry-run   # preview every step, changes nothing
+scripts/release.sh 0.0.10             # real release (add --skip-tests only if CI already passed)
+```
+
+Prerequisites: clean tree on `main` equal to `origin/main`, `gh` logged in, and a
+`## X.Y.Z - Unreleased` (or `## Unreleased`) section in `CHANGELOG.md`.
+
+Order enforced by the script (`main` is only touched in the last step):
+1. Create `release/vX.Y.Z`; bump `package.json`/lock, the `vX.Y.Z` image refs in
+   `.env.example`, `docker-compose.yml`, `README.md`,
+   `.github/workflows/guides-e2e.yml`, `tests/test-docker-guide.sh`; date the
+   CHANGELOG section.
+2. `npm test`, `npm run lint`, `npm audit --omit=dev` (same gates as CI).
+3. Commit `release: prepare vX.Y.Z`, push the branch and tag `vX.Y.Z`.
+   (`publish-docker.yml` runs on `main` and `v*` tags only, so the release
+   branch itself triggers nothing; the GitHub release job runs for tags only.)
+4. Wait for the tag's "Publish Docker Image" run (`gh run watch --exit-status`).
+5. Check the `vX.Y.Z` manifest on GHCR returns 200 (anonymous pull token).
+6. Fast-forward `origin/main` to the release commit (no force) and delete the
+   release branch.
+
+If anything fails before step 6 the script stops, `main` is unchanged, and it
+prints the exact local/remote cleanup commands (delete the pushed tag and branch
+before retrying). Never push a version bump straight to
+`main`.
+
 ## Environment / Secrets
 - Use `.env.example` as the source of truth for env var names.
 - Do not commit secrets: `.env` is gitignored (see `.gitignore`).

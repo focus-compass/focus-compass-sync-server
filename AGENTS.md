@@ -79,7 +79,7 @@ Order enforced by the script (`main` is only touched in the last step):
    `.env.example`, `docker-compose.yml`, `README.md`,
    `.github/workflows/guides-e2e.yml`, `tests/test-docker-guide.sh`; date the
    CHANGELOG section.
-2. `npm test` + `npm run lint`.
+2. `npm test`, `npm run lint`, `npm audit --omit=dev` (same gates as CI).
 3. Commit `release: prepare vX.Y.Z`, push the branch and tag `vX.Y.Z`.
    (`publish-docker.yml` runs on `main` and `v*` tags only, so the release
    branch itself triggers nothing; the GitHub release job runs for tags only.)
@@ -88,8 +88,9 @@ Order enforced by the script (`main` is only touched in the last step):
 6. Fast-forward `origin/main` to the release commit (no force) and delete the
    release branch.
 
-If anything fails before step 6 the script stops and `main` is unchanged; delete
-the pushed tag/branch before retrying. Never push a version bump straight to
+If anything fails before step 6 the script stops, `main` is unchanged, and it
+prints the exact local/remote cleanup commands (delete the pushed tag and branch
+before retrying). Never push a version bump straight to
 `main`.
 
 ## Environment / Secrets

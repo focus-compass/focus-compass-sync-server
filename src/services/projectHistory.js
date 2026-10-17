@@ -81,6 +81,11 @@ export class ProjectHistoryStore {
     }
   }
 
+  /** Drop one entry (used when the write it was snapshotted for failed). */
+  remove(id) {
+    this.db.prepare("DELETE FROM project_versions WHERE id = ?").run(id);
+  }
+
   list(docName, projectId) {
     return this.db
       .prepare(

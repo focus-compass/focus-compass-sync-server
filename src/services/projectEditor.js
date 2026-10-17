@@ -204,8 +204,27 @@ export class ProjectEditor {
         if (written === undefined || !deepEqual(written, next)) {
           // Should be impossible; undo within the same transaction so clients
           // never observe a half-applied project.
-          syncYMap(found.yMap, current);
-          outcome = { error: new ProjectEditorError(500, "Write verification failed; the project was left unchanged") };
+          let restored = false;
+          try {
+            syncYMap(found.yMap, current);
+            restored = deepEqual(found.yMap.toJSON(), current);
+          } catch (err) {
+            console.error("[project-editor] rollback failed:", err);
+          }
+          if (restored) {
+            // Nothing changed, so the snapshot is not a real previous version.
+            try {
+              this.history.remove(historyId);
+            } catch (err) {
+              console.error("[project-editor] could not drop history entry:", err);
+            }
+            outcome = { error: new ProjectEditorError(500, "Write verification failed; the project was left unchanged") };
+          } else {
+            // Keep the snapshot so the previous version can be restored.
+            outcome = {
+              error: new ProjectEditorError(500, "Write failed and could not be fully rolled back; reload the project and check it. The previous version is in History.", { historyId }),
+            };
+          }
           return;
         }
         outcome = { unchanged: false, version: projectVersion(written), historyId };

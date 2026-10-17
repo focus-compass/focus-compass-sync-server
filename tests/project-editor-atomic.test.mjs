@@ -104,6 +104,7 @@ test("a write that fails half-way is rolled back inside the same transaction", a
 
     const after = ctx.editor.getProject(DOC, project.id);
     assert.equal(after.version, version, "project content is exactly the original");
+    assert.deepEqual(ctx.history.list(DOC, project.id), [], "no bogus history entry is left behind");
     assert.equal(after.project.title, project.title);
     // Observers saw at most one combined update, and its net effect is no change.
     assert.ok(updates.length <= 1);

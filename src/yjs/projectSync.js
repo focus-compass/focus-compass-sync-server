@@ -1,17 +1,24 @@
 import { createHash } from "node:crypto";
 import * as Y from "yjs";
 
-/** JSON with object keys sorted, so equal data always yields the same string. */
-export const canonicalJson = (value) => JSON.stringify(sortKeys(value));
-
-const sortKeys = (value) => {
-  if (Array.isArray(value)) return value.map(sortKeys);
-  if (value && typeof value === "object") {
-    const out = {};
-    for (const key of Object.keys(value).sort()) out[key] = sortKeys(value[key]);
-    return out;
+/**
+ * JSON with object keys sorted, so equal data always yields the same string.
+ * Built directly (not via a sorted copy) so a "__proto__" own key is kept.
+ */
+export const canonicalJson = (value) => {
+  if (Array.isArray(value)) {
+    // Array.from visits holes too (map would skip them).
+    return `[${Array.from(value, (item) => (item === undefined ? "null" : canonicalJson(item))).join(",")}]`;
   }
-  return value;
+  if (value && typeof value === "object") {
+    const parts = [];
+    for (const key of Object.keys(value).sort()) {
+      if (value[key] === undefined) continue;
+      parts.push(`${JSON.stringify(key)}:${canonicalJson(value[key])}`);
+    }
+    return `{${parts.join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
 };
 
 /** Opaque optimistic-concurrency token for a project's content. */

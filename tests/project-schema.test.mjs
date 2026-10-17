@@ -65,6 +65,20 @@ test("rejects __proto__ / constructor keys from JSON.parse", () => {
   assert.equal({}.polluted, undefined);
 });
 
+test("rejects __proto__ keys inside free-form records", () => {
+  const p = JSON.parse(JSON.stringify(base()).replace(/^\{/, '{"fields":{"__proto__":"x","ok":"y"},').replace(/,"fields":\{[^}]*\}/, ""));
+  const result = validateProject(p, { expectedId: p.id });
+  assert.deepEqual(paths(result), ["project.fields.__proto__"]);
+});
+
+test("canonicalJson keeps own __proto__ keys, so versions see every change", () => {
+  const a = JSON.parse('{"fields":{"__proto__":"1"}}');
+  const b = JSON.parse('{"fields":{"__proto__":"2"}}');
+  assert.notEqual(projectVersion(a), projectVersion(b));
+  assert.equal(canonicalJson(a), '{"fields":{"__proto__":"1"}}');
+  assert.equal(canonicalJson({ b: [1, "x", null, true], a: { d: 1.5, c: -0 } }), JSON.stringify({ a: { c: 0, d: 1.5 }, b: [1, "x", null, true] }));
+});
+
 test("rejects UI-only (transient) keys", () => {
   const p = base();
   p.isNew = true;

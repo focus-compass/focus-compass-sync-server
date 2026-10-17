@@ -174,6 +174,11 @@ const checkType = (schema, value, path, errors) => {
         return;
       }
       for (const [key, item] of Object.entries(value)) {
+        // "__proto__" cannot survive a Yjs/JSON round-trip as a plain key.
+        if (key === "__proto__") {
+          errors.push({ path: joinPath(path, key), message: "reserved key is not allowed" });
+          continue;
+        }
         checkType(schema.value, item, joinPath(path, key), errors);
       }
       return;

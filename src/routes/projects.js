@@ -22,7 +22,15 @@ const decodeProjectId = (encoded, response) => {
   return id;
 };
 
-const readBody = (request, response) => readJsonBody(request, response, MAX_PROJECT_BODY_BYTES);
+const readBody = (request, response) => {
+  // Refuse a declared-oversized body before reading it, and close the
+  // connection so the unread rest of the body cannot poison keep-alive reuse.
+  const declared = Number(request.headers["content-length"]);
+  if (Number.isFinite(declared) && declared > MAX_PROJECT_BODY_BYTES) {
+    return json(response, 413, { error: "Request body too large; nothing was saved" }, { Connection: "close" });
+  }
+  return readJsonBody(request, response, MAX_PROJECT_BODY_BYTES);
+};
 
 const sendEditorError = (response, err) => {
   if (err instanceof ProjectEditorError) {

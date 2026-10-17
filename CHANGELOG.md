@@ -17,6 +17,11 @@ All notable changes to the Focus Compass sync server are documented here.
 - `PROJECT_HISTORY_DB_PATH` (default `project-history.sqlite` next to the DB)
   and `PROJECT_HISTORY_LIMIT` (default 20).
 
+### Fixed
+
+- A JSON request body over the size limit now closes the connection, so the
+  unread rest of the body can no longer break the next keep-alive request.
+
 ## 0.0.9 - 2026-10-17
 
 ### Breaking

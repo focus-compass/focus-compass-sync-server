@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import http from "node:http";
 import net from "node:net";
 import os from "node:os";
 import { dirname, join } from "node:path";
@@ -306,6 +307,42 @@ test("invalid saves are rejected with clear errors and change nothing", async ()
   assert.equal((await getProject(P1.id)).version, version);
   assert.equal(canonicalJson(clientProject(seedClient, P1.id)), canonicalJson(P1));
   assert.equal((await request(server, projectPath(P1.id, "/history"))).body.history.length, historyBefore);
+});
+
+test("oversized request bodies are rejected without writing", async () => {
+  const { version, project } = await getProject(P1.id);
+  const bytesBefore = storedBytes(server.dbPath);
+  // Declare an oversized body but never send it: the server must answer 413
+  // from the headers alone (and close the connection).
+  const status = await new Promise((resolve, reject) => {
+    const req = http.request(`${server.url}${projectPath(P1.id)}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${MASTER}`,
+        "Content-Type": "application/json",
+        "Content-Length": String(9 * 1024 * 1024),
+      },
+    }, (res) => {
+      res.resume();
+      res.on("end", () => resolve({ code: res.statusCode, connection: res.headers.connection }));
+    });
+    req.on("error", reject);
+    req.flushHeaders();
+  });
+  assert.deepEqual(status, { code: 413, connection: "close" });
+
+  // A chunked body without Content-Length is still capped while reading.
+  const huge = clone(project);
+  huge.info.description = "x".repeat(9 * 1024 * 1024);
+  const chunked = await fetch(`${server.url}${projectPath(P1.id)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${MASTER}`, "Content-Type": "application/json" },
+    body: new Blob([JSON.stringify({ baseVersion: version, project: huge })]).stream(),
+    duplex: "half",
+  }).then((r) => r.status, () => "connection closed");
+  assert.ok([400, 413, "connection closed"].includes(chunked), String(chunked));
+  assert.equal((await getProject(P1.id)).version, version);
+  assert.equal(storedBytes(server.dbPath), bytesBefore);
 });
 
 test("valid save is atomic, reaches live clients, persists and is recorded in history", async () => {

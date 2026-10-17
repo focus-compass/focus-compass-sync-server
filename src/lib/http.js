@@ -14,6 +14,9 @@ export const readJsonBody = async (request, response, maxBytes = 8192) => {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       total += buf.length;
       if (total > maxBytes) {
+        // The rest of the body stays unread; close the connection so it
+        // cannot be parsed as the next keep-alive request.
+        response.setHeader("Connection", "close");
         return badRequest(response, "Request body too large");
       }
       chunks.push(buf);

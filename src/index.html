@@ -4880,6 +4880,11 @@
       } catch (err) {
         let where = "";
         const m = /position (\d+)/.exec(String(err.message));
+        if (m) {
+          // Put the caret where parsing failed.
+          const pos = Math.min(Number(m[1]), text.length);
+          try { $("projJson").focus(); $("projJson").setSelectionRange(pos, pos); } catch { /* ignore */ }
+        }
         if (m && !/line \d+/.test(err.message)) {
           const before = text.slice(0, Number(m[1]));
           const line = before.split("\n").length;
@@ -5106,7 +5111,9 @@
         }
       });
       window.addEventListener("beforeunload", (e) => {
-        if (isProjectDirty()) e.preventDefault();
+        if (!isProjectDirty()) return;
+        e.preventDefault();
+        e.returnValue = "";
       });
     }
 

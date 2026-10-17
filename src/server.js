@@ -23,9 +23,12 @@ import { handleAuthRequest } from "./routes/auth.js";
 import { handleImagesRequest } from "./routes/images.js";
 import { handleMcpRequest } from "./routes/mcp.js";
 import { handleMcpAdminRequest } from "./routes/mcpAdmin.js";
+import { handleProjectsRequest } from "./routes/projects.js";
 import { handleStaticRequest } from "./routes/static.js";
 import { handleWorkspaceRequest } from "./routes/workspace.js";
 import { BackupService } from "./services/backup.js";
+import { ProjectEditor } from "./services/projectEditor.js";
+import { DEFAULT_PROJECT_HISTORY_LIMIT, ProjectHistoryStore } from "./services/projectHistory.js";
 import { DocMetaCache } from "./services/docMeta.js";
 import { getDocMetaFromYDoc } from "./yjs/inspect.js";
 
@@ -100,6 +103,20 @@ if (String(process.env.MCP_TOKEN ?? "").trim()) {
     "MCP_TOKEN is no longer supported and is ignored. Issue MCP tokens from the admin UI (/).",
   );
 }
+
+// Previous versions of projects edited via the admin project editor.
+const PROJECT_HISTORY_DB_PATH =
+  process.env.PROJECT_HISTORY_DB_PATH ?? join(dirname(DB_PATH), "project-history.sqlite");
+if (resolve(PROJECT_HISTORY_DB_PATH) === resolve(DB_PATH)) {
+  console.error("PROJECT_HISTORY_DB_PATH must not point at DB_PATH.");
+  process.exit(1);
+}
+await ensurePrivateDir(dirname(PROJECT_HISTORY_DB_PATH));
+const projectHistory = new ProjectHistoryStore({
+  dbPath: PROJECT_HISTORY_DB_PATH,
+  limit: readPositiveIntegerEnv("PROJECT_HISTORY_LIMIT", DEFAULT_PROJECT_HISTORY_LIMIT),
+});
+await hardenPrivateFileIfExists(PROJECT_HISTORY_DB_PATH);
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
 const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB_PATH), "backup-settings.json");
@@ -289,6 +306,14 @@ const server = new Server({
         hocuspocusServer: server,
       });
 
+      await handleProjectsRequest({
+        request,
+        response,
+        pathname,
+        checkAuth: isAuthed,
+        projectEditor,
+      });
+
       await handleWorkspaceRequest({
         request,
         response,
@@ -348,6 +373,13 @@ const server = new Server({
   },
 });
 
+const projectEditor = new ProjectEditor({
+  hocuspocus: server.hocuspocus,
+  dbPath: DB_PATH,
+  history: projectHistory,
+  maxDocDecodeBytes: MAX_DOC_DECODE_BYTES,
+});
+
 console.log(`Hocuspocus server starting on port ${port}...`);
 
 if (envManaged) {
@@ -374,6 +406,7 @@ const shutdown = async (signal) => {
   }
   try {
     mcpTokens.close();
+    projectHistory.close();
   } catch (error) {
     console.error("Error closing MCP token store:", error);
   }

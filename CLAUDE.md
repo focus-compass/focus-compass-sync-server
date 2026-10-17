@@ -34,6 +34,7 @@ Requires Node.js >= 24.0.0. Uses ES modules (`"type": "module"`).
 - `GET /api/mcp/tokens` - List active MCP tokens: id, name, prefix, createdAt, lastUsedAt (master token required)
 - `POST /api/mcp/tokens` - Issue an MCP token; body `{ name? }`, empty name becomes "Token N"; returns the full token once (master token required)
 - `DELETE /api/mcp/tokens/{id}` - Revoke an MCP token (master token required)
+- `/api/admin/documents/{doc}/projects[/{id}[/validate|/history[/{hid}[/restore]]]]` - Admin project editor (master token required): list/get projects, `PUT {baseVersion, project}`, `PATCH {baseVersion, patch}`, dry-run validation, history and restore. Strict schema in `src/yjs/projectSchema.js` (must match the app's `Project` type); writes are one Yjs transaction via a Hocuspocus direct connection; stale `baseVersion` → 409; previous versions in `PROJECT_HISTORY_DB_PATH` (last `PROJECT_HISTORY_LIMIT`, default 20)
 
 **Static Routes**:
 - `/` or `/index.html` - Admin UI (see `src/index.html`)

@@ -78,6 +78,8 @@ Use [.env.example](.env.example) as the source of truth for environment variable
 | `IMAGES_DIR` | `./data/images` | Image storage directory |
 | `BACKUP_DIR` | `./data/backups` | Backup storage directory |
 | `MCP_TOKENS_DB_PATH` | `./data/mcp-tokens.sqlite` | MCP token hashes (managed from the admin UI) |
+| `PROJECT_HISTORY_DB_PATH` | `./data/project-history.sqlite` | Previous versions of projects edited in the admin UI |
+| `PROJECT_HISTORY_LIMIT` | `20` | Previous versions kept per project |
 | `MAX_WEBSOCKET_MESSAGE_BYTES` | `16777216` | Maximum complete WebSocket/Yjs message after frame reassembly (16 MiB) |
 | `MAX_UNAUTHENTICATED_QUEUE_BYTES` | `262144` | Maximum data buffered by one connection before authentication (256 KiB) |
 | `MAX_UNAUTHENTICATED_QUEUE_MESSAGES` | `32` | Maximum messages buffered by one connection before authentication |
@@ -99,9 +101,47 @@ immutable-image rollback plan.
 - `GET /api/images` - list images
 - `POST /api/upload` - upload an image
 - `GET /api/mcp/tokens`, `POST /api/mcp/tokens`, `DELETE /api/mcp/tokens/:id` - manage MCP tokens (master token)
+- `/api/admin/documents/:document/projects[/:id]` - list, read and edit single projects (master token), see [Project editor](#project-editor)
 - `POST /mcp` - optional read-only MCP endpoint
 
 Most `/api/*` routes require `Authorization: Bearer <token>`. Public exceptions are `GET /api/auth/status`, `POST /api/auth/setup` while the server is not initialized, and `GET /api/mcp/status`. WebSocket connections use the same master token. MCP uses its own tokens.
+
+## Project editor
+
+In the admin UI, opening a workspace shows its projects; each project opens on
+its own, with its JSON in an editor. Saving is deliberately strict:
+
+1. The JSON must parse and match the project schema exactly
+   (`src/yjs/projectSchema.js`, derived from the app's `Project` type). Unknown
+   fields, UI-only fields (`isNew`, …), wrong types, missing required fields,
+   duplicate ids and id changes are rejected with the path of every problem.
+   Dangling references (a task in a missing group, …) are warnings.
+2. You see a line diff of the stored version against yours and must confirm it.
+3. The save carries the version (hash) you loaded. If anyone changed the
+   project since (the app, another admin tab), it is rejected with a conflict
+   and you can reload.
+4. The write is one Yjs transaction on the live document, so connected apps
+   get it at once and never see a half-applied project; it is then stored
+   immediately.
+5. The version being replaced is kept (last `PROJECT_HISTORY_LIMIT` per
+   project) and can be restored from History, again via diff and confirmation.
+
+API (all require the master token):
+
+| Method | Path (under `/api/admin/documents/:document/projects`) | Body |
+| --- | --- | --- |
+| `GET` | `/` | – list `{ id, title, description, tasks, openTasks }` |
+| `GET` | `/:id` | – returns `{ project, version, validation }` |
+| `PUT` | `/:id` | `{ baseVersion, project }` replace the whole project |
+| `PATCH` | `/:id` | `{ baseVersion, patch }` set top-level fields (`null` removes one) |
+| `POST` | `/:id/validate` | `{ project }` dry run, returns `{ ok, errors, warnings }` |
+| `GET` | `/:id/history` | – previous versions |
+| `GET` | `/:id/history/:historyId` | – one previous version with its JSON |
+| `POST` | `/:id/history/:historyId/restore` | `{ baseVersion }` |
+
+Errors: `400` malformed request, `404` unknown document/project, `409`
+conflict (`currentVersion` included), `422` invalid project (`errors[]` with
+`path` and `message`). Nothing is written on any error.
 
 ## Client Example
 

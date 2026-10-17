@@ -1,0 +1,892 @@
+[
+ {
+  "id": "id000001",
+  "title": "SpaceX",
+  "info": {
+   "image": "/images/preset-project-spacex.webp",
+   "description": "Reusable rockets cutting the cost of orbit — building toward life on Mars.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [
+   {
+    "id": "id000003",
+    "text": "Freeze the ship and booster config for the next flight",
+    "completed": false,
+    "group": "id000002"
+   }
+  ],
+  "groups": [
+   {
+    "id": "id000002",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id000004",
+    "name": "Ideas",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id000005",
+      "text": "",
+      "projectId": "id000001",
+      "notesId": "id000004"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 980,
+   "y": 140
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://www.spacex.com"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id000006",
+  "title": "Tesla",
+  "info": {
+   "image": "/images/preset-project-tesla.webp",
+   "description": "Electric vehicles and self-driving — now rolling out a robotaxi network.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [
+   {
+    "id": "id000009",
+    "text": "Choose the next block and lock the geofence",
+    "completed": true,
+    "group": "id000007"
+   },
+   {
+    "id": "id00000a",
+    "text": "Mark the exact pickup and drop-off points for that block.",
+    "completed": false,
+    "group": "id000007"
+   },
+   {
+    "id": "id00000b",
+    "text": "Push the updated build to the internal Austin test fleet",
+    "completed": false,
+    "group": "id000008"
+   },
+   {
+    "id": "id00000c",
+    "text": "Run 20 clean rides on the new block before opening it up",
+    "completed": false,
+    "group": "id000008"
+   }
+  ],
+  "groups": [
+   {
+    "id": "id000007",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": false,
+    "done": false
+   },
+   {
+    "id": "id000008",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00000d",
+    "name": "Ideas",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00000e",
+      "text": "",
+      "projectId": "id000006",
+      "notesId": "id00000d"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 1420,
+   "y": 140
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://www.tesla.com"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id00000f",
+  "title": "Neuralink",
+  "info": {
+   "image": "/images/preset-project-neuralink.webp",
+   "description": "Brain–computer interfaces that let people control devices with their mind.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id00000g",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00000h",
+    "name": "Ideas",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00000i",
+      "text": "",
+      "projectId": "id00000f",
+      "notesId": "id00000h"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 1420,
+   "y": 540
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://neuralink.com"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id00000j",
+  "title": "xAI",
+  "info": {
+   "image": "/images/preset-project-xai.webp",
+   "description": "AI lab behind Grok, on a mission to understand the universe.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [
+   {
+    "id": "id00000l",
+    "text": "Post new meme tweet",
+    "completed": false,
+    "group": "id00000k"
+   }
+  ],
+  "groups": [
+   {
+    "id": "id00000k",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00000m",
+    "name": "Ideas",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00000n",
+      "text": "",
+      "projectId": "id00000j",
+      "notesId": "id00000m"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 980,
+   "y": 480
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://x.ai"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id00000o",
+  "title": "TON",
+  "info": {
+   "image": "/images/preset-project-ton.png",
+   "description": "Блокчейн, интегрированный с Telegram: кошелёк, платежи и мини-приложения.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [
+   {
+    "id": "id00000q",
+    "text": "Стать крупнейшим валидатором сети",
+    "completed": true,
+    "group": "id00000p"
+   },
+   {
+    "id": "id00000r",
+    "text": "Обнулить комиссии в сети",
+    "completed": false,
+    "group": "id00000p"
+   }
+  ],
+  "groups": [
+   {
+    "id": "id00000p",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00000s",
+    "name": "Идеи",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00000t",
+      "text": "",
+      "projectId": "id00000o",
+      "notesId": "id00000s"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 980,
+   "y": 140
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://ton.org"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id00000u",
+  "title": "Telegram",
+  "info": {
+   "image": "/images/preset-project-telegram.png",
+   "description": "Быстрый мессенджер с акцентом на приватность и открытый API.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [
+   {
+    "id": "id00000x",
+    "text": "Выкатить апдейт: 10 новых функций и 200 улучшений",
+    "completed": true,
+    "group": "id00000v"
+   },
+   {
+    "id": "id00000y",
+    "text": "Добавить реакции и комментарии в групповые звонки",
+    "completed": false,
+    "group": "id00000v"
+   },
+   {
+    "id": "id00000z",
+    "text": "Обновить протокол обхода блокировок",
+    "completed": false,
+    "group": "id00000w"
+   },
+   {
+    "id": "id000010",
+    "text": "Перевести интерфейс на «жидкое стекло» под iOS 26",
+    "completed": false,
+    "group": "id00000w"
+   }
+  ],
+  "groups": [
+   {
+    "id": "id00000v",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": false,
+    "done": false
+   },
+   {
+    "id": "id00000w",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id000011",
+    "name": "Идеи",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id000012",
+      "text": "",
+      "projectId": "id00000u",
+      "notesId": "id000011"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 1420,
+   "y": 140
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://telegram.org"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id000013",
+  "title": "Cocoon",
+  "info": {
+   "image": "/images/preset-project-cocoon.webp",
+   "description": "Сеть приватных вычислений для AI: аренда GPU, оплата в TON.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id000014",
+    "checklistId": "main",
+    "notes": "Приватный AI на арендованных GPU. Награды — в TON.",
+    "notesVisible": true
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id000015",
+    "name": "Идеи",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id000016",
+      "text": "",
+      "projectId": "id000013",
+      "notesId": "id000015"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 1420,
+   "y": 540
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://cocoon.org"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id000017",
+  "title": "Цифровое сопротивление",
+  "info": {
+   "image": "/images/preset-project-digital-resistance.webp",
+   "description": "Движение за свободный интернет и приватность против цензуры.",
+   "imageFit": "contain"
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [
+   {
+    "id": "id000019",
+    "text": "Запостить манифест о свободном интернете",
+    "completed": false,
+    "group": "id000018"
+   }
+  ],
+  "groups": [
+   {
+    "id": "id000018",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00001a",
+    "name": "Идеи",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00001b",
+      "text": "",
+      "projectId": "id000017",
+      "notesId": "id00001a"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 980,
+   "y": 480
+  },
+  "template": {
+   "id": "startup-template",
+   "source": "builtin",
+   "version": "1.0.0.0"
+  },
+  "fields": {
+   "links": "https://t.me/durov"
+  },
+  "isSetupPending": false,
+  "isPlacing": false
+ },
+ {
+  "id": "id00001c",
+  "title": "",
+  "titlePlaceholder": "Project 1",
+  "info": {
+   "image": "",
+   "description": ""
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id00001d",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true,
+    "done": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00001e",
+    "name": "Ideas",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00001f",
+      "text": "",
+      "projectId": "id00001c",
+      "notesId": "id00001e"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 100,
+   "y": 200
+  },
+  "template": {
+   "id": "default",
+   "source": "builtin",
+   "version": "1"
+  },
+  "fields": {},
+  "isSetupPending": true,
+  "isPlacing": false
+ },
+ {
+  "id": "id00001g",
+  "title": "",
+  "titlePlaceholder": "Project 2",
+  "info": {
+   "image": "",
+   "description": ""
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id00001h",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true,
+    "done": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00001i",
+    "name": "Ideas",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00001j",
+      "text": "",
+      "projectId": "id00001g",
+      "notesId": "id00001i"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 540,
+   "y": 100
+  },
+  "template": {
+   "id": "default",
+   "source": "builtin",
+   "version": "1"
+  },
+  "fields": {},
+  "isSetupPending": true,
+  "isPlacing": false
+ },
+ {
+  "id": "id00001k",
+  "title": "",
+  "titlePlaceholder": "Project 3",
+  "info": {
+   "image": "",
+   "description": ""
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id00001l",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true,
+    "done": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00001m",
+    "name": "Ideas",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00001n",
+      "text": "",
+      "projectId": "id00001k",
+      "notesId": "id00001m"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 540,
+   "y": 480
+  },
+  "template": {
+   "id": "default",
+   "source": "builtin",
+   "version": "1"
+  },
+  "fields": {},
+  "isSetupPending": true,
+  "isPlacing": false
+ },
+ {
+  "id": "id00001o",
+  "title": "",
+  "titlePlaceholder": "Проект 1",
+  "info": {
+   "image": "",
+   "description": ""
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id00001p",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true,
+    "done": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00001q",
+    "name": "Идеи",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00001r",
+      "text": "",
+      "projectId": "id00001o",
+      "notesId": "id00001q"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 100,
+   "y": 200
+  },
+  "template": {
+   "id": "default",
+   "source": "builtin",
+   "version": "1"
+  },
+  "fields": {},
+  "isSetupPending": true,
+  "isPlacing": false
+ },
+ {
+  "id": "id00001s",
+  "title": "",
+  "titlePlaceholder": "Проект 2",
+  "info": {
+   "image": "",
+   "description": ""
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id00001t",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true,
+    "done": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00001u",
+    "name": "Идеи",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00001v",
+      "text": "",
+      "projectId": "id00001s",
+      "notesId": "id00001u"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 540,
+   "y": 100
+  },
+  "template": {
+   "id": "default",
+   "source": "builtin",
+   "version": "1"
+  },
+  "fields": {},
+  "isSetupPending": true,
+  "isPlacing": false
+ },
+ {
+  "id": "id00001w",
+  "title": "",
+  "titlePlaceholder": "Проект 3",
+  "info": {
+   "image": "",
+   "description": ""
+  },
+  "checklists": [
+   {
+    "id": "main",
+    "name": "Main"
+   }
+  ],
+  "selectedChecklistId": "main",
+  "tasks": [],
+  "groups": [
+   {
+    "id": "id00001x",
+    "checklistId": "main",
+    "notes": "",
+    "notesVisible": true,
+    "done": false
+   }
+  ],
+  "noteCollections": [
+   {
+    "id": "id00001y",
+    "name": "Идеи",
+    "icon": "Lightbulb",
+    "items": [
+     {
+      "id": "id00001z",
+      "text": "",
+      "projectId": "id00001w",
+      "notesId": "id00001y"
+     }
+    ],
+    "settings": {
+     "showDragHandle": true
+    }
+   }
+  ],
+  "position": {
+   "x": 540,
+   "y": 480
+  },
+  "template": {
+   "id": "default",
+   "source": "builtin",
+   "version": "1"
+  },
+  "fields": {},
+  "isSetupPending": true,
+  "isPlacing": false
+ }
+]

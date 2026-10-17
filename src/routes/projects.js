@@ -6,7 +6,9 @@ import { validateProject } from "../yjs/projectSchema.js";
 import { ProjectEditorError } from "../services/projectEditor.js";
 
 // Projects are a few KB to a few MB (tasks, notes, image refs).
-export const MAX_PROJECT_BODY_BYTES = 8 * 1024 * 1024;
+// Default matches MAX_WEBSOCKET_MESSAGE_BYTES, so any project the app could
+// sync is also small enough to edit here. Override with PROJECT_MAX_BODY_BYTES.
+export const MAX_PROJECT_BODY_BYTES = 16 * 1024 * 1024;
 const MAX_PROJECT_ID_LENGTH = 512;
 
 const BASE_RE = /^\/api\/admin\/documents\/([^/]+)\/projects(?:\/([^/]+)(?:\/(validate|history)(?:\/([1-9][0-9]{0,8})(?:\/(restore))?)?)?)?$/;
@@ -22,14 +24,14 @@ const decodeProjectId = (encoded, response) => {
   return id;
 };
 
-const readBody = (request, response) => {
+const readBody = (request, response, maxBytes) => {
   // Refuse a declared-oversized body before reading it, and close the
   // connection so the unread rest of the body cannot poison keep-alive reuse.
   const declared = Number(request.headers["content-length"]);
-  if (Number.isFinite(declared) && declared > MAX_PROJECT_BODY_BYTES) {
+  if (Number.isFinite(declared) && declared > maxBytes) {
     return json(response, 413, { error: "Request body too large; nothing was saved" }, { Connection: "close" });
   }
-  return readJsonBody(request, response, MAX_PROJECT_BODY_BYTES);
+  return readJsonBody(request, response, maxBytes);
 };
 
 const sendEditorError = (response, err) => {
@@ -51,7 +53,14 @@ const sendEditorError = (response, err) => {
  *   GET    /api/admin/documents/:doc/projects/:id/history/:hid
  *   POST   /api/admin/documents/:doc/projects/:id/history/:hid/restore { baseVersion }
  */
-export const handleProjectsRequest = async ({ request, response, pathname, checkAuth, projectEditor }) => {
+export const handleProjectsRequest = async ({
+  request,
+  response,
+  pathname,
+  checkAuth,
+  projectEditor,
+  maxBodyBytes = MAX_PROJECT_BODY_BYTES,
+}) => {
   const match = pathname.match(BASE_RE);
   if (!match) return;
 
@@ -74,7 +83,7 @@ export const handleProjectsRequest = async ({ request, response, pathname, check
         return json(response, 200, projectEditor.getProject(docName, projectId));
       }
       if (method === "PUT") {
-        const body = await readBody(request, response);
+        const body = await readBody(request, response, maxBodyBytes);
         if (!Object.prototype.hasOwnProperty.call(body, "project")) {
           return badRequest(response, "Body must be { baseVersion, project }");
         }
@@ -88,7 +97,7 @@ export const handleProjectsRequest = async ({ request, response, pathname, check
         return json(response, 200, result);
       }
       if (method === "PATCH") {
-        const body = await readBody(request, response);
+        const body = await readBody(request, response, maxBodyBytes);
         const result = await projectEditor.patchProject({
           docName,
           projectId,
@@ -102,7 +111,7 @@ export const handleProjectsRequest = async ({ request, response, pathname, check
 
     if (sub === "validate") {
       if (method !== "POST") return methodNotAllowed(response, "POST");
-      const body = await readBody(request, response);
+      const body = await readBody(request, response, maxBodyBytes);
       return json(response, 200, validateProject(body.project, { expectedId: projectId }));
     }
 
@@ -117,7 +126,7 @@ export const handleProjectsRequest = async ({ request, response, pathname, check
       return json(response, 200, projectEditor.getHistoryEntry(docName, projectId, historyId));
     }
     if (method !== "POST") return methodNotAllowed(response, "POST");
-    const body = await readBody(request, response);
+    const body = await readBody(request, response, maxBodyBytes);
     const result = await projectEditor.restoreProject({
       docName,
       projectId,

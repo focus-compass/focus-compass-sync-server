@@ -80,6 +80,7 @@ Use [.env.example](.env.example) as the source of truth for environment variable
 | `MCP_TOKENS_DB_PATH` | `./data/mcp-tokens.sqlite` | MCP token hashes (managed from the admin UI) |
 | `PROJECT_HISTORY_DB_PATH` | `./data/project-history.sqlite` | Previous versions of projects edited in the admin UI |
 | `PROJECT_HISTORY_LIMIT` | `20` | Previous versions kept per project |
+| `PROJECT_MAX_BODY_BYTES` | `16777216` | Largest project editor request body (16 MiB, like `MAX_WEBSOCKET_MESSAGE_BYTES`) |
 | `MAX_WEBSOCKET_MESSAGE_BYTES` | `16777216` | Maximum complete WebSocket/Yjs message after frame reassembly (16 MiB) |
 | `MAX_UNAUTHENTICATED_QUEUE_BYTES` | `262144` | Maximum data buffered by one connection before authentication (256 KiB) |
 | `MAX_UNAUTHENTICATED_QUEUE_MESSAGES` | `32` | Maximum messages buffered by one connection before authentication |

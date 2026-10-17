@@ -148,6 +148,15 @@ test("caps the number of reported errors", () => {
   assert.equal(result.ok, false);
 });
 
+test("caps the number of reported warnings", () => {
+  const p = base();
+  p.tasks = Array.from({ length: 500 }, (_, i) => ({ id: `t${i}`, text: "x", completed: false, group: "missing" }));
+  const result = validateProject(p, { expectedId: p.id });
+  assert.equal(result.ok, true);
+  assert.equal(result.warnings.length, 51);
+  assert.match(result.warnings.at(-1).message, /450 more warnings/);
+});
+
 test("projectVersion ignores key order and changes with content", () => {
   const a = { b: 1, a: [1, { y: 2, x: 1 }] };
   const b = { a: [1, { x: 1, y: 2 }], b: 1 };

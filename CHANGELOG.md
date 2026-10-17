@@ -15,7 +15,8 @@ All notable changes to the Focus Compass sync server are documented here.
 - Project editor API under `/api/admin/documents/{doc}/projects` (master
   token): list, get, `PUT`, `PATCH`, `validate`, `history`, `restore`.
 - `PROJECT_HISTORY_DB_PATH` (default `project-history.sqlite` next to the DB)
-  and `PROJECT_HISTORY_LIMIT` (default 20).
+  and `PROJECT_HISTORY_LIMIT` (default 20), `PROJECT_MAX_BODY_BYTES`
+  (default 16 MiB).
 
 ### Fixed
 

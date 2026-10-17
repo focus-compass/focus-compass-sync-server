@@ -43,7 +43,7 @@ const setup = async () => {
     history,
     editor,
     stored: () => {
-      const db = new DatabaseSync(dbPath, { readOnly: true });
+      const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 5000 });
       try {
         return Buffer.from(db.prepare("SELECT data FROM documents WHERE name = ?").get(DOC).data).toString("base64");
       } finally {

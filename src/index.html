@@ -4749,7 +4749,9 @@
       const m = B.length;
       const middle = [];
       const max = n + m;
-      const MAX_D = 4000;
+      // Bound the work (about D * (N + M) steps and D^2 trace memory) so a huge
+      // rewrite cannot freeze the tab; past the budget show a full replace.
+      const MAX_D = Math.max(200, Math.min(4000, Math.floor(30_000_000 / (max + 1))));
       if (max > 0) {
         const off = max + 1;
         const v = new Int32Array(2 * max + 3);

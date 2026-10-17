@@ -17,6 +17,7 @@ const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const MASTER = "master-token-for-project-editor-tests_0123456789";
 const DOC = "workspace-under-test";
 const HISTORY_LIMIT = 3;
+const BODY_LIMIT = 1024 * 1024;
 const presets = JSON.parse(
   await readFile(join(REPO_ROOT, "tests", "fixtures", "app-projects", "presets.json"), "utf8"),
 );
@@ -57,6 +58,7 @@ const startServer = async (dataDir, extraEnv = {}) => {
       AUTH_FILE_PATH: join(dataDir, "auth.json"),
       MCP_TOKENS_DB_PATH: join(dataDir, "mcp-tokens.sqlite"),
       PROJECT_HISTORY_LIMIT: String(HISTORY_LIMIT),
+      PROJECT_MAX_BODY_BYTES: String(BODY_LIMIT),
       ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -130,7 +132,7 @@ const clientProject = (client, id) =>
   client.doc.getMap("root").get("projects")?.toJSON().find((p) => p.id === id);
 
 const storedProjects = (dbPath, docName = DOC) => {
-  const db = new DatabaseSync(dbPath, { readOnly: true });
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 5000 });
   try {
     const row = db.prepare("SELECT data FROM documents WHERE name = ?").get(docName);
     if (!row) return null;
@@ -143,7 +145,7 @@ const storedProjects = (dbPath, docName = DOC) => {
 };
 
 const storedBytes = (dbPath, docName = DOC) => {
-  const db = new DatabaseSync(dbPath, { readOnly: true });
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 5000 });
   try {
     const row = db.prepare("SELECT data FROM documents WHERE name = ?").get(docName);
     return row ? Buffer.from(row.data).toString("base64") : null;
@@ -153,7 +155,7 @@ const storedBytes = (dbPath, docName = DOC) => {
 };
 
 const documentNames = (dbPath) => {
-  const db = new DatabaseSync(dbPath, { readOnly: true });
+  const db = new DatabaseSync(dbPath, { readOnly: true, timeout: 5000 });
   try {
     return db.prepare("SELECT name FROM documents ORDER BY name").all().map((r) => r.name);
   } finally {
@@ -320,7 +322,7 @@ test("oversized request bodies are rejected without writing", async () => {
       headers: {
         Authorization: `Bearer ${MASTER}`,
         "Content-Type": "application/json",
-        "Content-Length": String(9 * 1024 * 1024),
+        "Content-Length": String(BODY_LIMIT + 1),
       },
     }, (res) => {
       res.resume();
@@ -333,7 +335,7 @@ test("oversized request bodies are rejected without writing", async () => {
 
   // A chunked body without Content-Length is still capped while reading.
   const huge = clone(project);
-  huge.info.description = "x".repeat(9 * 1024 * 1024);
+  huge.info.description = "x".repeat(BODY_LIMIT + 1);
   const chunked = await fetch(`${server.url}${projectPath(P1.id)}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${MASTER}`, "Content-Type": "application/json" },
@@ -341,6 +343,13 @@ test("oversized request bodies are rejected without writing", async () => {
     duplex: "half",
   }).then((r) => r.status, () => "connection closed");
   assert.ok([400, 413, "connection closed"].includes(chunked), String(chunked));
+
+  // Just under the limit is accepted (and rejected only by validation rules).
+  const big = clone(project);
+  big.info.description = "y".repeat(BODY_LIMIT - 64 * 1024);
+  const ok = await request(server, projectPath(P1.id, "/validate"), { method: "POST", body: { project: big } });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.ok, true);
   assert.equal((await getProject(P1.id)).version, version);
   assert.equal(storedBytes(server.dbPath), bytesBefore);
 });

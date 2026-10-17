@@ -71,7 +71,9 @@ export class ProjectEditor {
 
   /** @returns {Uint8Array|null} stored document bytes, or null if absent */
   readStored(docName) {
-    return withDb(this.dbPath, { readOnly: true }, (db) => {
+    // Briefly wait out a lock held by another process (e.g. a backup) instead
+    // of failing the read. Same-process writes are synchronous, so never overlap.
+    return withDb(this.dbPath, { readOnly: true, timeout: 1000 }, (db) => {
       const hasTable = db
         .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'")
         .get();

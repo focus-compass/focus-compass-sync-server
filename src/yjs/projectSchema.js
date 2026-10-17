@@ -303,5 +303,9 @@ export const validateProject = (project, { expectedId } = {}) => {
   const truncated = errors.length > MAX_ERRORS;
   const shown = errors.slice(0, MAX_ERRORS);
   if (truncated) shown.push({ path: "project", message: "too many errors; fix the ones above first" });
-  return { ok: errors.length === 0, errors: shown, warnings };
+  const shownWarnings = warnings.slice(0, MAX_ERRORS);
+  if (warnings.length > MAX_ERRORS) {
+    shownWarnings.push({ path: "project", message: `${warnings.length - MAX_ERRORS} more warnings not shown` });
+  }
+  return { ok: errors.length === 0, errors: shown, warnings: shownWarnings };
 };

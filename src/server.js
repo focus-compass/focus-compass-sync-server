@@ -23,7 +23,7 @@ import { handleAuthRequest } from "./routes/auth.js";
 import { handleImagesRequest } from "./routes/images.js";
 import { handleMcpRequest } from "./routes/mcp.js";
 import { handleMcpAdminRequest } from "./routes/mcpAdmin.js";
-import { handleProjectsRequest } from "./routes/projects.js";
+import { handleProjectsRequest, MAX_PROJECT_BODY_BYTES } from "./routes/projects.js";
 import { handleStaticRequest } from "./routes/static.js";
 import { handleWorkspaceRequest } from "./routes/workspace.js";
 import { BackupService } from "./services/backup.js";
@@ -117,6 +117,8 @@ const projectHistory = new ProjectHistoryStore({
   limit: readPositiveIntegerEnv("PROJECT_HISTORY_LIMIT", DEFAULT_PROJECT_HISTORY_LIMIT),
 });
 await hardenPrivateFileIfExists(PROJECT_HISTORY_DB_PATH);
+
+const PROJECT_MAX_BODY_BYTES = readPositiveIntegerEnv("PROJECT_MAX_BODY_BYTES", MAX_PROJECT_BODY_BYTES);
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? join(dirname(DB_PATH), "backups");
 const BACKUP_SETTINGS_PATH = process.env.BACKUP_SETTINGS_PATH ?? join(dirname(DB_PATH), "backup-settings.json");
@@ -312,6 +314,7 @@ const server = new Server({
         pathname,
         checkAuth: isAuthed,
         projectEditor,
+        maxBodyBytes: PROJECT_MAX_BODY_BYTES,
       });
 
       await handleWorkspaceRequest({
@@ -406,9 +409,13 @@ const shutdown = async (signal) => {
   }
   try {
     mcpTokens.close();
-    projectHistory.close();
   } catch (error) {
     console.error("Error closing MCP token store:", error);
+  }
+  try {
+    projectHistory.close();
+  } catch (error) {
+    console.error("Error closing project history store:", error);
   }
   process.exit(0);
 };

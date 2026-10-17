@@ -38,3 +38,11 @@ test("diff is minimal for small edits in large documents", () => {
   assert.equal(check([], []), 0);
   assert.equal(check(["a"], []), 1);
 });
+
+test("a huge rewrite finishes quickly and stays exact", () => {
+  const a = Array.from({ length: 30_000 }, (_, i) => `  "k${i}": ${i},`);
+  const b = a.map((line) => `    ${line.trim()}`); // every line re-indented
+  const started = Date.now();
+  assert.equal(check(a, b), 60_000);
+  assert.ok(Date.now() - started < 5000, `took ${Date.now() - started} ms`);
+});

@@ -48,10 +48,17 @@ Smoke checks:
 ## Repo Layout (high-signal files)
 - `src/server.js`: entry point — Hocuspocus server + `onRequest` router that
   dispatches to `src/routes/*`; also sets CORS/security headers and auth hooks
-- `src/routes/*.js`: REST handlers (`auth`, `images`, `admin`, `workspace`, `static`, `mcp`, `mcpAdmin`)
+- `src/routes/*.js`: REST handlers (`auth`, `images`, `admin`, `workspace`, `projects`, `static`, `mcp`, `mcpAdmin`)
 - `src/lib/*.js`: shared helpers (`auth`, `http`, `responses`, `db`, `fs`, `env`, …)
 - `src/yjs/*.js`: Yjs document decoding/inspection helpers
 - `src/services/backup.js`: `BackupService` used by `onStoreDocument`
+- `src/routes/projects.js`, `src/services/projectEditor.js`: admin project editor API
+  (`/api/admin/documents/:doc/projects/*`); writes go through a Hocuspocus direct
+  connection in one Yjs transaction with a baseVersion check
+- `src/services/projectHistory.js`: previous project versions (`PROJECT_HISTORY_DB_PATH`)
+- `src/yjs/projectSchema.js`: strict project schema; keep it in sync with the app's
+  `Project` type (`focus-compass-app/src/types/index.ts`)
+- `src/yjs/projectSync.js`: minimal-diff JSON → Y.Map/Y.Array sync and `projectVersion`
 - `src/index.html`: static admin UI served by the server
 - `src/mcp/server.js`: MCP server factory (`createMcpServer`)
 - `src/mcp/tools.js`: MCP tool definitions (read-only)

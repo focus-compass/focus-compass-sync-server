@@ -2226,6 +2226,273 @@
         transform: translateY(0);
       }
     }
+
+    /* ---- Workspace projects + project JSON editor ---- */
+    .modal-card.wide {
+      width: min(1040px, calc(100vw - 32px));
+    }
+
+    .modal-card.tall {
+      height: calc(100vh - 96px);
+    }
+
+    .modal-body.scroll {
+      overflow: auto;
+    }
+
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px;
+      gap: 2px;
+      align-self: flex-start;
+      flex-shrink: 0;
+    }
+
+    .seg button {
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .seg button[aria-selected="true"] {
+      background: var(--primary-a06);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .project-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .project-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      text-align: left;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-weight: 400;
+    }
+
+    .project-row:hover {
+      background: var(--primary-a06);
+    }
+
+    .project-row-main {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .project-row-title {
+      font-weight: 600;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .project-row-sub {
+      font-size: 12px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .project-row-meta {
+      font-family: var(--code);
+      font-size: 12px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .proj-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .proj-head-title {
+      font-weight: 700;
+      font-size: 15px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .proj-head-meta {
+      font-family: var(--code);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .proj-toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .proj-toolbar .spacer {
+      flex: 1;
+    }
+
+    .proj-editor {
+      width: 100%;
+      min-height: 360px;
+      flex: 1;
+      resize: vertical;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: var(--code);
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text);
+      white-space: pre;
+      overflow: auto;
+      tab-size: 2;
+      box-sizing: border-box;
+    }
+
+    .proj-editor.dirty {
+      border-color: var(--warn);
+    }
+
+    .proj-editor:focus {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .alert ul.issues {
+      margin: 6px 0 0;
+      padding-left: 18px;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    .alert ul.issues li + li {
+      margin-top: 2px;
+    }
+
+    .alert .alert-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .proj-history {
+      display: grid;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .confirm-card.diff-card {
+      width: min(980px, calc(100vw - 32px));
+      max-height: calc(100vh - 48px);
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+    }
+
+    .diffbox {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      font-family: var(--code);
+      font-size: 12px;
+      line-height: 1.5;
+      overflow: auto;
+      max-height: 56vh;
+      margin: 0;
+    }
+
+    .diff-line {
+      display: grid;
+      grid-template-columns: 44px 44px 18px 1fr;
+      white-space: pre;
+    }
+
+    .diff-line > span:nth-child(-n+2) {
+      color: var(--muted);
+      text-align: right;
+      padding-right: 6px;
+      user-select: none;
+    }
+
+    .diff-line > span:nth-child(3) {
+      user-select: none;
+      text-align: center;
+    }
+
+    .diff-line.add {
+      background: var(--ok-a12);
+    }
+
+    .diff-line.del {
+      background: var(--danger-a06);
+      color: var(--danger);
+    }
+
+    .diff-line.del > span:nth-child(4) {
+      text-decoration: line-through;
+      text-decoration-color: var(--danger-a35);
+    }
+
+    .diff-gap {
+      color: var(--muted);
+      padding: 2px 10px;
+      background: var(--surface);
+      border-top: 1px dashed var(--border);
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .diff-stats {
+      font-family: var(--code);
+      font-size: 12px;
+    }
+
+    .diff-stats .plus {
+      color: var(--ok);
+    }
+
+    .diff-stats .minus {
+      color: var(--danger);
+    }
+
+    .confirm-check {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    #docProjectPane,
+    #docRawPane {
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    #docRawPane .jsonbox {
+      max-height: none;
+    }
   </style>
 </head>
 
@@ -2721,7 +2988,46 @@
           <button class="danger" id="docDeleteBtn" type="button">Delete</button>
         </div>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" id="docModalBody">
+        <div class="seg" role="tablist" aria-label="Workspace view" id="docTabs">
+          <button type="button" role="tab" id="docTabProjects" aria-selected="true">Projects</button>
+          <button type="button" role="tab" id="docTabRaw" aria-selected="false">Raw JSON</button>
+        </div>
+
+        <div id="docProjectsPane" class="project-list" aria-live="polite">
+          <div class="hint">Loading…</div>
+        </div>
+
+        <div id="docProjectPane" style="display:none;">
+          <div class="proj-head">
+            <button class="ghost small" id="projBackBtn" type="button">← All projects</button>
+            <div class="proj-head-title" id="projTitle">Project</div>
+            <div class="proj-head-meta" id="projMeta"></div>
+          </div>
+          <div class="alert error" id="projConflict" role="alert" style="display:none;">
+            <div class="alert-title">Conflict — your changes were not saved</div>
+            <div class="alert-line" id="projConflictText">Nothing was saved. Your edits are still in the editor below.</div>
+            <div class="alert-actions">
+              <button class="danger" id="projConflictReloadBtn" type="button">Reload latest (discard my edits)</button>
+              <button class="ghost small" id="projConflictCopyBtn" type="button">Copy my JSON</button>
+            </div>
+          </div>
+          <div class="alert error" id="projErrors" role="alert" style="display:none;"></div>
+          <div class="alert warn" id="projWarnings" style="display:none;"></div>
+          <textarea class="proj-editor" id="projJson" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Project JSON"></textarea>
+          <div class="proj-toolbar">
+            <button class="ghost small" id="projFormatBtn" type="button">Format</button>
+            <button class="ghost small" id="projResetBtn" type="button">Discard edits</button>
+            <button class="ghost small" id="projReloadBtn" type="button">Reload</button>
+            <button class="ghost small" id="projHistoryBtn" type="button" aria-expanded="false">History</button>
+            <span class="spacer"></span>
+            <span class="hint" id="projDirtyHint"></span>
+            <button id="projReviewBtn" type="button">Review changes…</button>
+          </div>
+          <div class="proj-history" id="projHistory" style="display:none;"></div>
+        </div>
+
+        <div id="docRawPane" style="display:none;">
         <div class="api-block" id="docApiBlock" style="display:none;">
           <div class="api-hint" id="docApiHint" title="Click to expand curl command">
             <span class="api-method">GET</span>
@@ -2740,6 +3046,7 @@
           </div>
         </div>
         <pre class="jsonbox" id="docJson" aria-label="Workspace JSON">-</pre>
+        </div>
       </div>
     </div>
   </div>
@@ -2786,6 +3093,20 @@
       <div class="confirm-actions">
         <button class="ghost" id="confirmCancelBtn" type="button">Cancel</button>
         <button class="danger" id="confirmOkBtn" type="button">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm" id="projDiffModal" role="dialog" aria-modal="true" aria-labelledby="projDiffTitle">
+    <div class="confirm-card diff-card">
+      <div class="confirm-title" id="projDiffTitle">Review changes</div>
+      <div class="confirm-body" id="projDiffBody">-</div>
+      <div class="alert warn" id="projDiffWarnings" style="display:none;"></div>
+      <div class="diffbox" id="projDiffBox" aria-label="Changes (old vs new)"></div>
+      <label class="confirm-check"><input type="checkbox" id="projDiffAck" /> <span id="projDiffAckText">I reviewed these changes</span></label>
+      <div class="confirm-actions">
+        <button class="ghost" id="projDiffCancelBtn" type="button">Cancel</button>
+        <button id="projDiffOkBtn" type="button" disabled>Save changes</button>
       </div>
     </div>
   </div>
@@ -2961,6 +3282,11 @@
     }
 
     function closeDocModal() {
+      closeProjectDiff();
+      proj.loadSeq += 1;
+      proj.id = "";
+      proj.loaded = null;
+      proj.loadedText = "";
       state.selectedDocName = "";
       state.selectedDocData = null;
       $("docModalTitle").textContent = "Workspace";
@@ -4148,7 +4474,13 @@
       $("docApiBlock").style.display = "block";
       $("docApiPath").textContent = `/api/workspace/${encodeURIComponent(docName)}`;
       renderRevealButtons();
+      proj.list = [];
+      proj.id = "";
+      proj.loaded = null;
+      proj.loadedText = "";
+      setDocView("projects");
       setDocModalVisible(true);
+      loadProjectList();
 
       try {
         const data = await apiJson(`/api/admin/documents/${encodeURIComponent(docName)}`, { token: state.token });
@@ -4170,6 +4502,628 @@
         $("docModalMeta").textContent = "Error";
         $("docJson").textContent = `Failed to load workspace: ${String(err?.message || err)}`;
       }
+    }
+
+    // ---- Workspace projects + project JSON editor -------------------------
+    // Server is the authority: it validates strictly, checks baseVersion and
+    // writes in one Yjs transaction. The UI adds a client-side JSON parse, a
+    // server-side dry-run validation and a mandatory diff confirmation.
+    const proj = {
+      view: "projects", // "projects" | "project" | "raw"
+      list: [],
+      id: "",
+      loaded: null, // project JSON as last loaded from the server
+      loadedText: "",
+      version: "",
+      pendingSave: null,
+      historyOpen: false,
+      loadSeq: 0,
+    };
+
+    async function projectApi(path, { method = "GET", body } = {}) {
+      const headers = { Authorization: `Bearer ${state.token}` };
+      if (body !== undefined) headers["Content-Type"] = "application/json";
+      const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      return { status: res.status, ok: res.ok, data };
+    }
+
+    const projBase = () => `/api/admin/documents/${encodeURIComponent(state.selectedDocName)}/projects`;
+    const projPath = (suffix = "") => `${projBase()}/${encodeURIComponent(proj.id)}${suffix}`;
+    const prettyJson = (v) => JSON.stringify(v, null, 2);
+
+    function canonical(v) {
+      if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
+      if (v && typeof v === "object") {
+        return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(",")}}`;
+      }
+      return JSON.stringify(v);
+    }
+
+    function isProjectDirty() {
+      return proj.view === "project" && proj.loaded !== null && $("projJson").value !== proj.loadedText;
+    }
+
+    function setDocView(view) {
+      proj.view = view;
+      $("docProjectsPane").style.display = view === "projects" ? "grid" : "none";
+      $("docProjectPane").style.display = view === "project" ? "flex" : "none";
+      $("docRawPane").style.display = view === "raw" ? "flex" : "none";
+      $("docTabs").style.display = view === "project" ? "none" : "inline-flex";
+      $("docTabProjects").setAttribute("aria-selected", String(view === "projects"));
+      $("docTabRaw").setAttribute("aria-selected", String(view === "raw"));
+      $("docModal").querySelector(".modal-card").classList.toggle("wide", view !== "raw");
+      $("docModalBody").classList.toggle("scroll", view !== "raw");
+      $("docModal").querySelector(".modal-card").classList.toggle("tall", view === "project");
+    }
+
+    /** Run `action` now, or after confirming that unsaved edits may be dropped. */
+    function guardUnsaved(action) {
+      if (!isProjectDirty()) {
+        action();
+        return;
+      }
+      openConfirm({
+        title: "Discard unsaved changes?",
+        body: "Your edits to this project's JSON have not been saved and will be lost.",
+        okText: "Discard",
+        onConfirm: () => {
+          closeConfirm();
+          action();
+        },
+      });
+    }
+
+    function hideProjectAlerts() {
+      for (const id of ["projConflict", "projErrors", "projWarnings"]) $(id).style.display = "none";
+    }
+
+    function renderIssues(el, title, issues, extra = "") {
+      el.innerHTML = "";
+      const head = document.createElement("div");
+      head.className = "alert-title";
+      head.textContent = title;
+      el.appendChild(head);
+      if (extra) {
+        const line = document.createElement("div");
+        line.className = "alert-line";
+        line.textContent = extra;
+        el.appendChild(line);
+      }
+      if (issues.length) {
+        const ul = document.createElement("ul");
+        ul.className = "issues";
+        for (const issue of issues) {
+          const li = document.createElement("li");
+          const code = document.createElement("code");
+          code.textContent = issue.path || "project";
+          li.appendChild(code);
+          li.appendChild(document.createTextNode(` — ${issue.message}`));
+          ul.appendChild(li);
+        }
+        el.appendChild(ul);
+      }
+      el.style.display = "block";
+    }
+
+    function showProjectErrors(title, issues = [], extra = "") {
+      renderIssues($("projErrors"), title, issues, extra);
+    }
+
+    function showConflict(message) {
+      $("projConflictText").textContent = `${message || "Nothing was saved."} Your edits are still in the editor below.`;
+      $("projConflict").style.display = "block";
+      $("projConflict").scrollIntoView?.({ block: "nearest" });
+    }
+
+    function renderProjectList() {
+      const list = $("docProjectsPane");
+      list.innerHTML = "";
+      if (!proj.list.length) {
+        const hint = document.createElement("div");
+        hint.className = "hint";
+        hint.textContent = "This workspace has no projects.";
+        list.appendChild(hint);
+        return;
+      }
+      for (const p of proj.list) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "project-row";
+        row.dataset.projectId = p.id ?? "";
+        row.disabled = !p.id;
+        const main = document.createElement("div");
+        main.className = "project-row-main";
+        const title = document.createElement("div");
+        title.className = "project-row-title";
+        title.textContent = p.title || "(untitled)";
+        const sub = document.createElement("div");
+        sub.className = "project-row-sub";
+        sub.textContent = p.description || `id: ${p.id ?? "(missing id)"}`;
+        main.append(title, sub);
+        const meta = document.createElement("div");
+        meta.className = "project-row-meta";
+        meta.textContent = `${p.openTasks}/${p.tasks} open`;
+        row.append(main, meta);
+        list.appendChild(row);
+      }
+    }
+
+    async function loadProjectList() {
+      const seq = ++proj.loadSeq;
+      $("docProjectsPane").innerHTML = '<div class="hint">Loading projects…</div>';
+      const res = await projectApi(projBase()).catch((err) => ({ ok: false, data: { error: err.message } }));
+      if (seq !== proj.loadSeq) return;
+      if (!res.ok) {
+        $("docProjectsPane").innerHTML = "";
+        const el = document.createElement("div");
+        el.className = "alert error";
+        el.textContent = `Failed to load projects: ${res.data?.error || res.status}`;
+        $("docProjectsPane").appendChild(el);
+        return;
+      }
+      proj.list = Array.isArray(res.data.projects) ? res.data.projects : [];
+      renderProjectList();
+    }
+
+    function updateDirtyState() {
+      const dirty = isProjectDirty();
+      $("projJson").classList.toggle("dirty", dirty);
+      $("projDirtyHint").textContent = dirty ? "Unsaved edits" : "";
+      $("projResetBtn").disabled = !dirty;
+    }
+
+    function applyLoadedProject(data) {
+      proj.loaded = data.project;
+      proj.loadedText = prettyJson(data.project);
+      proj.version = data.version;
+      $("projJson").value = proj.loadedText;
+      $("projTitle").textContent = data.project?.title || "(untitled)";
+      $("projMeta").textContent = `id ${proj.id} · version ${String(data.version).slice(0, 12)}`;
+      hideProjectAlerts();
+      const v = data.validation;
+      if (v && !v.ok) {
+        showProjectErrors(
+          "The stored project does not match the schema",
+          v.errors || [],
+          "Fix these problems before saving; the server will reject the project until they are fixed.",
+        );
+      }
+      if (v && v.warnings?.length) renderIssues($("projWarnings"), "Warnings", v.warnings);
+      updateDirtyState();
+      if (proj.historyOpen) loadProjectHistory();
+    }
+
+    async function loadProject() {
+      const seq = ++proj.loadSeq;
+      $("projJson").value = "Loading…";
+      $("projJson").disabled = true;
+      const res = await projectApi(projPath()).catch((err) => ({ ok: false, data: { error: err.message } }));
+      if (seq !== proj.loadSeq) return;
+      $("projJson").disabled = false;
+      if (!res.ok) {
+        proj.loaded = null;
+        $("projJson").value = "";
+        hideProjectAlerts();
+        showProjectErrors(`Failed to load project: ${res.data?.error || res.status}`);
+        return;
+      }
+      applyLoadedProject(res.data);
+    }
+
+    function openProject(id) {
+      proj.id = String(id);
+      proj.loaded = null;
+      proj.loadedText = "";
+      proj.historyOpen = false;
+      $("projHistory").style.display = "none";
+      $("projHistoryBtn").setAttribute("aria-expanded", "false");
+      const summary = proj.list.find((p) => p.id === proj.id);
+      $("projTitle").textContent = summary?.title || proj.id;
+      $("projMeta").textContent = `id ${proj.id}`;
+      hideProjectAlerts();
+      setDocView("project");
+      loadProject();
+    }
+
+    function backToProjectList() {
+      guardUnsaved(() => {
+        proj.id = "";
+        proj.loaded = null;
+        proj.loadedText = "";
+        setDocView("projects");
+        loadProjectList();
+      });
+    }
+
+    // Myers O((N+M)D) line diff with common prefix/suffix trimmed.
+    function diffLines(a, b) {
+      let start = 0;
+      while (start < a.length && start < b.length && a[start] === b[start]) start += 1;
+      let endA = a.length;
+      let endB = b.length;
+      while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA -= 1; endB -= 1; }
+      const A = a.slice(start, endA);
+      const B = b.slice(start, endB);
+      const n = A.length;
+      const m = B.length;
+      const middle = [];
+      const max = n + m;
+      // Bound the work (about D * (N + M) steps and D^2 trace memory) so a huge
+      // rewrite cannot freeze the tab; past the budget show a full replace.
+      const MAX_D = Math.max(200, Math.min(4000, Math.floor(30_000_000 / (max + 1))));
+      if (max > 0) {
+        const off = max + 1;
+        const v = new Int32Array(2 * max + 3);
+        const trace = [];
+        let found = false;
+        for (let d = 0; d <= Math.min(max, MAX_D) && !found; d += 1) {
+          trace.push(v.slice(off - d - 1, off + d + 2));
+          for (let k = -d; k <= d; k += 2) {
+            let x = (k === -d || (k !== d && v[off + k - 1] < v[off + k + 1])) ? v[off + k + 1] : v[off + k - 1] + 1;
+            let y = x - k;
+            while (x < n && y < m && A[x] === B[y]) { x += 1; y += 1; }
+            v[off + k] = x;
+            if (x >= n && y >= m) { found = true; break; }
+          }
+        }
+        if (!found) {
+          for (const line of A) middle.push({ t: "-", line });
+          for (const line of B) middle.push({ t: "+", line });
+        } else {
+          let x = n;
+          let y = m;
+          for (let d = trace.length - 1; d > 0; d -= 1) {
+            const prev = trace[d];
+            const at = (k) => prev[k + d + 1];
+            const k = x - y;
+            const prevK = (k === -d || (k !== d && at(k - 1) < at(k + 1))) ? k + 1 : k - 1;
+            const prevX = at(prevK);
+            const prevY = prevX - prevK;
+            while (x > prevX && y > prevY) { middle.push({ t: " ", line: A[x - 1] }); x -= 1; y -= 1; }
+            if (x === prevX) { middle.push({ t: "+", line: B[y - 1] }); y -= 1; } else { middle.push({ t: "-", line: A[x - 1] }); x -= 1; }
+          }
+          while (x > 0 && y > 0) { middle.push({ t: " ", line: A[x - 1] }); x -= 1; y -= 1; }
+          middle.reverse();
+        }
+      }
+      return [
+        ...a.slice(0, start).map((line) => ({ t: " ", line })),
+        ...middle,
+        ...a.slice(endA).map((line) => ({ t: " ", line })),
+      ];
+    }
+
+    function renderDiff(oldText, newText) {
+      const ops = diffLines(oldText.split("\n"), newText.split("\n"));
+      const box = $("projDiffBox");
+      box.innerHTML = "";
+      let oldNo = 0;
+      let newNo = 0;
+      let added = 0;
+      let removed = 0;
+      const CONTEXT = 3;
+      const keep = new Uint8Array(ops.length);
+      ops.forEach((op, i) => {
+        if (op.t === " ") return;
+        for (let j = Math.max(0, i - CONTEXT); j <= Math.min(ops.length - 1, i + CONTEXT); j += 1) keep[j] = 1;
+      });
+      let skipped = 0;
+      const flushGap = () => {
+        if (!skipped) return;
+        const gap = document.createElement("div");
+        gap.className = "diff-gap";
+        gap.textContent = `… ${skipped} unchanged line${skipped === 1 ? "" : "s"}`;
+        box.appendChild(gap);
+        skipped = 0;
+      };
+      ops.forEach((op, i) => {
+        if (op.t !== "+") oldNo += 1;
+        if (op.t !== "-") newNo += 1;
+        if (op.t === "+") added += 1;
+        if (op.t === "-") removed += 1;
+        if (!keep[i]) { skipped += 1; return; }
+        flushGap();
+        const row = document.createElement("div");
+        row.className = `diff-line${op.t === "+" ? " add" : op.t === "-" ? " del" : ""}`;
+        const cells = [op.t === "+" ? "" : String(oldNo), op.t === "-" ? "" : String(newNo), op.t === " " ? "" : op.t, op.line];
+        for (const c of cells) {
+          const s = document.createElement("span");
+          s.textContent = c;
+          row.appendChild(s);
+        }
+        box.appendChild(row);
+      });
+      flushGap();
+      return { added, removed };
+    }
+
+    function closeProjectDiff() {
+      proj.pendingSave = null;
+      $("projDiffModal").classList.remove("visible");
+    }
+
+    function isProjectDiffOpen() {
+      return $("projDiffModal").classList.contains("visible");
+    }
+
+    /**
+     * Show old-vs-new diff and require explicit confirmation.
+     * @param {{title:string, body:string, next:object, warnings?:Array, okText:string, onConfirm:Function}} opts
+     */
+    function openProjectDiff({ title, body, next, warnings = [], okText, onConfirm }) {
+      const stats = renderDiff(proj.loadedText, prettyJson(next));
+      $("projDiffTitle").textContent = title;
+      $("projDiffBody").innerHTML = "";
+      const text = document.createElement("div");
+      text.textContent = body;
+      const statLine = document.createElement("div");
+      statLine.className = "diff-stats";
+      statLine.innerHTML = `<span class="plus">+${stats.added}</span> <span class="minus">−${stats.removed}</span> lines · base version <code></code>`;
+      statLine.querySelector("code").textContent = String(proj.version).slice(0, 12);
+      $("projDiffBody").append(text, statLine);
+      if (warnings.length) {
+        renderIssues($("projDiffWarnings"), `${warnings.length} warning${warnings.length === 1 ? "" : "s"} (saving is allowed)`, warnings);
+      } else {
+        $("projDiffWarnings").style.display = "none";
+      }
+      $("projDiffAck").checked = false;
+      $("projDiffOkBtn").disabled = true;
+      $("projDiffOkBtn").textContent = okText;
+      proj.pendingSave = onConfirm;
+      $("projDiffModal").classList.add("visible");
+      $("projDiffAck").focus();
+    }
+
+    function parseEditorJson() {
+      const text = $("projJson").value;
+      try {
+        return { value: JSON.parse(text) };
+      } catch (err) {
+        let where = "";
+        const m = /position (\d+)/.exec(String(err.message));
+        if (m) {
+          // Put the caret where parsing failed.
+          const pos = Math.min(Number(m[1]), text.length);
+          try {
+            const el = $("projJson");
+            el.focus();
+            el.setSelectionRange(pos, pos);
+            const lineNo = text.slice(0, pos).split("\n").length;
+            const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 18;
+            el.scrollTop = Math.max(0, (lineNo - 4) * lineHeight);
+          } catch { /* ignore */ }
+        }
+        if (m && !/line \d+/.test(err.message)) {
+          const before = text.slice(0, Number(m[1]));
+          const line = before.split("\n").length;
+          const col = before.length - before.lastIndexOf("\n");
+          where = ` (line ${line}, column ${col})`;
+        }
+        return { error: `${err.message}${where}` };
+      }
+    }
+
+    async function handleSaveResult(res, successMessage) {
+      if (res.ok) {
+        closeProjectDiff();
+        toast(res.data.unchanged ? "No changes to save" : successMessage);
+        await loadProject();
+        loadProjectListQuietly();
+        return;
+      }
+      closeProjectDiff();
+      if (res.status === 409) {
+        showConflict(res.data.error);
+        return;
+      }
+      if (res.status === 422 || res.status === 400) {
+        showProjectErrors(res.data.error || "The server rejected the project; nothing was saved", res.data.errors || []);
+        return;
+      }
+      showProjectErrors(`Save failed (${res.status}): ${res.data.error || "unknown error"}. Nothing was saved.`);
+    }
+
+    async function loadProjectListQuietly() {
+      const res = await projectApi(projBase()).catch(() => null);
+      if (res?.ok && Array.isArray(res.data.projects)) proj.list = res.data.projects;
+    }
+
+    async function reviewProjectChanges() {
+      if (proj.loaded === null) return;
+      hideProjectAlerts();
+      const parsed = parseEditorJson();
+      if (parsed.error) {
+        showProjectErrors("Invalid JSON — nothing was saved", [{ path: "JSON", message: parsed.error }]);
+        return;
+      }
+      const next = parsed.value;
+      if (canonical(next) === canonical(proj.loaded)) {
+        toast("No changes to review");
+        return;
+      }
+      $("projReviewBtn").disabled = true;
+      try {
+        const res = await projectApi(projPath("/validate"), { method: "POST", body: { project: next } });
+        if (!res.ok) {
+          showProjectErrors(`Validation request failed: ${res.data.error || res.status}`);
+          return;
+        }
+        if (!res.data.ok) {
+          const n = res.data.errors.length;
+          showProjectErrors(`Validation failed — nothing was saved. Fix ${n} problem${n === 1 ? "" : "s"}:`, res.data.errors);
+          return;
+        }
+        openProjectDiff({
+          title: `Save changes to “${proj.loaded.title || proj.id}”?`,
+          body: "Red lines are the current stored version, green lines will replace them. Connected apps receive the change immediately. The current version is kept in History.",
+          next,
+          warnings: res.data.warnings || [],
+          okText: "Save changes",
+          onConfirm: async () => {
+            const save = await projectApi(projPath(), { method: "PUT", body: { baseVersion: proj.version, project: next } });
+            await handleSaveResult(save, "Project saved");
+          },
+        });
+      } finally {
+        $("projReviewBtn").disabled = false;
+      }
+    }
+
+    async function loadProjectHistory() {
+      const box = $("projHistory");
+      box.innerHTML = '<div class="hint">Loading history…</div>';
+      const res = await projectApi(projPath("/history")).catch((err) => ({ ok: false, data: { error: err.message } }));
+      box.innerHTML = "";
+      const head = document.createElement("div");
+      head.className = "alert-title";
+      head.textContent = "Previous versions";
+      box.appendChild(head);
+      if (!res.ok) {
+        const el = document.createElement("div");
+        el.className = "alert error";
+        el.textContent = `Failed to load history: ${res.data?.error || res.status}`;
+        box.appendChild(el);
+        return;
+      }
+      const entries = res.data.history || [];
+      if (!entries.length) {
+        const hint = document.createElement("div");
+        hint.className = "hint";
+        hint.textContent = "No previous versions yet. Each save or restore keeps the version it replaces.";
+        box.appendChild(hint);
+        return;
+      }
+      for (const e of entries) {
+        const item = document.createElement("div");
+        item.className = "backup-item";
+        const info = document.createElement("div");
+        info.className = "backup-item-info";
+        const date = document.createElement("div");
+        date.className = "backup-item-date";
+        const replacedBy = { edit: "an edit", patch: "a patch", restore: "a restore" }[e.reason] || e.reason;
+        date.textContent = `${formatLocalDateTime(e.createdAt)} · replaced by ${replacedBy}`;
+        const file = document.createElement("div");
+        file.className = "backup-item-file";
+        file.textContent = `${e.title || "(untitled)"} · version ${String(e.version).slice(0, 12)}`;
+        info.append(date, file);
+        const actions = document.createElement("div");
+        actions.className = "backup-item-actions";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "ghost small";
+        btn.dataset.historyId = String(e.id);
+        btn.textContent = e.version === proj.version ? "Current" : "Review & restore…";
+        btn.disabled = e.version === proj.version;
+        actions.appendChild(btn);
+        item.append(info, actions);
+        box.appendChild(item);
+      }
+    }
+
+    async function reviewRestore(historyId) {
+      hideProjectAlerts();
+      const res = await projectApi(projPath(`/history/${historyId}`));
+      if (!res.ok) {
+        showProjectErrors(`Failed to load version: ${res.data.error || res.status}`);
+        return;
+      }
+      const entry = res.data;
+      const dirty = isProjectDirty();
+      openProjectDiff({
+        title: `Restore the version from ${formatLocalDateTime(entry.createdAt)}?`,
+        body: `The current stored project (left/red) is replaced by this earlier version (green). The current version is kept in History, so this can be undone.${dirty ? " Your unsaved edits in the editor will be discarded." : ""}`,
+        next: entry.project,
+        okText: "Restore this version",
+        onConfirm: async () => {
+          const r = await projectApi(projPath(`/history/${historyId}/restore`), { method: "POST", body: { baseVersion: proj.version } });
+          await handleSaveResult(r, "Previous version restored");
+        },
+      });
+    }
+
+    function initProjectEditor() {
+      $("docTabProjects").addEventListener("click", () => {
+        setDocView("projects");
+        loadProjectList();
+      });
+      $("docTabRaw").addEventListener("click", () => setDocView("raw"));
+      $("docProjectsPane").addEventListener("click", (e) => {
+        const row = e.target.closest("button[data-project-id]");
+        if (row && row.dataset.projectId) openProject(row.dataset.projectId);
+      });
+      $("projBackBtn").addEventListener("click", backToProjectList);
+      $("projJson").addEventListener("input", updateDirtyState);
+      $("projJson").addEventListener("keydown", (e) => {
+        if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          const el = e.target;
+          el.setRangeText("  ", el.selectionStart, el.selectionEnd, "end");
+          updateDirtyState();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+          e.preventDefault();
+          reviewProjectChanges();
+        }
+      });
+      $("projFormatBtn").addEventListener("click", () => {
+        const parsed = parseEditorJson();
+        if (parsed.error) {
+          showProjectErrors("Invalid JSON", [{ path: "JSON", message: parsed.error }]);
+          return;
+        }
+        $("projErrors").style.display = "none";
+        $("projJson").value = prettyJson(parsed.value);
+        updateDirtyState();
+      });
+      $("projResetBtn").addEventListener("click", () => guardUnsaved(() => {
+        $("projJson").value = proj.loadedText;
+        hideProjectAlerts();
+        updateDirtyState();
+      }));
+      $("projReloadBtn").addEventListener("click", () => guardUnsaved(loadProject));
+      $("projConflictReloadBtn").addEventListener("click", () => {
+        $("projJson").value = proj.loadedText; // explicit choice: drop local edits
+        loadProject();
+      });
+      $("projConflictCopyBtn").addEventListener("click", () => copyText($("projJson").value, "Your JSON copied"));
+      $("projReviewBtn").addEventListener("click", reviewProjectChanges);
+      $("projHistoryBtn").addEventListener("click", () => {
+        proj.historyOpen = !proj.historyOpen;
+        $("projHistoryBtn").setAttribute("aria-expanded", String(proj.historyOpen));
+        $("projHistory").style.display = proj.historyOpen ? "grid" : "none";
+        if (proj.historyOpen) loadProjectHistory();
+      });
+      $("projHistory").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-history-id]");
+        if (btn) reviewRestore(btn.dataset.historyId);
+      });
+      $("projDiffAck").addEventListener("change", () => {
+        $("projDiffOkBtn").disabled = !$("projDiffAck").checked;
+      });
+      $("projDiffCancelBtn").addEventListener("click", closeProjectDiff);
+      $("projDiffModal").addEventListener("click", (e) => {
+        if (e.target === $("projDiffModal")) closeProjectDiff();
+      });
+      $("projDiffOkBtn").addEventListener("click", async () => {
+        const action = proj.pendingSave;
+        if (!action || !$("projDiffAck").checked) return;
+        $("projDiffOkBtn").disabled = true;
+        $("projDiffCancelBtn").disabled = true;
+        try {
+          await action();
+        } catch (err) {
+          closeProjectDiff();
+          showProjectErrors(`Save request failed: ${String(err?.message || err)}. Reload to check whether it was applied.`);
+        } finally {
+          $("projDiffCancelBtn").disabled = false;
+        }
+      });
+      window.addEventListener("beforeunload", (e) => {
+        if (!isProjectDirty()) return;
+        e.preventDefault();
+        e.returnValue = "";
+      });
     }
 
     async function tryLoadDashboardData(token) {
@@ -4947,12 +5901,14 @@
       });
 
       $("docCloseBtn").addEventListener("click", () => {
-        closeDocModal();
+        guardUnsaved(closeDocModal);
       });
 
       $("docModal").addEventListener("click", (e) => {
-        if (e.target === $("docModal")) closeDocModal();
+        if (e.target === $("docModal")) guardUnsaved(closeDocModal);
       });
+
+      initProjectEditor();
 
       $("docCopyLinkBtn").addEventListener("click", () => {
         if (!state.token || !state.selectedDocName) return;
@@ -5108,8 +6064,13 @@
           closeConfirm();
           return;
         }
+        if (isProjectDiffOpen()) {
+          closeProjectDiff();
+          return;
+        }
         if (isDocModalOpen()) {
-          closeDocModal();
+          if (proj.view === "project") backToProjectList();
+          else closeDocModal();
         }
       });
 

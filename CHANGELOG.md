@@ -2,6 +2,27 @@
 
 All notable changes to the Focus Compass sync server are documented here.
 
+## Unreleased
+
+### Added
+
+- Admin UI: an opened workspace now lists its projects, and each project opens
+  on its own with its JSON in an editor (the raw workspace JSON is still
+  available). Saving shows a diff and needs explicit confirmation; invalid
+  JSON or schema violations are listed by path and nothing is saved; a
+  concurrent change is reported as a conflict with a reload option; previous
+  versions can be reviewed and restored from History.
+- Project editor API under `/api/admin/documents/{doc}/projects` (master
+  token): list, get, `PUT`, `PATCH`, `validate`, `history`, `restore`.
+- `PROJECT_HISTORY_DB_PATH` (default `project-history.sqlite` next to the DB)
+  and `PROJECT_HISTORY_LIMIT` (default 20), `PROJECT_MAX_BODY_BYTES`
+  (default 16 MiB).
+
+### Fixed
+
+- A JSON request body over the size limit now closes the connection, so the
+  unread rest of the body can no longer break the next keep-alive request.
+
 ## 0.0.9 - 2026-10-17
 
 ### Breaking

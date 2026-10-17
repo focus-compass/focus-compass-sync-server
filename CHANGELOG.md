@@ -2,7 +2,7 @@
 
 All notable changes to the Focus Compass sync server are documented here.
 
-## Unreleased
+## 0.0.10 - Unreleased
 
 ### Added
 
@@ -17,6 +17,14 @@ All notable changes to the Focus Compass sync server are documented here.
 - `PROJECT_HISTORY_DB_PATH` (default `project-history.sqlite` next to the DB)
   and `PROJECT_HISTORY_LIMIT` (default 20), `PROJECT_MAX_BODY_BYTES`
   (default 16 MiB).
+
+### Maintenance
+
+- `scripts/release.sh <X.Y.Z>` releases without ever pointing `main` at an
+  unpublished image: it bumps versions on a `release/vX.Y.Z` branch, runs the
+  checks, pushes the tag, waits for the "Publish Docker Image" run, verifies
+  the GHCR manifest, and only then fast-forwards `main`. Supports
+  `--dry-run` and `--skip-tests`.
 
 ### Fixed
 

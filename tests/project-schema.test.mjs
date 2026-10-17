@@ -224,3 +224,120 @@ test("sync: no-op sync produces no update", () => {
   const { updates } = syncAndCheck(before, clone(before));
   assert.equal(updates.length, 0);
 });
+
+// --- legacy fields & stored baseline (prod v0.0.10 bug) ----------------------
+const LEGACY_FIXTURE = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "app-projects", "legacy-prod-shapes.json");
+const legacyProjects = JSON.parse(readFileSync(LEGACY_FIXTURE, "utf8")).projects;
+const legacyBase = () => clone(legacyProjects[0]);
+
+test("real-shaped legacy projects open with zero errors and no legacy noise", () => {
+  assert.ok(legacyProjects.length >= 2);
+  for (const project of legacyProjects) {
+    // What GET reports: the stored project is its own baseline.
+    const result = validateProject(project, { expectedId: project.id, stored: project });
+    assert.deepEqual(result.errors, [], project.id);
+    assert.equal(result.ok, true);
+    assert.ok(!result.warnings.some((w) => /legacy/.test(w.message)), JSON.stringify(result.warnings));
+  }
+});
+
+test("every reported prod field is known and typed (no 'unknown field')", () => {
+  for (const project of legacyProjects) {
+    const result = validateProject(project, { expectedId: project.id });
+    assert.ok(!result.errors.some((e) => e.message === "unknown field"), JSON.stringify(result.errors));
+    assert.ok(result.errors.every((e) => /legacy field/.test(e.message)), JSON.stringify(result.errors));
+  }
+  const paths = validateProject(legacyBase()).errors.map((e) => e.path).sort();
+  for (const p of [
+    "project.info.monetization", "project.info.mission", "project.info.userPersona", "project.info.domains",
+    "project.info.techStack", "project.info.targetAudience", "project.info.keyAspects", "project.info.isVertical",
+    "project.info.notePreviewCount", "project.noteCollections[0].settings.previewCount", "project.zIndex", "project.templateId",
+  ]) assert.ok(paths.includes(p), p);
+});
+
+test("edits keep stored legacy fields; their types stay strict", () => {
+  const stored = legacyBase();
+  const edited = clone(stored);
+  edited.title = "Renamed";
+  edited.tasks.reverse();
+  edited.info.mission = "New mission";
+  edited.zIndex = 9;
+  edited.noteCollections[0].settings.previewCount = 10;
+  delete edited.templateId; // dropping a legacy field is always fine
+  assert.deepEqual(validateProject(edited, { expectedId: stored.id, stored }).errors, []);
+
+  const badType = clone(stored);
+  badType.zIndex = "7";
+  badType.info.isVertical = "yes";
+  badType.noteCollections[0].settings.previewCount = null;
+  assert.deepEqual(
+    validateProject(badType, { stored }).errors.map((e) => e.path).sort(),
+    ["project.info.isVertical", "project.noteCollections[0].settings.previewCount", "project.zIndex"],
+  );
+});
+
+test("legacy and unknown fields cannot be newly added by an edit", () => {
+  const stored = clone(presets[0]);
+  const edited = clone(stored);
+  edited.zIndex = 1;
+  edited.info.mission = "x";
+  edited.noteCollections[0].settings.previewCount = 3;
+  edited.colour = "red";
+  edited.isNew = true;
+  const result = validateProject(edited, { stored });
+  assert.deepEqual(result.errors.map((e) => e.path).sort(), [
+    "project.colour", "project.info.mission", "project.isNew", "project.noteCollections[0].settings.previewCount", "project.zIndex",
+  ]);
+  // A legacy key is matched in the same array element (by id), not anywhere.
+  const twoCollections = legacyBase();
+  const moved = clone(twoCollections);
+  delete moved.noteCollections[0].settings.previewCount;
+  delete moved.noteCollections[1].settings.previewCount;
+  moved.noteCollections.push({ ...clone(moved.noteCollections[1]), id: "new-col", settings: { showDragHandle: true, previewCount: 1 } });
+  assert.deepEqual(validateProject(moved, { stored: twoCollections }).errors.map((e) => e.path), ["project.noteCollections[2].settings.previewCount"]);
+});
+
+test("pre-existing unknown fields and type errors are kept only while unchanged", () => {
+  const stored = clone(presets[0]);
+  stored.mysteryFlag = true;
+  stored.info.imageFit = "stretch";
+  stored.tasks.push(clone(stored.tasks[0]));
+  // GET: only warnings.
+  const own = validateProject(stored, { expectedId: stored.id, stored });
+  assert.equal(own.ok, true);
+  assert.deepEqual(own.warnings.map((w) => w.path).sort(), ["project.info.imageFit", "project.mysteryFlag", "project.tasks[1].id"]);
+  assert.ok(own.warnings.every((w) => /already stored/.test(w.message)));
+
+  // Unrelated edit: still saveable.
+  const edited = clone(stored);
+  edited.title = "x";
+  edited.mysteryFlag = false; // unknown key, same JSON kind
+  assert.equal(validateProject(edited, { stored }).ok, true);
+
+  // Changing a bad value to another bad value, changing an unknown key's kind,
+  // or adding another duplicate is an error.
+  const worse = clone(stored);
+  worse.info.imageFit = "zoom";
+  worse.mysteryFlag = "yes";
+  worse.tasks.push(clone(worse.tasks[0]));
+  assert.deepEqual(validateProject(worse, { stored }).errors.map((e) => e.path).sort(), [
+    "project.info.imageFit", "project.mysteryFlag", `project.tasks[2].id`,
+  ]);
+
+  // A stored baseline never excuses an id change or a missing required field it had.
+  const idChange = clone(stored); idChange.id = "other";
+  assert.ok(validateProject(idChange, { expectedId: stored.id, stored }).errors.some((e) => e.path === "project.id"));
+  const dropped = clone(stored); delete dropped.tasks;
+  assert.ok(validateProject(dropped, { stored }).errors.some((e) => e.path === "project.tasks"));
+});
+
+test("old-era fields: notes, focusChecklist (strings or tasks), group description", () => {
+  const stored = legacyBase();
+  stored.notes = [{ id: "n1", text: "old note" }];
+  stored.focusChecklist = ["a", { text: "b", completed: false, group: "g" }];
+  stored.groupOrder = ["legacy000002"];
+  assert.deepEqual(validateProject(stored, { stored }).errors, []);
+  const bad = clone(stored);
+  bad.focusChecklist = [1];
+  assert.deepEqual(validateProject(bad, { stored }).errors.map((e) => e.path), ["project.focusChecklist[0]"]);
+});

@@ -117,6 +117,13 @@ its own, with its JSON in an editor. Saving is deliberately strict:
    fields, UI-only fields (`isNew`, …), wrong types, missing required fields,
    duplicate ids and id changes are rejected with the path of every problem.
    Dangling references (a task in a missing group, …) are warnings.
+   Old projects keep fields the app no longer writes (`zIndex`, `templateId`,
+   `info.mission`, …); the schema lists them as *legacy* fields with their
+   types. A legacy or unknown field, or any other problem, that is already in
+   the stored project is a warning and is kept; an edit may not add new ones,
+   and types stay strict for every value it adds or changes.
+   `FC_URL=… FC_TOKEN=… node scripts/validate-projects.mjs` audits every
+   stored project (read-only).
 2. You see a line diff of the stored version against yours and must confirm it.
 3. The save carries the version (hash) you loaded. If anyone changed the
    project since (the app, another admin tab), it is rejected with a conflict

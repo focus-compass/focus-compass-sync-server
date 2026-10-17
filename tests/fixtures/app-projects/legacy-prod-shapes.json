@@ -1,0 +1,82 @@
+{
+  "_comment": "Sanitized shapes of real stored projects (prod v0.0.10 bug report). All text, ids and URLs are placeholders; only keys and value types mirror real data.",
+  "projects": [
+    {
+      "id": "legacy000001",
+      "title": "Project A",
+      "templateId": "startup-template",
+      "zIndex": 7,
+      "info": {
+        "image": "/images/placeholder.webp",
+        "description": "Placeholder description",
+        "imageFit": "cover",
+        "isVertical": false,
+        "notePreviewCount": 3,
+        "domains": "example.com",
+        "mission": "Placeholder mission",
+        "keyAspects": "Placeholder aspects",
+        "targetAudience": "Placeholder audience",
+        "userPersona": "Placeholder persona",
+        "monetization": "Placeholder monetization",
+        "techStack": "Placeholder stack"
+      },
+      "checklists": [{ "id": "main", "name": "Main" }],
+      "selectedChecklistId": "main",
+      "tasks": [
+        { "id": "legacy000003", "text": "Task one", "completed": false, "group": "legacy000002" },
+        { "id": "legacy000004", "text": "Task two", "completed": true, "group": "legacy000002" }
+      ],
+      "groups": [{ "id": "legacy000002", "checklistId": "main", "notes": "", "notesVisible": false }],
+      "noteCollections": [
+        {
+          "id": "legacy000005",
+          "name": "Notes",
+          "icon": "StickyNote",
+          "items": [
+            { "id": "legacy000006", "text": "Note text", "projectId": "legacy000001", "notesId": "legacy000005" }
+          ],
+          "settings": { "showDragHandle": true, "previewCount": 5 }
+        },
+        {
+          "id": "legacy000007",
+          "name": "Ideas",
+          "icon": "Lightbulb",
+          "items": [],
+          "settings": { "showDragHandle": false, "previewCount": 0, "fontSize": 14 }
+        }
+      ],
+      "position": { "x": 120, "y": 340 },
+      "isPlacing": false,
+      "isSetupPending": false
+    },
+    {
+      "id": "legacy000010",
+      "title": "Project B",
+      "zIndex": 0,
+      "templateId": "personal-template",
+      "info": {
+        "image": "",
+        "isVertical": true,
+        "notePreviewCount": 2,
+        "mission": "",
+        "monetization": ""
+      },
+      "tasks": [],
+      "groups": [{ "id": "legacy000011", "checklistId": "main", "description": "", "descriptionVisible": false }],
+      "noteCollections": [
+        {
+          "id": "legacy000012",
+          "name": "Notes",
+          "icon": "StickyNote",
+          "items": [
+            { "id": "legacy000013", "text": "", "projectId": "legacy000010", "notesId": "legacy000012", "collectionId": "legacy000012" }
+          ],
+          "settings": { "showDragHandle": true, "previewCount": 3, "customName": "Notes" }
+        }
+      ],
+      "position": { "x": -40.5, "y": 12 },
+      "template": { "id": "personal-template", "source": "builtin", "version": "1.0.0.0" },
+      "fields": { "links": "https://example.com" }
+    }
+  ]
+}

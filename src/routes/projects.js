@@ -2,7 +2,6 @@ import { badRequest, internalServerError } from "../lib/api.js";
 import { requireAuth, decodeDocName } from "../lib/db.js";
 import { readJsonBody, safeDecodeURIComponent } from "../lib/http.js";
 import { json, RESPONSE_SENT } from "../lib/responses.js";
-import { validateProject } from "../yjs/projectSchema.js";
 import { ProjectEditorError } from "../services/projectEditor.js";
 
 // Projects are a few KB to a few MB (tasks, notes, image refs).
@@ -112,7 +111,7 @@ export const handleProjectsRequest = async ({
     if (sub === "validate") {
       if (method !== "POST") return methodNotAllowed(response, "POST");
       const body = await readBody(request, response, maxBodyBytes);
-      return json(response, 200, validateProject(body.project, { expectedId: projectId }));
+      return json(response, 200, projectEditor.validateDraft(docName, projectId, body.project));
     }
 
     // history

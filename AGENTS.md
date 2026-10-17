@@ -57,7 +57,9 @@ Smoke checks:
   connection in one Yjs transaction with a baseVersion check
 - `src/services/projectHistory.js`: previous project versions (`PROJECT_HISTORY_DB_PATH`)
 - `src/yjs/projectSchema.js`: strict project schema; keep it in sync with the app's
-  `Project` type (`focus-compass-app/src/types/index.ts`)
+  `Project` type (`focus-compass-app/src/types/index.ts`) and with real data:
+  fields the app stopped writing stay as `legacy(...)` (old projects still have
+  them). Audit real data with `scripts/validate-projects.mjs` (read-only)
 - `src/yjs/projectSync.js`: minimal-diff JSON → Y.Map/Y.Array sync and `projectVersion`
 - `src/index.html`: static admin UI served by the server
 - `src/mcp/server.js`: MCP server factory (`createMcpServer`)

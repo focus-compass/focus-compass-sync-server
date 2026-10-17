@@ -4689,7 +4689,7 @@
           "Fix these problems before saving; the server will reject the project until they are fixed.",
         );
       }
-      if (v && v.warnings?.length) renderIssues($("projWarnings"), "Warnings", v.warnings);
+      if (v && v.warnings?.length) renderIssues($("projWarnings"), "Warnings (saving is allowed; issues already stored are kept as is)", v.warnings);
       updateDirtyState();
       if (proj.historyOpen) loadProjectHistory();
     }

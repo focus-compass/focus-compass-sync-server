@@ -125,9 +125,21 @@ export class ProjectEditor {
       return {
         project,
         version: projectVersion(project),
-        validation: validateProject(project, { expectedId: projectId }),
+        // Baseline = itself: what is already stored is reported as warnings.
+        validation: validateProject(project, { expectedId: projectId, stored: project }),
       };
     });
+  }
+
+  /** Validate a draft against the currently stored project (no write). */
+  validateDraft(docName, projectId, draft) {
+    let stored;
+    try {
+      stored = this.getProject(docName, projectId).project;
+    } catch (err) {
+      if (!(err instanceof ProjectEditorError) || err.status !== 404) throw err;
+    }
+    return validateProject(draft, { expectedId: projectId, stored });
   }
 
   /**
@@ -139,8 +151,8 @@ export class ProjectEditor {
     if (typeof baseVersion !== "string" || !baseVersion) {
       throw new ProjectEditorError(400, "baseVersion is required (use the version returned by GET)");
     }
-    const validation = validateProject(next, { expectedId: projectId });
-    if (!validation.ok && !allowInvalid) {
+    if (next === null || typeof next !== "object" || Array.isArray(next)) {
+      const validation = validateProject(next, { expectedId: projectId });
       throw new ProjectEditorError(422, "Project JSON is invalid; nothing was saved", {
         errors: validation.errors,
         warnings: validation.warnings,
@@ -181,8 +193,21 @@ export class ProjectEditor {
           };
           return;
         }
+        // Validate against the exact version being replaced (same transaction),
+        // so issues already stored in it are tolerated while unchanged.
+        const validation = validateProject(next, { expectedId: projectId, stored: current });
+        if (!validation.ok && !allowInvalid) {
+          outcome = {
+            error: new ProjectEditorError(422, "Project JSON is invalid; nothing was saved", {
+              errors: validation.errors,
+              warnings: validation.warnings,
+            }),
+          };
+          return;
+        }
+        const { warnings } = validation;
         if (deepEqual(current, next)) {
-          outcome = { unchanged: true, version: currentVersion, historyId: null };
+          outcome = { unchanged: true, version: currentVersion, historyId: null, warnings };
           return;
         }
 
@@ -229,7 +254,7 @@ export class ProjectEditor {
           }
           return;
         }
-        outcome = { unchanged: false, version: projectVersion(written), historyId };
+        outcome = { unchanged: false, version: projectVersion(written), historyId, warnings };
       });
     } finally {
       // Persists the document immediately (bypasses the debounce).
@@ -237,7 +262,8 @@ export class ProjectEditor {
     }
 
     if (outcome?.error) throw outcome.error;
-    return { ...outcome, warnings: validation.warnings };
+    const { warnings = [], ...result } = outcome;
+    return { ...result, warnings };
   }
 
   async patchProject({ docName, projectId, baseVersion, patch }) {

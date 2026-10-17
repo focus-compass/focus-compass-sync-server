@@ -533,3 +533,57 @@ test("edits survive a server restart, history included", async () => {
   seedClient = await connect(server);
   assert.equal(clientProject(seedClient, P2.id).title, "Edited offline");
 });
+
+test("real-shaped legacy projects open without errors, save, and keep legacy fields (v0.0.10 bug)", async () => {
+  const LEGACY_DOC = "workspace-legacy-shapes";
+  const legacy = JSON.parse(
+    await readFile(join(REPO_ROOT, "tests", "fixtures", "app-projects", "legacy-prod-shapes.json"), "utf8"),
+  ).projects;
+  const client = await connect(server, LEGACY_DOC);
+  try {
+    client.doc.transact(() => {
+      const projects = new Y.Array();
+      client.doc.getMap("root").set("projects", projects);
+      projects.push(legacy.map((p) => toYjs(p)));
+    });
+    const path = (id, suffix = "") =>
+      `/api/admin/documents/${encodeURIComponent(LEGACY_DOC)}/projects/${encodeURIComponent(id)}${suffix}`;
+    await waitFor(async () => (await request(server, path(legacy[0].id))).status === 200, "legacy seed");
+
+    for (const original of legacy) {
+      const res = await request(server, path(original.id));
+      assert.equal(res.status, 200);
+      assert.deepEqual(res.body.validation.errors, [], original.id);
+      assert.equal(res.body.validation.ok, true);
+    }
+
+    // Unrelated edit saves and keeps every legacy field.
+    const { project, version } = (await request(server, path(legacy[0].id))).body;
+    project.title = "Edited legacy";
+    project.info.mission = "Changed mission";
+    const saved = await request(server, path(legacy[0].id), { method: "PUT", body: { baseVersion: version, project } });
+    assert.equal(saved.status, 200, JSON.stringify(saved.body));
+    await waitFor(() => clientProject(client, legacy[0].id)?.title === "Edited legacy", "edit reached client");
+    const live = clientProject(client, legacy[0].id);
+    assert.equal(canonicalJson(live), canonicalJson(project));
+    assert.equal(live.zIndex, 7);
+    assert.equal(live.templateId, "startup-template");
+    assert.equal(live.noteCollections[0].settings.previewCount, 5);
+
+    // Newly added legacy/unknown fields and wrong legacy types are rejected (also by /validate).
+    const current = (await request(server, path(legacy[1].id))).body;
+    const bad = clone(current.project);
+    bad.color = "red"; // legacy, not stored in this project
+    bad.zIndex = "0"; // stored legacy, wrong type
+    bad.brandNew = 1; // unknown
+    const check = await request(server, path(legacy[1].id, "/validate"), { method: "POST", body: { project: bad } });
+    assert.equal(check.status, 200);
+    assert.deepEqual(check.body.errors.map((e) => e.path).sort(), ["project.brandNew", "project.color", "project.zIndex"]);
+    const put = await request(server, path(legacy[1].id), { method: "PUT", body: { baseVersion: current.version, project: bad } });
+    assert.equal(put.status, 422);
+    assert.deepEqual(put.body.errors.map((e) => e.path).sort(), ["project.brandNew", "project.color", "project.zIndex"]);
+    assert.equal((await request(server, path(legacy[1].id))).body.version, current.version);
+  } finally {
+    disconnect(client);
+  }
+});

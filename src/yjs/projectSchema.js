@@ -1,16 +1,25 @@
 /**
- * Strict schema for a single Focus Compass project, as stored in the
- * workspace Yjs document (`root.projects[i]`).
+ * Schema for a single Focus Compass project, as stored in the workspace Yjs
+ * document (`root.projects[i]`).
  *
- * Derived from the app's `Project` type (focus-compass-app src/types/index.ts)
- * and real preset data. The app strips UI-only keys (TRANSIENT_KEYS) before it
- * syncs, so those keys are rejected here too.
+ * Sources:
+ *   - the app's current `Project` type (focus-compass-app src/types/index.ts);
+ *   - every field that type has had in the app's git history (LEGACY fields:
+ *     the app stopped writing them, but its sync never deletes them, so old
+ *     projects still carry them);
+ *   - real preset data (tests/fixtures/app-projects).
+ *
+ * Strictness model (see validateProject):
+ *   - Types are strict for every value the edit introduces or changes.
+ *   - Unknown keys, LEGACY keys, UI-only keys and type problems that are
+ *     already in the stored project are reported as warnings and may be
+ *     kept unchanged: an edit can never be blocked by data it did not touch,
+ *     but it cannot add new unknown/legacy keys or new type errors.
  *
  * validateProject() returns:
- *   errors   - structural problems (wrong types, unknown keys, duplicate ids);
- *              a project with errors must never be saved.
+ *   errors   - problems introduced by this edit; the project must not be saved.
  *   warnings - referential problems the app tolerates (e.g. a task that points
- *              to a missing group); shown to the user before saving.
+ *              to a missing group) and pre-existing issues kept unchanged.
  */
 
 /** Keys the app never persists (see TRANSIENT_KEYS in the app's yjs-utils). */
@@ -21,7 +30,9 @@ export const TRANSIENT_KEYS = Object.freeze([
   "isDisappearing",
 ]);
 
-const MAX_ERRORS = 50;
+const MAX_REPORTED = 50;
+// Hard bound on collected issues (input is already capped by the body limit).
+const MAX_COLLECTED = 20_000;
 const IMAGE_FITS = ["cover", "contain", "inline"];
 const IMAGE_CROPS = ["top", "center", "bottom", "contain"];
 const TEMPLATE_SOURCES = ["builtin", "workspace"];
@@ -34,6 +45,9 @@ const enumOf = (values) => ({ kind: "enum", values });
 const arrayOf = (item) => ({ kind: "array", item });
 const recordOf = (value) => ({ kind: "record", value });
 const nullable = (inner) => ({ kind: "nullable", inner });
+const oneOf = (...options) => ({ kind: "oneOf", options });
+/** A field the app no longer writes; allowed only if the stored project has it. */
+const legacy = (inner) => ({ kind: "legacy", inner });
 const strings = arrayOf(str);
 
 /** @param {Record<string, any>} required @param {Record<string, any>} [optional] */
@@ -50,6 +64,19 @@ const PROJECT_INFO = object(
     imageCrop: enumOf(IMAGE_CROPS),
     selectedInfoTab: str,
     isInfoTabCollapsed: bool,
+    // Legacy text sections (ProjectInfo until 2026-03, replaced by
+    // project.fields + templates).
+    domains: legacy(str),
+    mission: legacy(str),
+    keyAspects: legacy(str),
+    targetAudience: legacy(str),
+    userPersona: legacy(str),
+    monetization: legacy(str),
+    techStack: legacy(str),
+    // Seen in real data, never in the app's typed history: image orientation
+    // flag and a notes preview size (cf. project.notePreviewLimit).
+    isVertical: legacy(bool),
+    notePreviewCount: legacy(num),
   },
 );
 
@@ -65,19 +92,35 @@ const GROUP = object(
     // Legacy group labels, still read by the MCP tools (src/yjs/workspace.js).
     title: str,
     name: str,
+    // Legacy group description (renamed to notes/notesVisible).
+    description: legacy(str),
+    descriptionVisible: legacy(bool),
+    isEditingDescription: legacy(bool),
   },
 );
 
 const TASK = object({ text: str, completed: bool, group: str }, { id: str });
 
-const NOTE_ITEM = object({ id: str, text: str, projectId: str, notesId: str });
+const NOTE_ITEM = object(
+  { id: str, text: str, projectId: str, notesId: str },
+  { collectionId: legacy(str) },
+);
 
 const NOTE_COLLECTION = object({
   id: str,
   name: str,
   icon: str,
   items: arrayOf(NOTE_ITEM),
-  settings: object({ showDragHandle: bool }, { fontSize: num }),
+  settings: object(
+    { showDragHandle: bool },
+    {
+      fontSize: num,
+      // Removed by the app's migrateProjectNoteCollectionSettings().
+      customName: legacy(str),
+      // Seen in real data: per-collection preview size.
+      previewCount: legacy(num),
+    },
+  ),
 });
 
 const ADVISOR_CONFIG = object({
@@ -93,6 +136,9 @@ const ADVISOR_CONFIG = object({
 });
 
 const TEMPLATE_REF = object({ id: str, source: enumOf(TEMPLATE_SOURCES), version: str });
+
+/** Pre-noteCollections project notes. */
+const LEGACY_NOTE = object({ id: str, text: str }, { projectId: str });
 
 export const PROJECT_SCHEMA = object(
   {
@@ -119,10 +165,29 @@ export const PROJECT_SCHEMA = object(
     tasksLastModifiedAt: num,
     tasksLastCompletedAt: num,
     notePreviewLimit: num,
+    // --- legacy (Project type history) ---
+    templateId: legacy(str), // replaced by `template`
+    zIndex: legacy(num), // canvas stacking order (2025-12)
+    notes: legacy(arrayOf(LEGACY_NOTE)), // replaced by noteCollections
+    image: legacy(str), // moved to info.image
+    description: legacy(str), // moved to info.description
+    color: legacy(str),
+    domains: legacy(str),
+    mission: legacy(str),
+    keyAspects: legacy(str),
+    userPersona: legacy(str),
+    monetization: legacy(str),
+    techStack: legacy(str),
+    focusChecklist: legacy(arrayOf(oneOf(str, TASK))),
+    groupOrder: legacy(strings),
+    slug: legacy(str),
+    currentFocusGroup: legacy(str),
   },
 );
 
 // --- validation -------------------------------------------------------------
+const jsonKind = (value) => (value === null ? "null" : Array.isArray(value) ? "array" : typeof value);
+const KIND_OF_SCHEMA = { string: "string", boolean: "boolean", number: "number", enum: "string", array: "array", record: "object", object: "object" };
 const isPlainObject = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value)
   && Object.getPrototypeOf(value) === Object.prototype;
@@ -134,12 +199,23 @@ const typeName = (value) => {
   return typeof value;
 };
 
-const joinPath = (base, key) =>
-  typeof key === "number" ? `${base}[${key}]` : /^[A-Za-z_$][\w$]*$/.test(key) ? `${base}.${key}` : `${base}[${JSON.stringify(key)}]`;
+const formatPath = (segs) => {
+  let out = "project";
+  for (const key of segs) {
+    out += typeof key === "number" ? `[${key}]`
+      : /^[A-Za-z_$][\w$]*$/.test(key) ? `.${key}` : `[${JSON.stringify(key)}]`;
+  }
+  return out;
+};
 
-const checkType = (schema, value, path, errors) => {
-  if (errors.length >= MAX_ERRORS) return;
-  const fail = (message) => errors.push({ path, message });
+/**
+ * Collect issues. Each issue: { segs, message, code } where code is one of
+ * "type" | "missing" | "unknown" | "transient" | "legacy" | "reserved" |
+ * "integrity" | "id". Codes decide how a stored baseline can excuse it.
+ */
+const checkType = (schema, value, segs, issues) => {
+  if (issues.length >= MAX_COLLECTED) return;
+  const fail = (message, code = "type") => issues.push({ segs, message, code });
 
   switch (schema.kind) {
     case "string":
@@ -159,14 +235,31 @@ const checkType = (schema, value, path, errors) => {
       }
       return;
     case "nullable":
-      if (value !== null) checkType(schema.inner, value, path, errors);
+      if (value !== null) checkType(schema.inner, value, segs, issues);
       return;
+    case "legacy":
+      issues.push({ segs, message: "legacy field the app no longer uses; it can be kept but not added", code: "legacy" });
+      checkType(schema.inner, value, segs, issues);
+      return;
+    case "oneOf": {
+      for (const option of schema.options) {
+        const probe = [];
+        checkType(option, value, segs, probe);
+        if (probe.length === 0) return;
+      }
+      // Report field-level issues when exactly one option has the right JSON
+      // kind, so a bad nested field is pinned to its own path.
+      const sameKind = schema.options.filter((o) => KIND_OF_SCHEMA[o.kind] === jsonKind(value));
+      if (sameKind.length === 1) checkType(sameKind[0], value, segs, issues);
+      else fail(`value does not match any allowed shape (got ${typeName(value)})`);
+      return;
+    }
     case "array":
       if (!Array.isArray(value)) {
         fail(`expected array, got ${typeName(value)}`);
         return;
       }
-      value.forEach((item, i) => checkType(schema.item, item, joinPath(path, i), errors));
+      value.forEach((item, i) => checkType(schema.item, item, [...segs, i], issues));
       return;
     case "record":
       if (!isPlainObject(value)) {
@@ -176,10 +269,10 @@ const checkType = (schema, value, path, errors) => {
       for (const [key, item] of Object.entries(value)) {
         // "__proto__" cannot survive a Yjs/JSON round-trip as a plain key.
         if (key === "__proto__") {
-          errors.push({ path: joinPath(path, key), message: "reserved key is not allowed" });
+          issues.push({ segs: [...segs, key], message: "reserved key is not allowed", code: "reserved" });
           continue;
         }
-        checkType(schema.value, item, joinPath(path, key), errors);
+        checkType(schema.value, item, [...segs, key], issues);
       }
       return;
     case "object": {
@@ -188,24 +281,30 @@ const checkType = (schema, value, path, errors) => {
         return;
       }
       for (const key of Object.keys(schema.required)) {
-        if (!Object.hasOwn(value, key)) errors.push({ path: joinPath(path, key), message: "required field is missing" });
+        if (!Object.hasOwn(value, key)) {
+          issues.push({ segs: [...segs, key], message: "required field is missing", code: "missing" });
+        }
       }
       for (const [key, item] of Object.entries(value)) {
-        const fieldPath = joinPath(path, key);
-        if (TRANSIENT_KEYS.includes(key)) {
-          errors.push({ path: fieldPath, message: "UI-only field must not be stored" });
+        const fieldSegs = [...segs, key];
+        if (key === "__proto__") {
+          issues.push({ segs: fieldSegs, message: "reserved key is not allowed", code: "reserved" });
           continue;
         }
-        // Own-property lookups only: keys such as "constructor" or "__proto__"
-        // must not resolve to Object.prototype members of the schema tables.
+        if (TRANSIENT_KEYS.includes(key)) {
+          issues.push({ segs: fieldSegs, message: "UI-only field must not be stored", code: "transient" });
+          continue;
+        }
+        // Own-property lookups only: keys such as "constructor" must not
+        // resolve to Object.prototype members of the schema tables.
         const fieldSchema = Object.hasOwn(schema.required, key)
           ? schema.required[key]
           : Object.hasOwn(schema.optional, key) ? schema.optional[key] : undefined;
         if (!fieldSchema) {
-          errors.push({ path: fieldPath, message: "unknown field" });
+          issues.push({ segs: fieldSegs, message: "unknown field", code: "unknown" });
           continue;
         }
-        checkType(fieldSchema, item, fieldPath, errors);
+        checkType(fieldSchema, item, fieldSegs, issues);
       }
       return;
     }
@@ -214,18 +313,22 @@ const checkType = (schema, value, path, errors) => {
   }
 };
 
-const checkUniqueIds = (items, path, errors) => {
+/**
+ * @param {string} [scope] stable identity of the collection (independent of
+ *   array positions), used to match the same problem in the stored project.
+ */
+const checkUniqueIds = (items, segs, issues, scope = formatPath(segs)) => {
   if (!Array.isArray(items)) return new Set();
   const seen = new Map();
   items.forEach((item, i) => {
     const id = item?.id;
     if (typeof id !== "string") return;
     if (id.trim() === "") {
-      errors.push({ path: `${path}[${i}].id`, message: "id must not be empty" });
+      issues.push({ segs: [...segs, i, "id"], message: "id must not be empty", code: "integrity", key: `${scope}\u0000empty\u0000${id}` });
       return;
     }
     if (seen.has(id)) {
-      errors.push({ path: `${path}[${i}].id`, message: `duplicate id ${JSON.stringify(id)} (also at ${path}[${seen.get(id)}])` });
+      issues.push({ segs: [...segs, i, "id"], message: `duplicate id ${JSON.stringify(id)} (also at ${formatPath([...segs, seen.get(id)])})`, code: "integrity", key: `${scope}\u0000dup\u0000${id}` });
       return;
     }
     seen.set(id, i);
@@ -233,28 +336,32 @@ const checkUniqueIds = (items, path, errors) => {
   return new Set(seen.keys());
 };
 
-const checkIntegrity = (project, errors, warnings) => {
-  const p = "project";
+const checkIntegrity = (project, issues, warnings) => {
   if (typeof project.id === "string" && project.id.trim() === "") {
-    errors.push({ path: `${p}.id`, message: "id must not be empty" });
+    issues.push({ segs: ["id"], message: "id must not be empty", code: "integrity", key: "project.id\u0000empty" });
   }
 
-  const checklistIds = checkUniqueIds(project.checklists, `${p}.checklists`, errors);
-  const groupIds = checkUniqueIds(project.groups, `${p}.groups`, errors);
-  checkUniqueIds(project.tasks, `${p}.tasks`, errors);
-  checkUniqueIds(project.noteCollections, `${p}.noteCollections`, errors);
-  checkUniqueIds(project.advisorConfigs, `${p}.advisorConfigs`, errors);
+  const checklistIds = checkUniqueIds(project.checklists, ["checklists"], issues);
+  const groupIds = checkUniqueIds(project.groups, ["groups"], issues);
+  checkUniqueIds(project.tasks, ["tasks"], issues);
+  checkUniqueIds(project.noteCollections, ["noteCollections"], issues);
+  checkUniqueIds(project.advisorConfigs, ["advisorConfigs"], issues);
+
+  const warn = (segs, message) => warnings.push({ path: formatPath(segs), message });
 
   if (Array.isArray(project.noteCollections)) {
     project.noteCollections.forEach((collection, ci) => {
-      const base = `${p}.noteCollections[${ci}]`;
-      checkUniqueIds(collection?.items, `${base}.items`, errors);
+      const base = ["noteCollections", ci, "items"];
+      const scope = typeof collection?.id === "string"
+        ? `noteCollections[id=${JSON.stringify(collection.id)}].items`
+        : formatPath(base);
+      checkUniqueIds(collection?.items, base, issues, scope);
       (Array.isArray(collection?.items) ? collection.items : []).forEach((item, ii) => {
         if (typeof item?.notesId === "string" && item.notesId !== collection.id) {
-          warnings.push({ path: `${base}.items[${ii}].notesId`, message: `points to ${JSON.stringify(item.notesId)}, but the item is in collection ${JSON.stringify(collection.id)}` });
+          warn([...base, ii, "notesId"], `points to ${JSON.stringify(item.notesId)}, but the item is in collection ${JSON.stringify(collection.id)}`);
         }
         if (typeof item?.projectId === "string" && item.projectId !== project.id) {
-          warnings.push({ path: `${base}.items[${ii}].projectId`, message: `points to ${JSON.stringify(item.projectId)}, not this project` });
+          warn([...base, ii, "projectId"], `points to ${JSON.stringify(item.projectId)}, not this project`);
         }
       });
     });
@@ -263,7 +370,7 @@ const checkIntegrity = (project, errors, warnings) => {
   if (Array.isArray(project.tasks) && Array.isArray(project.groups)) {
     project.tasks.forEach((task, i) => {
       if (typeof task?.group === "string" && !groupIds.has(task.group)) {
-        warnings.push({ path: `${p}.tasks[${i}].group`, message: `group ${JSON.stringify(task.group)} does not exist` });
+        warn(["tasks", i, "group"], `group ${JSON.stringify(task.group)} does not exist`);
       }
     });
   }
@@ -271,41 +378,164 @@ const checkIntegrity = (project, errors, warnings) => {
   if (Array.isArray(project.groups) && Array.isArray(project.checklists)) {
     project.groups.forEach((group, i) => {
       if (typeof group?.checklistId === "string" && !checklistIds.has(group.checklistId)) {
-        warnings.push({ path: `${p}.groups[${i}].checklistId`, message: `checklist ${JSON.stringify(group.checklistId)} does not exist` });
+        warn(["groups", i, "checklistId"], `checklist ${JSON.stringify(group.checklistId)} does not exist`);
       }
     });
   }
 
   if (typeof project.selectedChecklistId === "string" && Array.isArray(project.checklists)
     && !checklistIds.has(project.selectedChecklistId)) {
-    warnings.push({ path: `${p}.selectedChecklistId`, message: `checklist ${JSON.stringify(project.selectedChecklistId)} does not exist` });
+    warn(["selectedChecklistId"], `checklist ${JSON.stringify(project.selectedChecklistId)} does not exist`);
   }
+};
+
+// --- stored baseline ----------------------------------------------------------
+const MISSING = Symbol("missing");
+
+/** Canonical comparison (key order independent). */
+const sameJson = (a, b) => {
+  if (a === b) return true;
+  if (jsonKind(a) !== jsonKind(b)) return false;
+  if (Array.isArray(a)) return a.length === b.length && a.every((item, i) => sameJson(item, b[i]));
+  if (a && typeof a === "object") {
+    const ka = Object.keys(a);
+    if (ka.length !== Object.keys(b).length) return false;
+    return ka.every((k) => Object.hasOwn(b, k) && sameJson(a[k], b[k]));
+  }
+  return false;
+};
+
+// id -> first element, per stored array (keeps resolvePair O(depth)).
+// The cache lives for one validateProject call only.
+const idIndex = (idIndexes, array) => {
+  let index = idIndexes.get(array);
+  if (!index) {
+    index = new Map();
+    for (const b of array) {
+      if (b && typeof b === "object" && typeof b.id === "string" && !index.has(b.id)) index.set(b.id, b);
+    }
+    idIndexes.set(array, index);
+  }
+  return index;
+};
+
+/**
+ * Resolve the value at `segs` in both the edited and the stored project.
+ * Array elements are matched by `id` when the edited element has one, so a
+ * reorder does not make an unchanged element look new.
+ */
+const resolvePair = (project, stored, segs, idIndexes) => {
+  let cur = project;
+  let base = stored;
+  for (const key of segs) {
+    if (typeof key === "number") {
+      const item = Array.isArray(cur) ? cur[key] : undefined;
+      cur = item === undefined ? MISSING : item;
+      if (!Array.isArray(base)) {
+        base = MISSING;
+      } else if (item && typeof item === "object" && typeof item.id === "string") {
+        const match = idIndex(idIndexes, base).get(item.id);
+        base = match === undefined ? MISSING : match;
+      } else {
+        base = key < base.length ? base[key] : MISSING;
+      }
+    } else {
+      cur = cur !== MISSING && isPlainObject(cur) && Object.hasOwn(cur, key) ? cur[key] : MISSING;
+      base = base !== MISSING && isPlainObject(base) && Object.hasOwn(base, key) ? base[key] : MISSING;
+    }
+  }
+  return { cur, base };
+};
+
+/** Integrity problems of the stored project: key -> number of occurrences. */
+const storedIntegrityCounts = (stored) => {
+  const counts = new Map();
+  if (!isPlainObject(stored)) return counts;
+  const issues = [];
+  checkIntegrity(stored, issues, []);
+  for (const { key } of issues) counts.set(key, (counts.get(key) || 0) + 1);
+  return counts;
+};
+
+/** Can this issue be kept because the stored project already has it? */
+const excusedByStored = (issue, project, stored, ctx) => {
+  if (stored === undefined || issue.code === "id") return false;
+  if (issue.code === "integrity") {
+    // Duplicate/empty ids are collection-wide: excuse at most as many
+    // occurrences of the same id problem (same collection) as stored has.
+    const counts = (ctx.integrity ??= storedIntegrityCounts(stored));
+    const used = ctx.used.get(issue.key) || 0;
+    if (used >= (counts.get(issue.key) || 0)) return false;
+    ctx.used.set(issue.key, used + 1);
+    return true;
+  }
+  const { cur, base } = resolvePair(project, stored, issue.segs, ctx.idIndexes);
+  if (issue.code === "missing") {
+    // Excused only if the very same stored object lacks it too (not when the
+    // whole element/object is new, where both sides resolve to MISSING).
+    if (base !== MISSING) return false;
+    const parent = resolvePair(project, stored, issue.segs.slice(0, -1), ctx.idIndexes).base;
+    return parent !== MISSING && isPlainObject(parent);
+  }
+  switch (issue.code) {
+    case "legacy":
+      // The key may be kept (and edited, type-checked) if it is already stored.
+      return base !== MISSING;
+    case "unknown":
+      // Untyped: an already-stored scalar may change value but not kind;
+      // objects/arrays (arbitrary content) only while unchanged.
+      if (base === MISSING || cur === MISSING || jsonKind(base) !== jsonKind(cur)) return false;
+      return (cur === null || typeof cur !== "object") || sameJson(cur, base);
+    default:
+      // transient / type / reserved: only while unchanged.
+      return cur !== MISSING && base !== MISSING && sameJson(cur, base);
+  }
+};
+
+const cap = (list, noun) => {
+  const shown = list.slice(0, MAX_REPORTED);
+  if (list.length > MAX_REPORTED) {
+    shown.push({ path: "project", message: `${list.length - MAX_REPORTED} more ${noun} not shown` });
+  }
+  return shown;
 };
 
 /**
  * @param {unknown} project
- * @param {{ expectedId?: string }} [options]
+ * @param {{ expectedId?: string, stored?: unknown }} [options]
+ *   stored: the currently stored version of this project. Issues it already
+ *   has are reported as warnings instead of errors (see file header).
  * @returns {{ ok: boolean, errors: {path: string, message: string}[], warnings: {path: string, message: string}[] }}
  */
-export const validateProject = (project, { expectedId } = {}) => {
-  const errors = [];
+export const validateProject = (project, { expectedId, stored } = {}) => {
+  const issues = [];
   const warnings = [];
 
-  checkType(PROJECT_SCHEMA, project, "project", errors);
+  checkType(PROJECT_SCHEMA, project, [], issues);
 
   if (isPlainObject(project)) {
     if (expectedId != null && typeof project.id === "string" && project.id !== expectedId) {
-      errors.push({ path: "project.id", message: `id cannot be changed (expected ${JSON.stringify(expectedId)})` });
+      issues.push({ segs: ["id"], message: `id cannot be changed (expected ${JSON.stringify(expectedId)})`, code: "id" });
     }
-    checkIntegrity(project, errors, warnings);
+    checkIntegrity(project, issues, warnings);
   }
 
-  const truncated = errors.length > MAX_ERRORS;
-  const shown = errors.slice(0, MAX_ERRORS);
-  if (truncated) shown.push({ path: "project", message: "too many errors; fix the ones above first" });
-  const shownWarnings = warnings.slice(0, MAX_ERRORS);
-  if (warnings.length > MAX_ERRORS) {
-    shownWarnings.push({ path: "project", message: `${warnings.length - MAX_ERRORS} more warnings not shown` });
+  const ctx = { integrity: undefined, used: new Map(), idIndexes: new Map() };
+  const errors = [];
+  const kept = [];
+  for (const issue of issues) {
+    const path = formatPath(issue.segs);
+    if (excusedByStored(issue, project, stored, ctx)) {
+      // Legacy keys that are already stored are expected; don't nag about them.
+      if (issue.code !== "legacy") kept.push({ path, message: `${issue.message} (already stored; kept as is)` });
+    } else {
+      errors.push({ path, message: issue.message });
+    }
   }
-  return { ok: errors.length === 0, errors: shown, warnings: shownWarnings };
+
+  return {
+    ok: errors.length === 0,
+    errors: cap(errors, "errors"),
+    warnings: cap([...kept, ...warnings], "warnings"),
+  };
 };

@@ -2,6 +2,20 @@
 
 All notable changes to the Focus Compass sync server are documented here.
 
+## Unreleased
+
+### Fixed
+
+- Project editor: real projects no longer open with "stored project does not
+  match the schema". The schema now knows the fields older app versions wrote
+  (`zIndex`, `templateId`, `notes`, `info.mission`/`domains`/`keyAspects`/
+  `targetAudience`/`userPersona`/`monetization`/`techStack`,
+  `info.isVertical`, `info.notePreviewCount`,
+  `noteCollections[].settings.previewCount`/`customName`, …) as typed legacy
+  fields. Problems already in the stored project are warnings and are kept on
+  save; an edit can't add new unknown/legacy fields or type errors.
+- `scripts/validate-projects.mjs`: read-only audit of every stored project.
+
 ## 0.0.10 - 2026-10-17
 
 ### Added

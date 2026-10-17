@@ -4883,7 +4883,14 @@
         if (m) {
           // Put the caret where parsing failed.
           const pos = Math.min(Number(m[1]), text.length);
-          try { $("projJson").focus(); $("projJson").setSelectionRange(pos, pos); } catch { /* ignore */ }
+          try {
+            const el = $("projJson");
+            el.focus();
+            el.setSelectionRange(pos, pos);
+            const lineNo = text.slice(0, pos).split("\n").length;
+            const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 18;
+            el.scrollTop = Math.max(0, (lineNo - 4) * lineHeight);
+          } catch { /* ignore */ }
         }
         if (m && !/line \d+/.test(err.message)) {
           const before = text.slice(0, Number(m[1]));

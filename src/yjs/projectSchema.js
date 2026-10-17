@@ -186,6 +186,8 @@ export const PROJECT_SCHEMA = object(
 );
 
 // --- validation -------------------------------------------------------------
+const jsonKind = (value) => (value === null ? "null" : Array.isArray(value) ? "array" : typeof value);
+const KIND_OF_SCHEMA = { string: "string", boolean: "boolean", number: "number", enum: "string", array: "array", record: "object", object: "object" };
 const isPlainObject = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value)
   && Object.getPrototypeOf(value) === Object.prototype;
@@ -245,7 +247,11 @@ const checkType = (schema, value, segs, issues) => {
         checkType(option, value, segs, probe);
         if (probe.length === 0) return;
       }
-      fail(`value does not match any allowed shape (got ${typeName(value)})`);
+      // Report field-level issues when exactly one option has the right JSON
+      // kind, so a bad nested field is pinned to its own path.
+      const sameKind = schema.options.filter((o) => KIND_OF_SCHEMA[o.kind] === jsonKind(value));
+      if (sameKind.length === 1) checkType(sameKind[0], value, segs, issues);
+      else fail(`value does not match any allowed shape (got ${typeName(value)})`);
       return;
     }
     case "array":
@@ -307,18 +313,22 @@ const checkType = (schema, value, segs, issues) => {
   }
 };
 
-const checkUniqueIds = (items, segs, issues) => {
+/**
+ * @param {string} [scope] stable identity of the collection (independent of
+ *   array positions), used to match the same problem in the stored project.
+ */
+const checkUniqueIds = (items, segs, issues, scope = formatPath(segs)) => {
   if (!Array.isArray(items)) return new Set();
   const seen = new Map();
   items.forEach((item, i) => {
     const id = item?.id;
     if (typeof id !== "string") return;
     if (id.trim() === "") {
-      issues.push({ segs: [...segs, i, "id"], message: "id must not be empty", code: "integrity" });
+      issues.push({ segs: [...segs, i, "id"], message: "id must not be empty", code: "integrity", key: `${scope}\u0000empty\u0000${id}` });
       return;
     }
     if (seen.has(id)) {
-      issues.push({ segs: [...segs, i, "id"], message: `duplicate id ${JSON.stringify(id)} (also at ${formatPath([...segs, seen.get(id)])})`, code: "integrity" });
+      issues.push({ segs: [...segs, i, "id"], message: `duplicate id ${JSON.stringify(id)} (also at ${formatPath([...segs, seen.get(id)])})`, code: "integrity", key: `${scope}\u0000dup\u0000${id}` });
       return;
     }
     seen.set(id, i);
@@ -328,7 +338,7 @@ const checkUniqueIds = (items, segs, issues) => {
 
 const checkIntegrity = (project, issues, warnings) => {
   if (typeof project.id === "string" && project.id.trim() === "") {
-    issues.push({ segs: ["id"], message: "id must not be empty", code: "integrity" });
+    issues.push({ segs: ["id"], message: "id must not be empty", code: "integrity", key: "project.id\u0000empty" });
   }
 
   const checklistIds = checkUniqueIds(project.checklists, ["checklists"], issues);
@@ -342,7 +352,10 @@ const checkIntegrity = (project, issues, warnings) => {
   if (Array.isArray(project.noteCollections)) {
     project.noteCollections.forEach((collection, ci) => {
       const base = ["noteCollections", ci, "items"];
-      checkUniqueIds(collection?.items, base, issues);
+      const scope = typeof collection?.id === "string"
+        ? `noteCollections[id=${JSON.stringify(collection.id)}].items`
+        : formatPath(base);
+      checkUniqueIds(collection?.items, base, issues, scope);
       (Array.isArray(collection?.items) ? collection.items : []).forEach((item, ii) => {
         if (typeof item?.notesId === "string" && item.notesId !== collection.id) {
           warn([...base, ii, "notesId"], `points to ${JSON.stringify(item.notesId)}, but the item is in collection ${JSON.stringify(collection.id)}`);
@@ -379,8 +392,6 @@ const checkIntegrity = (project, issues, warnings) => {
 // --- stored baseline ----------------------------------------------------------
 const MISSING = Symbol("missing");
 
-const jsonKind = (value) => (value === null ? "null" : Array.isArray(value) ? "array" : typeof value);
-
 /** Canonical comparison (key order independent). */
 const sameJson = (a, b) => {
   if (a === b) return true;
@@ -394,12 +405,26 @@ const sameJson = (a, b) => {
   return false;
 };
 
+// id -> first element, per stored array (keeps resolvePair O(depth)).
+// The cache lives for one validateProject call only.
+const idIndex = (idIndexes, array) => {
+  let index = idIndexes.get(array);
+  if (!index) {
+    index = new Map();
+    for (const b of array) {
+      if (b && typeof b === "object" && typeof b.id === "string" && !index.has(b.id)) index.set(b.id, b);
+    }
+    idIndexes.set(array, index);
+  }
+  return index;
+};
+
 /**
  * Resolve the value at `segs` in both the edited and the stored project.
  * Array elements are matched by `id` when the edited element has one, so a
  * reorder does not make an unchanged element look new.
  */
-const resolvePair = (project, stored, segs) => {
+const resolvePair = (project, stored, segs, idIndexes) => {
   let cur = project;
   let base = stored;
   for (const key of segs) {
@@ -409,7 +434,7 @@ const resolvePair = (project, stored, segs) => {
       if (!Array.isArray(base)) {
         base = MISSING;
       } else if (item && typeof item === "object" && typeof item.id === "string") {
-        const match = base.find((b) => b && typeof b === "object" && b.id === item.id);
+        const match = idIndex(idIndexes, base).get(item.id);
         base = match === undefined ? MISSING : match;
       } else {
         base = key < base.length ? base[key] : MISSING;
@@ -422,36 +447,48 @@ const resolvePair = (project, stored, segs) => {
   return { cur, base };
 };
 
-/** Integrity issues of the stored project, as "path\u0000message" keys. */
-const storedIntegrityKeys = (stored) => {
-  const keys = new Set();
-  if (!isPlainObject(stored)) return keys;
+/** Integrity problems of the stored project: key -> number of occurrences. */
+const storedIntegrityCounts = (stored) => {
+  const counts = new Map();
+  if (!isPlainObject(stored)) return counts;
   const issues = [];
   checkIntegrity(stored, issues, []);
-  for (const issue of issues) keys.add(`${formatPath(issue.segs)}\u0000${issue.message}`);
-  return keys;
+  for (const { key } of issues) counts.set(key, (counts.get(key) || 0) + 1);
+  return counts;
 };
 
 /** Can this issue be kept because the stored project already has it? */
-const excusedByStored = (issue, project, stored, integrityKeys) => {
+const excusedByStored = (issue, project, stored, ctx) => {
   if (stored === undefined || issue.code === "id") return false;
   if (issue.code === "integrity") {
-    // Duplicate/empty ids are collection-wide: excuse only the very same
-    // problem at the same place in the stored project.
-    return integrityKeys().has(`${formatPath(issue.segs)}\u0000${issue.message}`);
+    // Duplicate/empty ids are collection-wide: excuse at most as many
+    // occurrences of the same id problem (same collection) as stored has.
+    const counts = (ctx.integrity ??= storedIntegrityCounts(stored));
+    const used = ctx.used.get(issue.key) || 0;
+    if (used >= (counts.get(issue.key) || 0)) return false;
+    ctx.used.set(issue.key, used + 1);
+    return true;
   }
-  const { cur, base } = resolvePair(project, stored, issue.segs);
+  const { cur, base } = resolvePair(project, stored, issue.segs, ctx.idIndexes);
+  if (issue.code === "missing") {
+    // Excused only if the very same stored object lacks it too (not when the
+    // whole element/object is new, where both sides resolve to MISSING).
+    if (base !== MISSING) return false;
+    const parent = resolvePair(project, stored, issue.segs.slice(0, -1), ctx.idIndexes).base;
+    return parent !== MISSING && isPlainObject(parent);
+  }
   switch (issue.code) {
     case "legacy":
       // The key may be kept (and edited, type-checked) if it is already stored.
       return base !== MISSING;
     case "unknown":
-    case "transient":
-      // Untyped: keep only if already stored with the same JSON kind.
-      return base !== MISSING && cur !== MISSING && jsonKind(base) === jsonKind(cur);
+      // Untyped: an already-stored scalar may change value but not kind;
+      // objects/arrays (arbitrary content) only while unchanged.
+      if (base === MISSING || cur === MISSING || jsonKind(base) !== jsonKind(cur)) return false;
+      return (cur === null || typeof cur !== "object") || sameJson(cur, base);
     default:
-      // type / missing / reserved: only while unchanged.
-      return cur === MISSING ? base === MISSING : base !== MISSING && sameJson(cur, base);
+      // transient / type / reserved: only while unchanged.
+      return cur !== MISSING && base !== MISSING && sameJson(cur, base);
   }
 };
 
@@ -483,13 +520,12 @@ export const validateProject = (project, { expectedId, stored } = {}) => {
     checkIntegrity(project, issues, warnings);
   }
 
-  let integrity;
-  const integrityKeys = () => (integrity ??= storedIntegrityKeys(stored));
+  const ctx = { integrity: undefined, used: new Map(), idIndexes: new Map() };
   const errors = [];
   const kept = [];
   for (const issue of issues) {
     const path = formatPath(issue.segs);
-    if (excusedByStored(issue, project, stored, integrityKeys)) {
+    if (excusedByStored(issue, project, stored, ctx)) {
       // Legacy keys that are already stored are expected; don't nag about them.
       if (issue.code !== "legacy") kept.push({ path, message: `${issue.message} (already stored; kept as is)` });
     } else {

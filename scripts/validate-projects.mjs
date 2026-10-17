@@ -46,7 +46,14 @@ for (const doc of docs) {
   }
   for (const { id } of list) {
     total += 1;
-    const { project } = await get(`/api/admin/documents/${encodeURIComponent(doc)}/projects/${encodeURIComponent(id)}`);
+    let project;
+    try {
+      ({ project } = await get(`/api/admin/documents/${encodeURIComponent(doc)}/projects/${encodeURIComponent(id)}`));
+    } catch (err) {
+      failing += 1;
+      console.log(`FAIL ${doc}/${id}: ${err.message}`);
+      continue;
+    }
     const open = validateProject(project, { expectedId: id, stored: project });
     if (!open.ok) {
       failing += 1;

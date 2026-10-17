@@ -341,3 +341,49 @@ test("old-era fields: notes, focusChecklist (strings or tasks), group descriptio
   bad.focusChecklist = [1];
   assert.deepEqual(validateProject(bad, { stored }).errors.map((e) => e.path), ["project.focusChecklist[0]"]);
 });
+
+test("review fixes: transient must be unchanged, unknown containers frozen, shifted duplicates, oneOf field paths", () => {
+  const stored = clone(presets[0]);
+  stored.isNew = false;
+  stored.extra = { a: 1 };
+  stored.label = "x";
+  stored.tasks.push(clone(stored.tasks[0])); // pre-existing duplicate id
+  stored.focusChecklist = [{ id: "f1", text: "a", completed: "no", group: "g" }];
+
+  // Unrelated edit that shifts the duplicate and edits a sibling field of a
+  // pre-existing bad value: still saveable.
+  const ok = clone(stored);
+  ok.tasks.unshift({ id: "new-task", text: "n", completed: false, group: stored.tasks[0].group });
+  ok.focusChecklist[0].text = "b";
+  ok.label = "y"; // unknown scalar, same kind
+  assert.deepEqual(validateProject(ok, { stored }).errors, []);
+
+  const bad = clone(stored);
+  bad.isNew = true; // transient changed
+  bad.extra = { a: 1, b: [] }; // unknown container changed
+  bad.tasks.push(clone(bad.tasks[0])); // one more duplicate than stored
+  bad.focusChecklist[0].completed = "maybe"; // bad value changed
+  assert.deepEqual(validateProject(bad, { stored }).errors.map((e) => e.path).sort(), [
+    "project.extra", "project.focusChecklist[0].completed", "project.isNew", `project.tasks[${bad.tasks.length - 1}].id`,
+  ]);
+});
+
+test("review round 2: missing required fields on a NEW element are never excused", () => {
+  const stored = clone(presets[0]);
+  stored.focusChecklist = [];
+  delete stored.tasks[0].group; // pre-existing missing field in a stored element
+  const edited = clone(stored);
+  edited.focusChecklist = [{}];
+  edited.tasks.push({});
+  edited.noteCollections.push({ id: "c-new", name: "n", icon: "i", items: [], settings: {} });
+  const paths = validateProject(edited, { stored }).errors.map((e) => e.path).sort();
+  assert.deepEqual(paths, [
+    "project.focusChecklist[0].completed", "project.focusChecklist[0].group", "project.focusChecklist[0].text",
+    `project.noteCollections[${edited.noteCollections.length - 1}].settings.showDragHandle`,
+    `project.tasks[${edited.tasks.length - 1}].completed`, `project.tasks[${edited.tasks.length - 1}].group`, `project.tasks[${edited.tasks.length - 1}].text`,
+  ]);
+  // The stored element's own missing field stays a warning.
+  const own = validateProject(stored, { stored });
+  assert.equal(own.ok, true);
+  assert.ok(own.warnings.some((w) => w.path === "project.tasks[0].group"));
+});
